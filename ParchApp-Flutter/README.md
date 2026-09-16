@@ -16,6 +16,10 @@ Shared native Flutter foundation for the ParchApp prototype.
 ## Current scope
 Welcome, sign-in and account creation are implemented with a mock auth backend.
 Auth is the reference MVVM feature.
+Alerts follows the same MVVM/domain/repository boundaries with an in-memory mock repository.
+Open Alerts from the authentication completion screen, or navigate to `/alerts`.
+Search, category filters, read status and alert responses work for the current app session.
+The activity-creation sheet, maps and unimplemented destinations remain previews; no invitations are sent.
 Successful sign-in and account creation open the Home dashboard preview.
 Home uses sample content and placeholder actions; real authentication remains unimplemented.
 

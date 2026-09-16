@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../app/router/app_routes.dart';
 
 const _cobalt = Color(0xFF0047BA);
 const _emerald = Color(0xFF10B981);
@@ -1173,19 +1174,7 @@ class HomeView extends StatelessWidget {
   }
 
   void _onNotifications(BuildContext context) {
-    _showSheet(
-        context,
-        'Notifications',
-        (_) => [
-              const ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: Icon(Icons.sports_soccer, color: _cobalt),
-                title: Text('Match confirmed tonight!'),
-                subtitle: Text(
-                    'Roomies Main St confirmed 5-a-side Soccer for 7:30 PM.'),
-                isThreeLine: true,
-              ),
-            ]);
+    context.go(AppRoutes.alerts);
   }
 
   void _onProfile(BuildContext context) {
