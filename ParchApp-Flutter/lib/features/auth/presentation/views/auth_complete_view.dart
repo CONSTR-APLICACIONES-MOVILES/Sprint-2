@@ -12,6 +12,10 @@ class AuthCompleteView extends StatelessWidget {
         body: Center(
             child: Column(mainAxisSize: MainAxisSize.min, children: [
           const Text('Home will be implemented next.'),
+          FilledButton.icon(
+              onPressed: () => context.push(AppRoutes.alerts),
+              icon: const Icon(Icons.notifications_outlined),
+              label: const Text('Open Alerts')),
           TextButton(
               onPressed: () => context.go(AppRoutes.welcome),
               child: const Text('Back to welcome')),

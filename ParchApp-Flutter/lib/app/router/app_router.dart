@@ -3,11 +3,13 @@ import 'package:go_router/go_router.dart';
 import '../../features/welcome/presentation/views/welcome_view.dart';
 import '../../features/auth/presentation/views/auth_complete_view.dart';
 import '../dependency_injection/auth_dependencies.dart';
+import '../dependency_injection/alerts_dependencies.dart';
 import 'app_routes.dart';
 
 abstract final class AppRouter {
   static GoRouter create(
     AuthDependencies dependencies, {
+    required AlertsDependencies alertsDependencies,
     String initialLocation = AppRoutes.welcome,
   }) =>
       GoRouter(
@@ -27,6 +29,11 @@ abstract final class AppRouter {
             path: AppRoutes.createAccount,
             name: 'createAccount',
             builder: (context, state) => dependencies.createAccountRoute(),
+          ),
+          GoRoute(
+            path: AppRoutes.alerts,
+            name: 'alerts',
+            builder: (context, state) => alertsDependencies.route(),
           ),
           GoRoute(
             path: AppRoutes.authComplete,

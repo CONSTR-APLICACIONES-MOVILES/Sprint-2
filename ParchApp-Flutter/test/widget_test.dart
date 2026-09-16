@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:parchapp/app/app.dart';
 import 'package:parchapp/app/dependency_injection/auth_dependencies.dart';
+import 'package:parchapp/app/dependency_injection/alerts_dependencies.dart';
 import 'package:parchapp/app/router/app_router.dart';
 import 'package:parchapp/app/router/app_routes.dart';
 import 'package:parchapp/features/auth/domain/entities/authenticated_user.dart';
@@ -23,6 +24,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     final router = AppRouter.create(AuthDependencies(repository: repository),
+        alertsDependencies: AlertsDependencies.mock(),
         initialLocation: location);
     addTearDown(router.dispose);
     await tester.pumpWidget(ParchApp(router: router));
