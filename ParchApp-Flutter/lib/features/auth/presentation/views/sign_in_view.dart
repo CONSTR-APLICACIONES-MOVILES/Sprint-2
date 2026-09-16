@@ -60,7 +60,7 @@ class _SignInViewState extends State<SignInView> {
     if (ModalRoute.of(context)?.isCurrent != true) return;
     if (state.status == AuthStatus.authenticated &&
         previous.status != AuthStatus.authenticated) {
-      context.go(AppRoutes.authComplete);
+      context.go(AppRoutes.home);
     } else if (state.message != null &&
         (state.message != previous.message ||
             state.status != previous.status)) {

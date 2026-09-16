@@ -12,6 +12,7 @@ import 'package:parchapp/features/auth/domain/entities/authenticated_user.dart';
 import 'package:parchapp/features/auth/domain/use_cases/sign_in.dart';
 import 'package:parchapp/features/auth/presentation/view_models/sign_in_view_model.dart';
 import 'package:parchapp/features/auth/presentation/views/sign_in_view.dart';
+import 'package:parchapp/features/home/presentation/views/home_view.dart';
 import 'support/fake_auth_repository.dart';
 
 void main() {
@@ -67,7 +68,7 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
-  testWidgets('successful credential sign-in navigates to completion',
+  testWidgets('successful credential sign-in opens the Home dashboard',
       (tester) async {
     final repository = FakeAuthRepository();
     final router =
@@ -75,8 +76,10 @@ void main() {
     await submitSignIn(tester);
     await tester.pumpAndSettle();
     expect(repository.signInCalls, 1);
-    expect(router.state.uri.path, AppRoutes.authComplete);
-    expect(find.text('Authentication successful'), findsOneWidget);
+    expect(router.state.uri.path, AppRoutes.home);
+    expect(find.byType(HomeView), findsOneWidget);
+    expect(find.text('Hello, Alex! 👋'), findsOneWidget);
+    expect(router.canPop(), isFalse);
   });
 
   testWidgets('rejected credentials keep the form and display the failure',
@@ -127,6 +130,34 @@ void main() {
     await tester.tap(button);
     await tester.pumpAndSettle();
     expect(repository.createCalls, 1);
-    expect(router.state.uri.path, AppRoutes.authComplete);
+    expect(router.state.uri.path, AppRoutes.home);
+    expect(find.byType(HomeView), findsOneWidget);
+    expect(router.canPop(), isFalse);
+  });
+
+  testWidgets('legacy auth completion route redirects to Home', (tester) async {
+    final router = await mountApp(tester, FakeAuthRepository(),
+        location: AppRoutes.authComplete);
+    expect(router.state.uri.path, AppRoutes.home);
+    expect(find.byType(HomeView), findsOneWidget);
+    expect(find.text('Home will be implemented next.'), findsNothing);
+  });
+
+  testWidgets('recognized account sign-in opens Home', (tester) async {
+    final router = await mountApp(tester, FakeAuthRepository(),
+        location: AppRoutes.signIn);
+    await tester.tap(find.text('Continue as Test'));
+    await tester.pumpAndSettle();
+    expect(router.state.uri.path, AppRoutes.home);
+    expect(find.byType(HomeView), findsOneWidget);
+  });
+
+  testWidgets('Google sign-in opens Home', (tester) async {
+    final router = await mountApp(tester, FakeAuthRepository(),
+        location: AppRoutes.signIn);
+    await tester.tap(find.text('Continue with Google'));
+    await tester.pumpAndSettle();
+    expect(router.state.uri.path, AppRoutes.home);
+    expect(find.byType(HomeView), findsOneWidget);
   });
 }

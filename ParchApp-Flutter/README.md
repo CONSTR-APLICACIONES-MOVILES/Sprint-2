@@ -20,7 +20,8 @@ Alerts follows the same MVVM/domain/repository boundaries with an in-memory mock
 Open Alerts from the authentication completion screen, or navigate to `/alerts`.
 Search, category filters, read status and alert responses work for the current app session.
 The activity-creation sheet, maps and unimplemented destinations remain previews; no invitations are sent.
-Successful auth opens a completion placeholder; Home and real authentication remain unimplemented.
+Successful sign-in and account creation open the Home dashboard preview.
+Home uses sample content and placeholder actions; real authentication remains unimplemented.
 
 ## Run
 ```bash
