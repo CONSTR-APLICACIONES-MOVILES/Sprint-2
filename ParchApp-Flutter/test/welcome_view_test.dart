@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:parchapp/features/welcome/presentation/views/welcome_view.dart';
+import 'package:parchapp/features/welcome/view/welcome_view.dart';
 
 void main() {
   testWidgets('Welcome screen shows core content', (tester) async {
