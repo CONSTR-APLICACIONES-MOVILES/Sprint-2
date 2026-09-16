@@ -1,29 +1,39 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/constants/app_dimensions.dart';
-import '../../core/theme/app_colors.dart';
 
 class ParchSecondaryButton extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
+  final Widget? leading;
+  final double? height;
 
-  const ParchSecondaryButton({super.key, required this.label, required this.onPressed});
+  const ParchSecondaryButton({
+    super.key,
+    required this.label,
+    required this.onPressed,
+    this.leading,
+    this.height,
+  });
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: AppDimensions.secondaryButtonHeight,
+      height: height ?? AppDimensions.secondaryButtonHeight,
       child: OutlinedButton(
         onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          backgroundColor: AppColors.surface,
-          foregroundColor: const Color(0xFF1E293B),
-          side: const BorderSide(color: AppColors.border),
-          shape: const StadiumBorder(),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (leading != null) ...[
+              leading!,
+              const SizedBox(width: 8),
+            ],
+            Text(label),
+          ],
         ),
-        child: Text(label, style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w500)),
       ),
     );
   }
