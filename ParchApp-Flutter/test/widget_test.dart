@@ -82,6 +82,18 @@ void main() {
     expect(router.canPop(), isFalse);
   });
 
+  testWidgets('Home notifications opens the connected alerts view',
+      (tester) async {
+    final router = await mountApp(tester, FakeAuthRepository(),
+        location: AppRoutes.home);
+
+    await tester.tap(find.byTooltip('Notifications'));
+    await tester.pumpAndSettle();
+
+    expect(router.state.uri.path, AppRoutes.alerts);
+    expect(find.text('Mutual Free Window with Sarah Jenkins'), findsOneWidget);
+  });
+
   testWidgets('rejected credentials keep the form and display the failure',
       (tester) async {
     final repository = FakeAuthRepository()..rejectCredentials = true;
