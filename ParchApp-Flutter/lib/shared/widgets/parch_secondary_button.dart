@@ -31,7 +31,7 @@ class ParchSecondaryButton extends StatelessWidget {
               leading!,
               const SizedBox(width: 8),
             ],
-            Text(label),
+            Flexible(child: Text(label, textAlign: TextAlign.center)),
           ],
         ),
       ),

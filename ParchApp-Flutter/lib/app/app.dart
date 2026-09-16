@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../core/theme/app_theme.dart';
-import 'router/app_router.dart';
 
 class ParchApp extends StatelessWidget {
-  const ParchApp({super.key});
+  final GoRouter router;
+  const ParchApp({super.key, required this.router});
 
   @override
   Widget build(BuildContext context) {
@@ -12,7 +13,7 @@ class ParchApp extends StatelessWidget {
       title: 'ParchApp',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      routerConfig: AppRouter.router,
+      routerConfig: router,
     );
   }
 }
