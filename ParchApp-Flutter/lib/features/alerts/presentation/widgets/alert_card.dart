@@ -166,30 +166,9 @@ class AlertCard extends StatelessWidget {
                           fontWeight: FontWeight.w700)),
                 ],
                 const SizedBox(height: 10),
-                if (alert.kind == AlertKind.timeChanged)
-                  const Text.rich(
-                      TextSpan(children: [
-                        TextSpan(text: 'Mateo moved the plan from '),
-                        TextSpan(
-                            text: '19:00',
-                            style: TextStyle(
-                                decoration: TextDecoration.lineThrough,
-                                color: Color(0xFF90939B))),
-                        TextSpan(text: ' to '),
-                        TextSpan(
-                            text: '20:15',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF001A41))),
-                        TextSpan(
-                            text: ' so everyone can finish afternoon labs.'),
-                      ]),
-                      style: TextStyle(
-                          fontSize: 13, height: 1.5, color: Color(0xFF43474E)))
-                else
-                  Text(alert.description,
-                      style: const TextStyle(
-                          fontSize: 13, height: 1.5, color: Color(0xFF43474E))),
+                Text(alert.description,
+                    style: const TextStyle(
+                        fontSize: 13, height: 1.5, color: Color(0xFF43474E))),
                 if (alert.kind == AlertKind.friendRequest) ...[
                   const SizedBox(height: 8),
                   const Text(
@@ -312,7 +291,10 @@ class AlertCard extends StatelessWidget {
         AlertKind.reminder => [
             _primary("I'm on my way", () => onRespond(AlertResponse.onMyWay),
                 icon: Icons.directions_walk),
-            TextButton(onPressed: onDetails, child: const Text('View Map'))
+            TextButton(
+                onPressed: onDetails,
+                child: Text(
+                    alert.studySessionId == null ? 'View Map' : 'View session'))
           ],
         AlertKind.invitation => [
             _primary('Accept', () => onRespond(AlertResponse.accepted),

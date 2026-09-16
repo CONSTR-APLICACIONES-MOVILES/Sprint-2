@@ -1,3 +1,4 @@
+import '../../../../shared/widgets/parch_navigation_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/router/app_routes.dart';
@@ -336,32 +337,7 @@ class _AlertsViewState extends State<AlertsView> {
                       const SliverPadding(padding: EdgeInsets.only(bottom: 24)),
                     ]),
               )),
-          bottomNavigationBar: NavigationBar(
-            selectedIndex: 0,
-            backgroundColor: Colors.white,
-            surfaceTintColor: Colors.transparent,
-            indicatorColor: alertsGreenTint,
-            onDestinationSelected: (index) {
-              if (index == 0) {
-                // Home is not present on feature/alerts-module yet.
-                context.go(AppRoutes.authComplete);
-              } else {
-                _message(index == 1
-                    ? 'Groups is coming soon.'
-                    : 'Schedule is coming soon.');
-              }
-            },
-            destinations: const [
-              NavigationDestination(
-                  icon: Icon(Icons.home_outlined),
-                  selectedIcon: Icon(Icons.home_outlined, color: alertsGreen),
-                  label: 'Home'),
-              NavigationDestination(
-                  icon: Icon(Icons.groups_outlined), label: 'Groups'),
-              NavigationDestination(
-                  icon: Icon(Icons.calendar_month_outlined), label: 'Schedule'),
-            ],
-          ),
+          bottomNavigationBar: const ParchNavigationBar(),
         ),
       );
 
@@ -439,6 +415,10 @@ class _AlertsViewState extends State<AlertsView> {
   }
 
   void _details(AppAlert alert) {
+    if (alert.studySessionId != null) {
+      context.push(AppRoutes.studySession(alert.studySessionId!));
+      return;
+    }
     showAlertsSheet<void>(context,
         child: Column(
             mainAxisSize: MainAxisSize.min,

@@ -9,4 +9,8 @@ abstract final class AppRoutes {
   static const String alerts = '/alerts';
   static const String profile = '/profile';
   static const String discover = '/discover';
+  static const String studySessionPattern =
+      '/activities/study-sessions/:sessionId';
+  static String studySession(String id) =>
+      '/activities/study-sessions/${Uri.encodeComponent(id)}';
 }

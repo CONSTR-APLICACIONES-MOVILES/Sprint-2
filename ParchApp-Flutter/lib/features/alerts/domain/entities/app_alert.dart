@@ -29,6 +29,7 @@ class AppAlert {
   final String timeLabel;
   final bool isRead;
   final AlertResponse? response;
+  final String? studySessionId;
 
   const AppAlert(
       {required this.id,
@@ -38,7 +39,8 @@ class AppAlert {
       required this.description,
       required this.timeLabel,
       this.isRead = false,
-      this.response});
+      this.response,
+      this.studySessionId});
 
   bool get isPriority =>
       kind == AlertKind.reminder || kind == AlertKind.invitation;
@@ -52,5 +54,6 @@ class AppAlert {
       description: description,
       timeLabel: timeLabel,
       isRead: isRead ?? this.isRead,
-      response: response ?? this.response);
+      response: response ?? this.response,
+      studySessionId: studySessionId);
 }
