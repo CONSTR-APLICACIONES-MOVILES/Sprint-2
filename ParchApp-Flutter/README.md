@@ -16,7 +16,8 @@ Shared native Flutter foundation for the ParchApp prototype.
 ## Current scope
 Welcome, sign-in and account creation are implemented with a mock auth backend.
 Auth is the reference MVVM feature.
-Successful auth opens a completion placeholder; Home and real authentication remain unimplemented.
+Successful sign-in and account creation open the Home dashboard preview.
+Home uses sample content and placeholder actions; real authentication remains unimplemented.
 
 ## Run
 ```bash

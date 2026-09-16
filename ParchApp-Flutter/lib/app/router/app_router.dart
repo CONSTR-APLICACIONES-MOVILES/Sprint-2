@@ -1,7 +1,7 @@
 import 'package:go_router/go_router.dart';
 
 import '../../features/welcome/presentation/views/welcome_view.dart';
-import '../../features/auth/presentation/views/auth_complete_view.dart';
+import '../../features/home/presentation/views/home_view.dart';
 import '../dependency_injection/auth_dependencies.dart';
 import 'app_routes.dart';
 
@@ -29,8 +29,13 @@ abstract final class AppRouter {
             builder: (context, state) => dependencies.createAccountRoute(),
           ),
           GoRoute(
+            path: AppRoutes.home,
+            name: 'home',
+            builder: (context, state) => const HomeView(),
+          ),
+          GoRoute(
             path: AppRoutes.authComplete,
-            builder: (context, state) => const AuthCompleteView(),
+            redirect: (context, state) => AppRoutes.home,
           ),
         ],
       );
