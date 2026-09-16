@@ -4,17 +4,33 @@ import '../../features/welcome/presentation/views/welcome_view.dart';
 import '../../features/home/presentation/views/home_view.dart';
 import '../dependency_injection/auth_dependencies.dart';
 import '../dependency_injection/alerts_dependencies.dart';
+import '../dependency_injection/activities_dependencies.dart';
+import '../../shared/widgets/unavailable_feature_view.dart';
 import 'app_routes.dart';
 
 abstract final class AppRouter {
   static GoRouter create(
     AuthDependencies dependencies, {
     required AlertsDependencies alertsDependencies,
+    required ActivitiesDependencies activitiesDependencies,
     String initialLocation = AppRoutes.welcome,
   }) =>
       GoRouter(
         initialLocation: initialLocation,
         routes: [
+          GoRoute(
+            path: AppRoutes.studySessionPattern,
+            builder: (context, state) => activitiesDependencies
+                .route(state.pathParameters['sessionId']!),
+          ),
+          GoRoute(
+              path: AppRoutes.groups,
+              builder: (context, state) => const UnavailableFeatureView(
+                  title: 'Groups', selectedIndex: 1)),
+          GoRoute(
+              path: AppRoutes.schedule,
+              builder: (context, state) => const UnavailableFeatureView(
+                  title: 'Schedule', selectedIndex: 2)),
           GoRoute(
             path: AppRoutes.welcome,
             name: 'welcome',

@@ -44,6 +44,7 @@ const _samples = [
           'Systems Engineering • Shared: Algoritmos & Estructuras de Datos'),
   AppAlert(
       id: 'reminder',
+      studySessionId: 'linear-algebra',
       kind: AlertKind.reminder,
       period: AlertPeriod.today,
       title: 'Study Session: Álgebra Lineal & Cálculo',

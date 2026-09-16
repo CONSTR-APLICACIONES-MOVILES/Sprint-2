@@ -17,11 +17,24 @@ Shared native Flutter foundation for the ParchApp prototype.
 Welcome, sign-in and account creation are implemented with a mock auth backend.
 Auth is the reference MVVM feature.
 Alerts follows the same MVVM/domain/repository boundaries with an in-memory mock repository.
-Open Alerts from the authentication completion screen, or navigate to `/alerts`.
+Open Alerts using the notification bell in Home, or navigate to `/alerts`.
 Search, category filters, read status and alert responses work for the current app session.
 The activity-creation sheet, maps and unimplemented destinations remain previews; no invitations are sent.
 Successful sign-in and account creation open the Home dashboard preview.
 Home uses sample content and placeholder actions; real authentication remains unimplemented.
+
+## Study session detail
+
+Open the study-session card in Home, or choose **View session** on its alert.
+The route is `/activities/study-sessions/linear-algebra`.
+The detail belongs to `features/activities/` and uses MVVM, domain use cases and an injected repository.
+Topic completion, title/room/date/time editing and confirmed cancellation work in memory and survive route changes.
+Invalid edits keep the previous session. Cancelled sessions cannot be edited.
+Unknown IDs and load/save failures have explicit UI states.
+Maps, chat, invitations, reservation services and file downloads are clearly identified as unconnected previews.
+Groups and Schedule now have registered placeholder screens; they are not implemented modules.
+
+Architecture: [contract](docs/architecture/architecture-contract.md), [state ADR](docs/architecture/adr-001-state-management.md), [remaining work](docs/architecture/implementation-backlog.md).
 
 ## Run
 ```bash

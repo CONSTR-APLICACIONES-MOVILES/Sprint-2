@@ -1,3 +1,4 @@
+import 'package:parchapp/app/dependency_injection/activities_dependencies.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -8,12 +9,35 @@ import 'package:parchapp/app/router/app_router.dart';
 import 'package:parchapp/app/router/app_routes.dart';
 import 'package:parchapp/features/alerts/data/repositories/mock_alerts_repository.dart';
 import 'package:parchapp/features/alerts/domain/use_cases/manage_alerts.dart';
+import 'package:parchapp/features/alerts/domain/entities/app_alert.dart';
 import 'package:parchapp/features/alerts/presentation/view_models/alerts_view_model.dart';
 import 'package:parchapp/features/alerts/presentation/views/alerts_view.dart';
 import 'package:parchapp/features/alerts/presentation/widgets/alert_card.dart';
 
 void main() {
   setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);
+
+  testWidgets('time-change card renders the supplied description',
+      (tester) async {
+    await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+            body: AlertCard(
+      alert: const AppAlert(
+          id: 'other-session',
+          kind: AlertKind.timeChanged,
+          period: AlertPeriod.today,
+          title: 'Physics review',
+          description: 'Camila moved Physics to 11:30.',
+          timeLabel: '10:00'),
+      busy: false,
+      onRespond: (_) {},
+      onCreateActivity: () {},
+      onProfile: () {},
+      onDetails: () {},
+    ))));
+    expect(find.text('Camila moved Physics to 11:30.'), findsOneWidget);
+    expect(find.textContaining('Mateo moved'), findsNothing);
+  });
 
   Future<AlertsViewModel> mount(WidgetTester tester,
       {double width = 390, double scale = 1}) async {
@@ -113,23 +137,23 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets(
-      'auth completion opens Alerts and responses persist across visits',
+  testWidgets('Home opens Alerts and read status persists across visits',
       (tester) async {
     final router = AppRouter.create(AuthDependencies.mock(),
         alertsDependencies: AlertsDependencies.mock(),
-        initialLocation: AppRoutes.authComplete);
+        activitiesDependencies: ActivitiesDependencies.mock(),
+        initialLocation: AppRoutes.home);
     addTearDown(router.dispose);
     await tester.pumpWidget(ParchApp(router: router));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Open Alerts'));
+    await tester.tap(find.byTooltip('Notifications'));
     await tester.pumpAndSettle();
     expect(router.state.uri.path, AppRoutes.alerts);
     await tester.tap(find.text('Mark read'));
     await tester.pumpAndSettle();
-    router.pop();
+    await tester.tap(find.text('Home'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Open Alerts'));
+    await tester.tap(find.byTooltip('Notifications'));
     await tester.pumpAndSettle();
     expect(find.text('4 new'), findsNothing);
     expect(find.byType(AlertsView), findsOneWidget);

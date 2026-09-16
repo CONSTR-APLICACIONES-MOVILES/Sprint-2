@@ -1,3 +1,4 @@
+import 'package:parchapp/app/dependency_injection/activities_dependencies.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -26,6 +27,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     final router = AppRouter.create(AuthDependencies(repository: repository),
         alertsDependencies: AlertsDependencies.mock(),
+        activitiesDependencies: ActivitiesDependencies.mock(),
         initialLocation: location);
     addTearDown(router.dispose);
     await tester.pumpWidget(ParchApp(router: router));
@@ -84,8 +86,8 @@ void main() {
 
   testWidgets('Home notifications opens the connected alerts view',
       (tester) async {
-    final router = await mountApp(tester, FakeAuthRepository(),
-        location: AppRoutes.home);
+    final router =
+        await mountApp(tester, FakeAuthRepository(), location: AppRoutes.home);
 
     await tester.tap(find.byTooltip('Notifications'));
     await tester.pumpAndSettle();

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/router/app_routes.dart';
+import '../../../../shared/widgets/parch_navigation_bar.dart';
+import '../../../../core/theme/app_colors.dart';
 
-const _cobalt = Color(0xFF0047BA);
-const _emerald = Color(0xFF10B981);
+const _cobalt = AppColors.primary;
+const _emerald = AppColors.success;
 const _background = Color(0xFFF8FAFE);
 const _ink = Color(0xFF0F172A);
 const _muted = Color(0xFF64748B);
@@ -144,40 +146,7 @@ class HomeView extends StatelessWidget {
             icon: const Icon(Icons.add),
             label: const Text('New Activity'),
           ),
-          bottomNavigationBar: NavigationBar(
-            selectedIndex: 0,
-            backgroundColor: Colors.white,
-            surfaceTintColor: Colors.transparent,
-            indicatorColor: const Color(0xFFD1FAE5),
-            onDestinationSelected: (index) {
-              // Route placeholders; app/router owns their registration.
-              switch (index) {
-                case 0:
-                  context.go('/home');
-                  break;
-                case 1:
-                  context.go('/groups');
-                  break;
-                case 2:
-                  context.go('/schedule');
-                  break;
-              }
-            },
-            destinations: const [
-              NavigationDestination(
-                icon: Icon(Icons.home_outlined),
-                selectedIcon:
-                    Icon(Icons.home_rounded, color: Color(0xFF065F46)),
-                label: 'Home',
-              ),
-              NavigationDestination(
-                  icon: Icon(Icons.groups_outlined), label: 'Groups'),
-              NavigationDestination(
-                icon: Icon(Icons.calendar_month_outlined),
-                label: 'Schedule',
-              ),
-            ],
-          ),
+          bottomNavigationBar: const ParchNavigationBar(),
         ),
       ),
     );
@@ -921,6 +890,10 @@ class HomeView extends StatelessWidget {
       required String time,
       required String location,
       required bool confirmed}) {
+    if (title == _studyTitle) {
+      context.push(AppRoutes.studySession('linear-algebra'));
+      return;
+    }
     _showSheet(
         context,
         'Plan Details',
