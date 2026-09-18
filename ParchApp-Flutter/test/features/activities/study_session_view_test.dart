@@ -25,6 +25,7 @@ void main() {
         alertsDependencies: AlertsDependencies.mock(),
         activitiesDependencies: ActivitiesDependencies.mock(),
         scheduleDependencies: ScheduleDependencies.mock(),
+        profileDependencies: ProfileDependencies.mock(),
         initialLocation: location ?? AppRoutes.studySession('linear-algebra'));
 
     addTearDown(router.dispose);
@@ -162,17 +163,19 @@ void main() {
     expect(router.state.uri.path, AppRoutes.home);
   });
 
-  testWidgets('Home bottom destinations are registered and can return',
+    testWidgets('Home bottom destinations are registered and can return',
       (tester) async {
     final router = await mount(tester, location: AppRoutes.home);
     for (final destination in [
-      ('Groups', AppRoutes.groups),
-      ('Schedule', AppRoutes.schedule)
+      ('Groups', AppRoutes.groups, true),
+      ('Schedule', AppRoutes.schedule, false)
     ]) {
       await tester.tap(find.text(destination.$1).last);
       await tester.pumpAndSettle();
       expect(router.state.uri.path, destination.$2);
-      expect(find.text('${destination.$1} is coming soon.'), findsOneWidget);
+      if (destination.$3) {
+        expect(find.text('${destination.$1} is coming soon.'), findsOneWidget);
+      }
       await tester.tap(find.text('Home').last);
       await tester.pumpAndSettle();
       expect(router.state.uri.path, AppRoutes.home);

@@ -17,6 +17,7 @@ abstract final class AppRouter {
     required AlertsDependencies alertsDependencies,
     required ActivitiesDependencies activitiesDependencies,
     required ScheduleDependencies scheduleDependencies,
+    required ProfileDependencies profileDependencies,
     String initialLocation = AppRoutes.welcome,
   }) =>
       GoRouter(
