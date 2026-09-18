@@ -7,12 +7,14 @@ import '../dependency_injection/alerts_dependencies.dart';
 import '../dependency_injection/activities_dependencies.dart';
 import '../../shared/widgets/unavailable_feature_view.dart';
 import 'app_routes.dart';
+import '../dependency_injection/schedule_dependencies.dart';
 
 abstract final class AppRouter {
   static GoRouter create(
     AuthDependencies dependencies, {
     required AlertsDependencies alertsDependencies,
     required ActivitiesDependencies activitiesDependencies,
+    required ScheduleDependencies scheduleDependencies,
     String initialLocation = AppRoutes.welcome,
   }) =>
       GoRouter(
@@ -28,9 +30,9 @@ abstract final class AppRouter {
               builder: (context, state) => const UnavailableFeatureView(
                   title: 'Groups', selectedIndex: 1)),
           GoRoute(
-              path: AppRoutes.schedule,
-              builder: (context, state) => const UnavailableFeatureView(
-                  title: 'Schedule', selectedIndex: 2)),
+            path: AppRoutes.schedule,
+            builder: (context, state) => scheduleDependencies.route(),
+          ),
           GoRoute(
             path: AppRoutes.welcome,
             name: 'welcome',

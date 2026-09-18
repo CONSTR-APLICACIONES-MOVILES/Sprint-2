@@ -26,7 +26,8 @@ abstract final class AppTheme {
       textTheme: AppTypography.textTheme,
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          minimumSize: const Size(double.infinity, AppDimensions.primaryButtonHeight),
+          minimumSize:
+              const Size(double.infinity, AppDimensions.primaryButtonHeight),
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           textStyle: AppTypography.textTheme.labelLarge,
@@ -35,7 +36,8 @@ abstract final class AppTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          minimumSize: const Size(double.infinity, AppDimensions.secondaryButtonHeight),
+          minimumSize:
+              const Size(double.infinity, AppDimensions.secondaryButtonHeight),
           foregroundColor: AppColors.textPrimary,
           backgroundColor: AppColors.surface,
           side: const BorderSide(color: AppColors.border),

@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:parchapp/app/app.dart';
 import 'package:parchapp/app/dependency_injection/alerts_dependencies.dart';
 import 'package:parchapp/app/dependency_injection/auth_dependencies.dart';
+import 'package:parchapp/app/dependency_injection/schedule_dependencies.dart';
 import 'package:parchapp/app/router/app_router.dart';
 import 'package:parchapp/app/router/app_routes.dart';
 import 'package:parchapp/features/alerts/data/repositories/mock_alerts_repository.dart';
@@ -142,6 +143,7 @@ void main() {
     final router = AppRouter.create(AuthDependencies.mock(),
         alertsDependencies: AlertsDependencies.mock(),
         activitiesDependencies: ActivitiesDependencies.mock(),
+        scheduleDependencies: ScheduleDependencies.mock(),
         initialLocation: AppRoutes.home);
     addTearDown(router.dispose);
     await tester.pumpWidget(ParchApp(router: router));
