@@ -8,6 +8,7 @@ import 'package:parchapp/app/dependency_injection/alerts_dependencies.dart';
 import 'package:parchapp/app/dependency_injection/auth_dependencies.dart';
 import 'package:parchapp/app/router/app_router.dart';
 import 'package:parchapp/app/router/app_routes.dart';
+import 'package:parchapp/app/dependency_injection/profile_dependencies.dart';
 import 'package:parchapp/features/activities/presentation/views/study_session_view.dart';
 
 void main() {
@@ -21,6 +22,7 @@ void main() {
     final router = AppRouter.create(AuthDependencies.mock(),
         alertsDependencies: AlertsDependencies.mock(),
         activitiesDependencies: ActivitiesDependencies.mock(),
+        profileDependencies: ProfileDependencies.mock(),
         initialLocation: location ?? AppRoutes.studySession('linear-algebra'));
     addTearDown(router.dispose);
     await tester.pumpWidget(MaterialApp.router(

@@ -13,6 +13,7 @@ import 'package:parchapp/features/alerts/domain/entities/app_alert.dart';
 import 'package:parchapp/features/alerts/presentation/view_models/alerts_view_model.dart';
 import 'package:parchapp/features/alerts/presentation/views/alerts_view.dart';
 import 'package:parchapp/features/alerts/presentation/widgets/alert_card.dart';
+import 'package:parchapp/app/dependency_injection/profile_dependencies.dart';
 
 void main() {
   setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);
@@ -142,6 +143,7 @@ void main() {
     final router = AppRouter.create(AuthDependencies.mock(),
         alertsDependencies: AlertsDependencies.mock(),
         activitiesDependencies: ActivitiesDependencies.mock(),
+        profileDependencies: ProfileDependencies.mock(),
         initialLocation: AppRoutes.home);
     addTearDown(router.dispose);
     await tester.pumpWidget(ParchApp(router: router));
