@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../app/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/parch_navigation_bar.dart';
 import '../../domain/entities/profile_user.dart';
@@ -112,51 +113,15 @@ class _ProfileViewState extends State<ProfileView> {
                       icon: Icons.calendar_month_outlined,
                       title: 'Edit Availability',
                       subtitle: 'Fixed class hours & free time blocks',
-                      onTap: () => _soon('Availability editing')),
-                  ProfileMenuTile(
-                      icon: Icons.shield_outlined,
-                      title: 'Schedule Privacy Rules',
-                      subtitle: 'Who can see your study blocks',
-                      onTap: () => _soon('Privacy rules')),
-                  ProfileMenuTile(
-                      icon: Icons.sync_outlined,
-                      title: 'Calendar Sync',
-                      subtitle: 'Google Calendar connected',
-                      badge: const ProfileBadge('Active',
-                          color: Color(0xFF065F46),
-                          background: AppColors.availabilityLight),
-                      onTap: () => _soon('Calendar sync')),
+                      onTap: () => context.push(AppRoutes.schedule)),
                 ]),
                 const ProfileSectionLabel('Community & groups'),
                 ProfileMenuGroup(children: [
                   ProfileMenuTile(
                       icon: Icons.groups_2_outlined,
-                      title: 'My Study Groups',
+                      title: 'My Groups',
                       subtitle: '${user.activeGroups} groups',
-                      onTap: () => _soon('Study groups')),
-                  ProfileMenuTile(
-                      icon: Icons.favorite_border,
-                      title: 'Close Friends',
-                      subtitle: 'Priority hangout notifications',
-                      onTap: () => _soon('Close friends')),
-                ]),
-                const ProfileSectionLabel('App preferences'),
-                ProfileMenuGroup(children: [
-                  ProfileMenuTile(
-                      icon: Icons.tune_outlined,
-                      title: 'General Preferences',
-                      subtitle: 'Notifications, reminders before plans',
-                      onTap: () => _soon('General preferences')),
-                  ProfileMenuTile(
-                      icon: Icons.notifications_active_outlined,
-                      title: 'Notification Mode',
-                      subtitle: 'Sound alerts & daily digests',
-                      onTap: () => _soon('Notification mode')),
-                  ProfileMenuTile(
-                      icon: Icons.palette_outlined,
-                      title: 'Theme & Appearance',
-                      subtitle: 'Light theme with blue accents',
-                      onTap: () => _soon('Theme settings')),
+                      onTap: () => context.push(AppRoutes.groups)),
                 ]),
                 const SizedBox(height: 22),
                 OutlinedButton.icon(
@@ -174,8 +139,8 @@ class _ProfileViewState extends State<ProfileView> {
                 ),
                 const SizedBox(height: 16),
                 const Text('ParchApp • Made for students',
-                    style: TextStyle(
-                        fontSize: 11, color: AppColors.textSecondary)),
+                    style:
+                        TextStyle(fontSize: 11, color: AppColors.textSecondary)),
               ]),
             ),
           ),
@@ -247,10 +212,8 @@ class _ProfileViewState extends State<ProfileView> {
       ),
     );
     if (!mounted || confirmed != true) return;
-    _message('Session handling is coming soon.');
+    context.go(AppRoutes.welcome);
   }
-
-  void _soon(String label) => _message('$label is coming soon.');
 
   void _message(String message) {
     if (!mounted) return;

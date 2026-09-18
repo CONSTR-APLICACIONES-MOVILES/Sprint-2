@@ -145,6 +145,7 @@ void main() {
         alertsDependencies: AlertsDependencies.mock(),
         activitiesDependencies: ActivitiesDependencies.mock(),
         scheduleDependencies: ScheduleDependencies.mock(),
+        profileDependencies: ProfileDependencies.mock(),
         initialLocation: AppRoutes.home);
     addTearDown(router.dispose);
     await tester.pumpWidget(ParchApp(router: router));
