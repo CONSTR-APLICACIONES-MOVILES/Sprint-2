@@ -14,6 +14,7 @@ import 'package:parchapp/features/alerts/domain/entities/app_alert.dart';
 import 'package:parchapp/features/alerts/presentation/view_models/alerts_view_model.dart';
 import 'package:parchapp/features/alerts/presentation/views/alerts_view.dart';
 import 'package:parchapp/features/alerts/presentation/widgets/alert_card.dart';
+import 'package:parchapp/app/dependency_injection/profile_dependencies.dart';
 
 void main() {
   setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);

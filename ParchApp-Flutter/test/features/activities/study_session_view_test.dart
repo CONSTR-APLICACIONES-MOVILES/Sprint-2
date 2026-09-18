@@ -9,6 +9,7 @@ import 'package:parchapp/app/dependency_injection/alerts_dependencies.dart';
 import 'package:parchapp/app/dependency_injection/auth_dependencies.dart';
 import 'package:parchapp/app/router/app_router.dart';
 import 'package:parchapp/app/router/app_routes.dart';
+import 'package:parchapp/app/dependency_injection/profile_dependencies.dart';
 import 'package:parchapp/features/activities/presentation/views/study_session_view.dart';
 
 void main() {
