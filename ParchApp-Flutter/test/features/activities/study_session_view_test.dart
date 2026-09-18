@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:parchapp/app/dependency_injection/schedule_dependencies.dart';
 import 'package:parchapp/core/theme/app_theme.dart';
 import 'package:parchapp/app/dependency_injection/activities_dependencies.dart';
 import 'package:parchapp/app/dependency_injection/alerts_dependencies.dart';
@@ -19,11 +20,13 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
+
     final router = AppRouter.create(AuthDependencies.mock(),
         alertsDependencies: AlertsDependencies.mock(),
         activitiesDependencies: ActivitiesDependencies.mock(),
-        profileDependencies: ProfileDependencies.mock(),
+        scheduleDependencies: ScheduleDependencies.mock(),
         initialLocation: location ?? AppRoutes.studySession('linear-algebra'));
+
     addTearDown(router.dispose);
     await tester.pumpWidget(MaterialApp.router(
         routerConfig: router,
