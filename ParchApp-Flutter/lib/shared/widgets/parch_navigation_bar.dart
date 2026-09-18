@@ -11,14 +11,20 @@ class ParchNavigationBar extends StatelessWidget {
         selectedIndex: selectedIndex,
         backgroundColor: Colors.white,
         indicatorColor: AppColors.availabilityLight,
-        onDestinationSelected: (index) => context
-            .go([AppRoutes.home, AppRoutes.groups, AppRoutes.schedule][index]),
+        onDestinationSelected: (index) => context.go([
+          AppRoutes.home,
+          AppRoutes.groups,
+          AppRoutes.schedule,
+          AppRoutes.profile
+        ][index]),
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Home'),
           NavigationDestination(
               icon: Icon(Icons.groups_outlined), label: 'Groups'),
           NavigationDestination(
               icon: Icon(Icons.calendar_month_outlined), label: 'Schedule'),
+          NavigationDestination(
+              icon: Icon(Icons.person_outline), label: 'Profile'),
         ],
       );
 }

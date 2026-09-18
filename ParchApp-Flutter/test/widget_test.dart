@@ -14,6 +14,7 @@ import 'package:parchapp/features/auth/domain/use_cases/sign_in.dart';
 import 'package:parchapp/features/auth/presentation/view_models/sign_in_view_model.dart';
 import 'package:parchapp/features/auth/presentation/views/sign_in_view.dart';
 import 'package:parchapp/features/home/presentation/views/home_view.dart';
+import 'package:parchapp/app/dependency_injection/profile_dependencies.dart';
 import 'support/fake_auth_repository.dart';
 
 void main() {
@@ -28,6 +29,7 @@ void main() {
     final router = AppRouter.create(AuthDependencies(repository: repository),
         alertsDependencies: AlertsDependencies.mock(),
         activitiesDependencies: ActivitiesDependencies.mock(),
+        profileDependencies: ProfileDependencies.mock(),
         initialLocation: location);
     addTearDown(router.dispose);
     await tester.pumpWidget(ParchApp(router: router));
