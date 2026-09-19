@@ -5,6 +5,7 @@ import 'alerts_dependencies.dart';
 import 'activities_dependencies.dart';
 import 'profile_dependencies.dart';
 import 'schedule_dependencies.dart';
+import 'groups_dependencies.dart';
 
 GoRouter createAppRouter() => AppRouter.create(
       AuthDependencies.mock(),
@@ -12,4 +13,5 @@ GoRouter createAppRouter() => AppRouter.create(
       activitiesDependencies: ActivitiesDependencies.mock(),
       scheduleDependencies: ScheduleDependencies.mock(),
       profileDependencies: ProfileDependencies.mock(),
+      groupsDependencies: GroupsDependencies.mock(),
     );

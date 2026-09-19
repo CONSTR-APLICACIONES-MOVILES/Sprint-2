@@ -11,6 +11,7 @@ import 'package:parchapp/app/router/app_router.dart';
 import 'package:parchapp/app/router/app_routes.dart';
 import 'package:parchapp/app/dependency_injection/profile_dependencies.dart';
 import 'package:parchapp/features/activities/presentation/views/study_session_view.dart';
+import 'package:parchapp/app/dependency_injection/groups_dependencies.dart';
 
 void main() {
   setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);
@@ -26,6 +27,7 @@ void main() {
         activitiesDependencies: ActivitiesDependencies.mock(),
         scheduleDependencies: ScheduleDependencies.mock(),
         profileDependencies: ProfileDependencies.mock(),
+        groupsDependencies: GroupsDependencies.mock(),
         initialLocation: location ?? AppRoutes.studySession('linear-algebra'));
 
     addTearDown(router.dispose);
