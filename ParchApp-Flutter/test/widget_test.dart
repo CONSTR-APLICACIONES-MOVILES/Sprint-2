@@ -16,6 +16,7 @@ import 'package:parchapp/features/auth/presentation/view_models/sign_in_view_mod
 import 'package:parchapp/features/auth/presentation/views/sign_in_view.dart';
 import 'package:parchapp/features/home/presentation/views/home_view.dart';
 import 'package:parchapp/app/dependency_injection/profile_dependencies.dart';
+import 'package:parchapp/app/dependency_injection/groups_dependencies.dart';
 import 'support/fake_auth_repository.dart';
 
 void main() {
@@ -32,6 +33,7 @@ void main() {
         alertsDependencies: AlertsDependencies.mock(),
         activitiesDependencies: ActivitiesDependencies.mock(),
         profileDependencies: ProfileDependencies.mock(),
+        groupsDependencies: GroupsDependencies.mock(),
         initialLocation: location);
     addTearDown(router.dispose);
     await tester.pumpWidget(ParchApp(router: router));

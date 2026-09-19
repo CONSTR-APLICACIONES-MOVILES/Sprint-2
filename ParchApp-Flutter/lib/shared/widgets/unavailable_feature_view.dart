@@ -7,8 +7,17 @@ import 'parch_navigation_bar.dart';
 class UnavailableFeatureView extends StatelessWidget {
   final String title;
   final int selectedIndex;
-  const UnavailableFeatureView(
-      {super.key, required this.title, required this.selectedIndex});
+  final String? actionLabel;
+  final String? actionRoute;
+
+  const UnavailableFeatureView({
+    super.key,
+    required this.title,
+    required this.selectedIndex,
+    this.actionLabel,
+    this.actionRoute,
+  });
+
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(title: Text(title)),
@@ -21,6 +30,18 @@ class UnavailableFeatureView extends StatelessWidget {
             const SizedBox(height: 16),
             Text('$title is coming soon.',
                 style: Theme.of(context).textTheme.titleLarge),
+            if (actionLabel != null && actionRoute != null) ...[
+              const SizedBox(height: 24),
+              FilledButton.icon(
+                onPressed: () => context.push(actionRoute!),
+                icon: const Icon(Icons.groups_2_outlined, size: 18),
+                label: Text(actionLabel!),
+                style: FilledButton.styleFrom(
+                    minimumSize: const Size(220, 48),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14))),
+              ),
+            ],
             const SizedBox(height: 16),
             TextButton(
                 onPressed: () => context.go(AppRoutes.home),

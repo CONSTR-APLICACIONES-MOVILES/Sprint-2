@@ -10,6 +10,7 @@ import '../../shared/widgets/unavailable_feature_view.dart';
 import '../dependency_injection/profile_dependencies.dart';
 import 'app_routes.dart';
 import '../dependency_injection/schedule_dependencies.dart';
+import '../dependency_injection/groups_dependencies.dart';
 
 abstract final class AppRouter {
   static GoRouter create(
@@ -18,6 +19,7 @@ abstract final class AppRouter {
     required ActivitiesDependencies activitiesDependencies,
     required ScheduleDependencies scheduleDependencies,
     required ProfileDependencies profileDependencies,
+    required GroupsDependencies groupsDependencies,
     String initialLocation = AppRoutes.welcome,
   }) =>
       GoRouter(
@@ -29,9 +31,19 @@ abstract final class AppRouter {
                 .route(state.pathParameters['sessionId']!),
           ),
           GoRoute(
+            path: AppRoutes.activeGroups,
+            name: 'activeGroups',
+            builder: (context, state) =>
+                groupsDependencies.activeGroupsRoute(),
+          ),
+          GoRoute(
               path: AppRoutes.groups,
               builder: (context, state) => const UnavailableFeatureView(
-                  title: 'Groups', selectedIndex: 1)),
+                    title: 'Groups',
+                    selectedIndex: 1,
+                    actionLabel: 'Active Groups',
+                    actionRoute: AppRoutes.activeGroups,
+          )),
           GoRoute(
             path: AppRoutes.schedule,
             builder: (context, state) => scheduleDependencies.route(),
