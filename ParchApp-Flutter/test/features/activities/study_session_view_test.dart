@@ -12,6 +12,7 @@ import 'package:parchapp/app/router/app_routes.dart';
 import 'package:parchapp/app/dependency_injection/profile_dependencies.dart';
 import 'package:parchapp/features/activities/presentation/views/study_session_view.dart';
 import 'package:parchapp/app/dependency_injection/groups_dependencies.dart';
+import 'package:parchapp/features/groups/presentation/views/active_groups_view.dart';
 
 void main() {
   setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);
@@ -165,18 +166,18 @@ void main() {
     expect(router.state.uri.path, AppRoutes.home);
   });
 
-    testWidgets('Home bottom destinations are registered and can return',
+  testWidgets('Home bottom destinations are registered and can return',
       (tester) async {
     final router = await mount(tester, location: AppRoutes.home);
     for (final destination in [
-      ('Groups', AppRoutes.groups, true),
-      ('Schedule', AppRoutes.schedule, false)
+      ('Groups', AppRoutes.groups),
+      ('Schedule', AppRoutes.schedule)
     ]) {
       await tester.tap(find.text(destination.$1).last);
       await tester.pumpAndSettle();
       expect(router.state.uri.path, destination.$2);
-      if (destination.$3) {
-        expect(find.text('${destination.$1} is coming soon.'), findsOneWidget);
+      if (destination.$2 == AppRoutes.groups) {
+        expect(find.byType(ActiveGroupsView), findsOneWidget);
       }
       await tester.tap(find.text('Home').last);
       await tester.pumpAndSettle();

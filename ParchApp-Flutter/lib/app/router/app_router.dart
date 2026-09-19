@@ -6,7 +6,6 @@ import '../../features/home/presentation/views/home_view.dart';
 import '../dependency_injection/auth_dependencies.dart';
 import '../dependency_injection/alerts_dependencies.dart';
 import '../dependency_injection/activities_dependencies.dart';
-import '../../shared/widgets/unavailable_feature_view.dart';
 import '../dependency_injection/profile_dependencies.dart';
 import 'app_routes.dart';
 import '../dependency_injection/schedule_dependencies.dart';
@@ -37,13 +36,10 @@ abstract final class AppRouter {
                 groupsDependencies.activeGroupsRoute(),
           ),
           GoRoute(
-              path: AppRoutes.groups,
-              builder: (context, state) => const UnavailableFeatureView(
-                    title: 'Groups',
-                    selectedIndex: 1,
-                    actionLabel: 'Active Groups',
-                    actionRoute: AppRoutes.activeGroups,
-          )),
+            path: AppRoutes.groups,
+            builder: (context, state) =>
+                groupsDependencies.activeGroupsRoute(),
+          ),
           GoRoute(
             path: AppRoutes.schedule,
             builder: (context, state) => scheduleDependencies.route(),
