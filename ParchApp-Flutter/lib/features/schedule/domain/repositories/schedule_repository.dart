@@ -12,4 +12,8 @@ abstract interface class ScheduleRepository {
     required DateTime day,
     required List<String> friendIds,
   });
+
+  Future<void> replaceImportedCalendarBlocks(
+    List<ScheduleBlock> blocks,
+  );
 }
