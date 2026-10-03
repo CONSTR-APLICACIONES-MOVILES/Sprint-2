@@ -5,6 +5,14 @@ import 'package:parchapp/features/auth/domain/entities/google_account.dart';
 import 'package:parchapp/features/auth/domain/repositories/auth_repository.dart';
 
 class FakeAuthRepository implements AuthRepository {
+  int signOutCalls = 0;
+  bool failSignOut = false;
+  @override
+  Future<void> signOut() async {
+    signOutCalls++;
+    if (failSignOut) throw Exception('offline');
+  }
+
   static const user = AuthenticatedUser(
       id: 'test-user',
       name: 'Test Student',

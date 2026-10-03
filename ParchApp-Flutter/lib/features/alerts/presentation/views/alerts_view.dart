@@ -406,12 +406,7 @@ class _AlertsViewState extends State<AlertsView> {
   }
 
   Future<void> _createActivity() async {
-    final submitted =
-        await showAlertsSheet<bool>(context, child: const QuickActivitySheet());
-    // Activities owns creation and invitations; this sheet is a draft preview.
-    if (submitted == true) {
-      _message('Activity invitations are coming soon. Nothing was sent.');
-    }
+    await context.push(AppRoutes.createActivity);
   }
 
   void _details(AppAlert alert) {

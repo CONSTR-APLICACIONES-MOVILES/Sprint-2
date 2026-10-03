@@ -3,7 +3,9 @@ import '../../domain/repositories/alerts_repository.dart';
 
 /// In-memory demonstration only. No invitations or messages leave the app.
 class MockAlertsRepository implements AlertsRepository {
-  List<AppAlert> _alerts = List.of(_samples);
+  List<AppAlert> _alerts;
+  MockAlertsRepository({bool includeActivityPreviews = true})
+      : _alerts = _samples.where((alert) => includeActivityPreviews || alert.studySessionId == null).toList();
 
   @override
   Future<List<AppAlert>> getAlerts() async => List.unmodifiable(_alerts);

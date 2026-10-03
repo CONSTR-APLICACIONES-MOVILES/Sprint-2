@@ -125,18 +125,35 @@ void main() {
     expect(find.byType(AlertCard), findsOneWidget);
   });
 
-  testWidgets('quick activity sheet opens and closes without sending anything',
+  testWidgets('alert opens the activity form and back returns without creating',
       (tester) async {
-    final model = await mount(tester);
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final router = AppRouter.create(AuthDependencies.mock(),
+        alertsDependencies: AlertsDependencies.mock(),
+        activitiesDependencies: ActivitiesDependencies.mock(),
+        scheduleDependencies: ScheduleDependencies.mock(),
+        profileDependencies: ProfileDependencies.mock(),
+        groupsDependencies: GroupsDependencies.mock(),
+        initialLocation: AppRoutes.alerts);
+    addTearDown(router.dispose);
+    await tester.pumpWidget(ParchApp(router: router));
+    await tester.pumpAndSettle();
     final create = find.text('1-Tap Create Activity');
     await tester.ensureVisible(create);
+    await tester.pumpAndSettle();
     await tester.tap(create);
     await tester.pumpAndSettle();
-    expect(find.text('1-Tap Activity Creator'), findsOneWidget);
-    await tester.enterText(find.byType(TextField), 'Coffee with Sarah');
-    await tester.tap(find.text('Cancel'));
+    expect(router.state.uri.path, AppRoutes.createActivity);
+    expect(find.text('Create New Activity'), findsOneWidget);
+    await tester.enterText(
+        find.widgetWithText(TextField, 'Activity name'), 'Coffee with Sarah');
+    await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
-    expect(model.value.visibleAlerts.length, 7);
+    expect(router.state.uri.path, AppRoutes.alerts);
+    expect(find.byType(AlertsView), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

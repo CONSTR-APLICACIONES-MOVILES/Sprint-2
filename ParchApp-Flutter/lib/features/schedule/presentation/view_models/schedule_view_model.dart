@@ -1,21 +1,29 @@
 import 'package:flutter/foundation.dart';
-
+import '../../domain/use_cases/authorize_google_calendar.dart';
 import '../../domain/entities/common_slot.dart';
 import '../../domain/use_cases/manage_schedule.dart';
 import 'schedule_state.dart';
+import '../../domain/use_cases/import_google_calendar.dart';
 
 class ScheduleViewModel extends ValueNotifier<ScheduleState> {
   final ManageSchedule _schedule;
+  final AuthorizeGoogleCalendar _authorizeGoogleCalendar;
+  final ImportGoogleCalendar _importGoogleCalendar;
 
   bool _disposed = false;
   bool _loading = false;
 
   ScheduleViewModel(
-    this._schedule, {
+    this._schedule,
+    this._importGoogleCalendar, {
+    required AuthorizeGoogleCalendar authorizeGoogleCalendar,
     DateTime? initialDay,
-  }) : super(
+  }) : _authorizeGoogleCalendar = authorizeGoogleCalendar,
+       super(
           ScheduleState(
-            selectedDay: initialDay ?? DateTime(2026, 10, 15),
+            selectedDay:
+                initialDay ??
+                    DateTime(2026, 10, 15),
           ),
         );
 
@@ -58,6 +66,47 @@ class ScheduleViewModel extends ValueNotifier<ScheduleState> {
       );
     } finally {
       _loading = false;
+    }
+  }
+
+  Future<void> importGoogleCalendar() async {
+    if (value.calendarImportStatus ==
+        CalendarImportStatus.importing) {
+      return;
+    }
+
+    _emit(
+      value.copyWith(
+        calendarImportStatus:
+            CalendarImportStatus.importing,
+        clearCalendarImportMessage: true,
+      ),
+    );
+
+    try {
+      await _authorizeGoogleCalendar();
+      final importedCount =
+          await _importGoogleCalendar();
+
+      _emit(
+        value.copyWith(
+          calendarImportStatus:
+              CalendarImportStatus.imported,
+          calendarImportMessage:
+              '$importedCount calendar events imported.',
+        ),
+      );
+
+      await _refreshDay();
+    } catch (_) {
+      _emit(
+        value.copyWith(
+          calendarImportStatus:
+              CalendarImportStatus.error,
+          calendarImportMessage:
+              'Unable to import Google Calendar.',
+        ),
+      );
     }
   }
 
@@ -153,4 +202,6 @@ class ScheduleViewModel extends ValueNotifier<ScheduleState> {
     _disposed = true;
     super.dispose();
   }
+
+  
 }

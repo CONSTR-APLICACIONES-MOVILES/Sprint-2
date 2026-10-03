@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../../shared/widgets/parch_navigation_bar.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../activities/presentation/view_models/activity_list_view_model.dart';
 
 const _cobalt = AppColors.primary;
 const _emerald = AppColors.success;
@@ -16,7 +17,14 @@ const _greenTint = Color(0xFFECFDF5);
 /// Presentation-only dashboard preview. Replace the sample values and action
 /// placeholders with injected HomeViewModel state and commands when available.
 class HomeView extends StatelessWidget {
-  const HomeView({super.key});
+  final ActivityListState? activityState;
+  final VoidCallback? onRefreshActivities;
+  final String? demoStudySessionId;
+  const HomeView(
+      {super.key,
+      this.activityState,
+      this.onRefreshActivities,
+      this.demoStudySessionId});
 
   static const _inviteLink = 'parchapp.me/u/alex-k26';
   static const _studyTitle = 'Study Session: Linear Algebra & Calculus';
@@ -98,8 +106,12 @@ class HomeView extends StatelessWidget {
                       _buildQuickStatus(context),
                       const SizedBox(height: 24),
                       _sectionHeading(
-                        "Today's Plans",
-                        count: '2',
+                        activityState == null
+                            ? "Today's Plans"
+                            : 'Your Activities',
+                        count: activityState == null
+                            ? '2'
+                            : '${activityState!.activities.length}',
                         trailing: TextButton.icon(
                           onPressed: () => _onCalendarTapped(context),
                           icon: const Icon(Icons.calendar_month_outlined,
@@ -108,21 +120,50 @@ class HomeView extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      _buildPlanCard(
-                        context,
-                        title: _studyTitle,
-                        time: '4:00 PM – 6:00 PM',
-                        location: 'Central Library • Room 302',
-                        confirmed: true,
-                      ),
-                      const SizedBox(height: 12),
-                      _buildPlanCard(
-                        context,
-                        title: _soccerTitle,
-                        time: 'Friday, 7:30 PM',
-                        location: 'Campus Sports Center',
-                        confirmed: false,
-                      ),
+                      if (activityState != null) ...[
+                        if (activityState!.loading)
+                          const LinearProgressIndicator(),
+                        if (activityState!.error != null)
+                          Text(activityState!.error!),
+                        if (!activityState!.loading &&
+                            activityState!.activities.isEmpty &&
+                            activityState!.error == null)
+                          const Text('No activities in your groups yet.'),
+                        for (final activity in activityState!.activities) ...[
+                          _buildPlanCard(context,
+                              title: activity.title,
+                              time: '${activity.date} ${activity.time}'
+                                      .trim()
+                                      .isEmpty
+                                  ? 'Not scheduled'
+                                  : '${activity.date} ${activity.time}',
+                              location: activity.location,
+                              confirmed: activity.confirmed,
+                              activityId: activity.id),
+                          const SizedBox(height: 12),
+                        ],
+                        TextButton(
+                            onPressed: activityState!.loading
+                                ? null
+                                : onRefreshActivities,
+                            child: const Text('Refresh activities')),
+                      ] else ...[
+                        _buildPlanCard(
+                          context,
+                          title: _studyTitle,
+                          time: '4:00 PM – 6:00 PM',
+                          location: 'Central Library • Room 302',
+                          confirmed: true,
+                        ),
+                        const SizedBox(height: 12),
+                        _buildPlanCard(
+                          context,
+                          title: _soccerTitle,
+                          time: 'Friday, 7:30 PM',
+                          location: 'Campus Sports Center',
+                          confirmed: false,
+                        ),
+                      ],
                       const SizedBox(height: 24),
                       _sectionHeading(
                         'Your Active Groups',
@@ -460,9 +501,17 @@ class HomeView extends StatelessWidget {
     required String time,
     required String location,
     required bool confirmed,
+    String? activityId,
   }) {
-    void openDetails() => _onPlanTapped(context,
-        title: title, time: time, location: location, confirmed: confirmed);
+    void openDetails() async {
+      if (activityId != null) {
+        await context.push(AppRoutes.studySession(activityId));
+        onRefreshActivities?.call();
+      } else {
+        _onPlanTapped(context,
+            title: title, time: time, location: location, confirmed: confirmed);
+      }
+    }
 
     return _surface(
       onTap: openDetails,
@@ -473,17 +522,22 @@ class HomeView extends StatelessWidget {
               child: Align(
             alignment: Alignment.centerLeft,
             child: _pill(
-              confirmed ? 'Confirmed • 4/4 ready' : 'Voting pending • 3/6',
+              activityId != null
+                  ? (confirmed ? 'Confirmed' : 'Proposed')
+                  : confirmed
+                      ? 'Confirmed • 4/4 ready'
+                      : 'Voting pending • 3/6',
               foreground: confirmed ? const Color(0xFF047857) : _cobalt,
               background: confirmed ? _greenTint : _blueTint,
               icon: confirmed ? Icons.check_rounded : Icons.schedule_rounded,
             ),
           )),
-          IconButton(
-            tooltip: 'Options for $title',
-            onPressed: () => _onPlanOptions(context, title),
-            icon: const Icon(Icons.more_vert, color: _muted),
-          ),
+          if (activityId == null)
+            IconButton(
+              tooltip: 'Options for $title',
+              onPressed: () => _onPlanOptions(context, title),
+              icon: const Icon(Icons.more_vert, color: _muted),
+            ),
         ]),
         const SizedBox(height: 4),
         Text(title,
@@ -498,20 +552,26 @@ class HomeView extends StatelessWidget {
         const SizedBox(height: 8),
         _info(Icons.location_on_outlined, location),
         const SizedBox(height: 16),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: LinearProgressIndicator(
-            value: confirmed ? 1 : 0.5,
-            minHeight: 6,
-            color: confirmed ? _emerald : _cobalt,
-            backgroundColor: const Color(0xFFF1F5F9),
-            semanticsLabel: confirmed
-                ? 'Four of four participants ready'
-                : 'Three of six participants have voted',
+        if (activityId == null)
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: confirmed ? 1 : 0.5,
+              minHeight: 6,
+              color: confirmed ? _emerald : _cobalt,
+              backgroundColor: const Color(0xFFF1F5F9),
+              semanticsLabel: confirmed
+                  ? 'Four of four participants ready'
+                  : 'Three of six participants have voted',
+            ),
           ),
-        ),
         const SizedBox(height: 14),
-        if (confirmed)
+        if (activityId != null)
+          Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                  onPressed: openDetails, child: const Text('Details')))
+        else if (confirmed)
           Wrap(
             alignment: WrapAlignment.spaceBetween,
             crossAxisAlignment: WrapCrossAlignment.center,
@@ -890,8 +950,8 @@ class HomeView extends StatelessWidget {
       required String time,
       required String location,
       required bool confirmed}) {
-    if (title == _studyTitle) {
-      context.push(AppRoutes.studySession('linear-algebra'));
+    if (title == _studyTitle && demoStudySessionId != null) {
+      context.push(AppRoutes.studySession(demoStudySessionId!));
       return;
     }
     _showSheet(
@@ -1041,38 +1101,9 @@ class HomeView extends StatelessWidget {
             ]);
   }
 
-  void _onNewActivity(BuildContext context) {
-    var title = 'Midterm Review & Coffee';
-    var time = 'Tomorrow, 3:00 PM';
-    var location = 'Campus Cafe';
-    _showSheet(
-        context,
-        'Create New Activity',
-        (sheetContext) => [
-              TextFormField(
-                  initialValue: title,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: const InputDecoration(labelText: 'Activity name'),
-                  onChanged: (value) => title = value),
-              const SizedBox(height: 16),
-              TextFormField(
-                  initialValue: time,
-                  decoration: const InputDecoration(labelText: 'Time'),
-                  onChanged: (value) => time = value),
-              const SizedBox(height: 16),
-              TextFormField(
-                  initialValue: location,
-                  decoration: const InputDecoration(labelText: 'Location'),
-                  onChanged: (value) => location = value),
-              const SizedBox(height: 24),
-              FilledButton(
-                onPressed: () {
-                  Navigator.of(sheetContext).pop();
-                  _onPublishActivity(context, title, time, location);
-                },
-                child: const Text('Publish & Invite'),
-              ),
-            ]);
+  Future<void> _onNewActivity(BuildContext context) async {
+    await context.push(AppRoutes.createActivity);
+    if (context.mounted) onRefreshActivities?.call();
   }
 
   void _onPlanOptions(BuildContext context, String title) {
@@ -1179,12 +1210,6 @@ class HomeView extends StatelessWidget {
       BuildContext context, String freeUntil, String nextActivity) {
     // TODO: HomeViewModel.updateStatus(freeUntil, nextActivity).
     _showMessage(context, 'Status updates are coming soon.');
-  }
-
-  void _onPublishActivity(
-      BuildContext context, String title, String time, String location) {
-    // TODO: Forward the draft to HomeViewModel; validate in the domain layer.
-    _showMessage(context, 'Activity publishing is coming soon.');
   }
 
   void _onRsvp(BuildContext context, String response) {

@@ -59,6 +59,7 @@ class _ScheduleViewState extends State<ScheduleView> {
             child: Column(
               children: [
                 _buildFriendBar(context, state),
+                _buildCalendarImportBar(state),
                 _buildDurationBar(state),
                 _buildWeekSelector(state),
 
@@ -302,24 +303,235 @@ class _ScheduleViewState extends State<ScheduleView> {
     );
   }
 
+  Widget _buildCalendarImportBar(
+  ScheduleState state,
+) {
+  final importing =
+      state.calendarImportStatus ==
+          CalendarImportStatus.importing;
+
+  final imported =
+      state.calendarImportStatus ==
+          CalendarImportStatus.imported;
+
+  final hasError =
+      state.calendarImportStatus ==
+          CalendarImportStatus.error;
+
+  return Container(
+    width: double.infinity,
+    color: Colors.white,
+    padding: const EdgeInsets.fromLTRB(
+      14,
+      4,
+      12,
+      8,
+    ),
+    child: Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: 12,
+        vertical: 10,
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7F9FD),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFFDCE3EF),
+        ),
+      ),
+      child: Row(
+        children: [
+          // Google Calendar icon
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEAF1FF),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(
+              Icons.calendar_month_outlined,
+              size: 20,
+              color: AppColors.primary,
+            ),
+          ),
+
+          const SizedBox(width: 10),
+
+          // Text
+          Expanded(
+            child: Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Google Calendar',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+
+                const SizedBox(height: 2),
+
+                Text(
+                  _calendarImportSubtitle(state),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: hasError
+                        ? AppColors.error
+                        : imported
+                            ? AppColors.success
+                            : AppColors.textSecondary,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(width: 8),
+
+          // Import button
+          SizedBox(
+            width: 105,
+            height: 34,
+            child: FilledButton.icon(
+              onPressed: importing || imported
+                  ? null
+                  : widget
+                      .viewModel
+                      .importGoogleCalendar,
+
+              style: FilledButton.styleFrom(
+                backgroundColor:
+                    AppColors.primary,
+
+                foregroundColor:
+                    Colors.white,
+
+                disabledBackgroundColor:
+                    imported
+                        ? const Color(0xFFE8F8F0)
+                        : const Color(0xFFE9EEF7),
+
+                disabledForegroundColor:
+                    imported
+                        ? AppColors.success
+                        : AppColors.textSecondary,
+
+                padding:
+                    const EdgeInsets.symmetric(
+                  horizontal: 8,
+                ),
+
+                minimumSize: const Size(
+                  105,
+                  34,
+                ),
+
+                maximumSize: const Size(
+                  105,
+                  34,
+                ),
+
+                tapTargetSize:
+                    MaterialTapTargetSize.shrinkWrap,
+
+                shape: RoundedRectangleBorder(
+                  borderRadius:
+                      BorderRadius.circular(9),
+                ),
+              ),
+
+              icon: importing
+                  ? const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child:
+                          CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.primary,
+                      ),
+                    )
+                  : Icon(
+                      imported
+                          ? Icons.check_rounded
+                          : Icons
+                              .file_download_outlined,
+                      size: 17,
+                    ),
+
+              label: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  importing
+                      ? 'Importing'
+                      : imported
+                          ? 'Imported'
+                          : hasError
+                              ? 'Try again'
+                              : 'Import',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight:
+                        FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+  String _calendarImportSubtitle(
+    ScheduleState state,
+  ) {
+    switch (state.calendarImportStatus) {
+      case CalendarImportStatus.importing:
+        return 'Importing your calendar events...';
+      case CalendarImportStatus.imported:
+        return state.calendarImportMessage ??
+            'Calendar events imported.';
+      case CalendarImportStatus.error:
+        return state.calendarImportMessage ??
+            'Could not import calendar.';
+      case CalendarImportStatus.idle:
+        return 'Import your events into My Schedule.';
+    }
+  }
+
   Widget _buildDurationBar(
     ScheduleState state,
   ) {
-    final durations = <Duration>[
+    final quickDurations = <Duration>[
       const Duration(minutes: 30),
       const Duration(minutes: 45),
       const Duration(hours: 1),
       const Duration(hours: 2),
     ];
 
+    final currentHours =
+        state.meetingDuration.inHours;
+
+    final currentMinutes =
+        state.meetingDuration.inMinutes % 60;
+
     return Container(
       width: double.infinity,
       color: Colors.white,
       padding: const EdgeInsets.fromLTRB(
         14,
-        8,
+        6,
         12,
-        8,
+        6,
       ),
       child: Row(
         children: [
@@ -328,7 +540,9 @@ class _ScheduleViewState extends State<ScheduleView> {
             size: 18,
             color: AppColors.primary,
           ),
+
           const SizedBox(width: 5),
+
           const Text(
             'Duration:',
             style: TextStyle(
@@ -337,46 +551,67 @@ class _ScheduleViewState extends State<ScheduleView> {
               fontSize: 12,
             ),
           ),
+
           const SizedBox(width: 8),
+
           Expanded(
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
-                children: durations.map(
-                  (duration) {
-                    final selected =
-                        state.meetingDuration == duration;
+                children: [
+                  ...quickDurations.map(
+                    (duration) {
+                      final selected =
+                          state.meetingDuration ==
+                              duration;
 
-                    return Padding(
-                      padding: const EdgeInsets.only(
-                        right: 6,
-                      ),
-                      child: ChoiceChip(
-                        showCheckmark: false,
-                        selected: selected,
-                        selectedColor: AppColors.primary,
-                        backgroundColor:
-                            const Color(0xFFE9EEF7),
-                        side: BorderSide.none,
-                        label: Text(
-                          _durationLabel(duration),
-                          style: TextStyle(
-                            color: selected
-                                ? Colors.white
-                                : AppColors.textSecondary,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                          ),
+                      return Padding(
+                        padding:
+                            const EdgeInsets.only(
+                          right: 6,
                         ),
-                        onSelected: (_) {
-                          widget.viewModel.setDuration(
-                            duration,
-                          );
-                        },
-                      ),
-                    );
-                  },
-                ).toList(),
+                        child: ChoiceChip(
+                          showCheckmark: false,
+                          selected: selected,
+                          selectedColor:
+                              AppColors.primary,
+                          backgroundColor:
+                              const Color(
+                            0xFFE9EEF7,
+                          ),
+                          side: BorderSide.none,
+                          label: Text(
+                            _durationLabel(
+                              duration,
+                            ),
+                            style: TextStyle(
+                              color: selected
+                                  ? Colors.white
+                                  : AppColors
+                                      .textSecondary,
+                              fontSize: 11,
+                              fontWeight:
+                                  FontWeight.w700,
+                            ),
+                          ),
+                          onSelected: (_) {
+                            widget.viewModel
+                                .setDuration(
+                              duration,
+                            );
+                          },
+                        ),
+                      );
+                    },
+                  ),
+
+                  const SizedBox(width: 4),
+
+                  _buildDurationStepper(
+                    hours: currentHours,
+                    minutes: currentMinutes,
+                  ),
+                ],
               ),
             ),
           ),
@@ -385,6 +620,271 @@ class _ScheduleViewState extends State<ScheduleView> {
     );
   }
 
+ Widget _buildDurationStepper({
+  required int hours,
+  required int minutes,
+}) {
+  return Container(
+    padding: const EdgeInsets.symmetric(
+      horizontal: 8,
+      vertical: 5,
+    ),
+    decoration: BoxDecoration(
+      color: const Color(0xFFF7F9FD),
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(
+        color: const Color(0xFFD8E1EF),
+      ),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // HOURS
+        _buildHorizontalStepper(
+          value: hours,
+
+          onDecrease: () {
+            if (hours == 0) {
+              return;
+            }
+
+            _updateCustomDuration(
+              hours: hours - 1,
+              minutes: minutes,
+            );
+          },
+
+          onIncrease: () {
+            _updateCustomDuration(
+              hours: hours + 1,
+              minutes: minutes,
+            );
+          },
+
+          onSubmitted: (newHours) {
+            var safeHours = newHours;
+
+            if (safeHours < 0) {
+              safeHours = 0;
+            }
+
+            if (safeHours > 12) {
+              safeHours = 12;
+            }
+
+            _updateCustomDuration(
+              hours: safeHours,
+              minutes: minutes,
+            );
+          },
+        ),
+
+        const Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: 5,
+          ),
+          child: Text(
+            ':',
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+
+        // MINUTES
+        _buildHorizontalStepper(
+          value: minutes,
+          twoDigits: true,
+
+          onDecrease: () {
+            if (minutes == 0) {
+              if (hours == 0) {
+                return;
+              }
+
+              _updateCustomDuration(
+                hours: hours - 1,
+                minutes: 59,
+              );
+
+              return;
+            }
+
+            _updateCustomDuration(
+              hours: hours,
+              minutes: minutes - 1,
+            );
+          },
+
+          onIncrease: () {
+            if (minutes == 59) {
+              _updateCustomDuration(
+                hours: hours + 1,
+                minutes: 0,
+              );
+
+              return;
+            }
+
+            _updateCustomDuration(
+              hours: hours,
+              minutes: minutes + 1,
+            );
+          },
+
+          onSubmitted: (newMinutes) {
+            var safeMinutes = newMinutes;
+
+            if (safeMinutes < 0) {
+              safeMinutes = 0;
+            }
+
+            if (safeMinutes > 59) {
+              safeMinutes = 59;
+            }
+
+            _updateCustomDuration(
+              hours: hours,
+              minutes: safeMinutes,
+            );
+          },
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _buildHorizontalStepper({
+  required int value,
+  required VoidCallback onDecrease,
+  required VoidCallback onIncrease,
+  required ValueChanged<int> onSubmitted,
+  bool twoDigits = false,
+}) {
+  final controller = TextEditingController(
+    text: twoDigits
+        ? value.toString().padLeft(2, '0')
+        : value.toString(),
+  );
+
+  return Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onDecrease,
+        child: const Padding(
+          padding: EdgeInsets.all(3),
+          child: Icon(
+            Icons.chevron_left_rounded,
+            size: 18,
+            color: AppColors.primary,
+          ),
+        ),
+      ),
+
+      SizedBox(
+        width: 32,
+        height: 30,
+        child: TextField(
+          controller: controller,
+
+          textAlign: TextAlign.center,
+
+          keyboardType: TextInputType.number,
+
+          textInputAction: TextInputAction.done,
+
+          style: const TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+          ),
+
+          decoration: const InputDecoration(
+            isDense: true,
+            contentPadding: EdgeInsets.symmetric(
+              vertical: 5,
+              horizontal: 2,
+            ),
+            border: InputBorder.none,
+          ),
+
+          onSubmitted: (text) {
+            final parsed = int.tryParse(text);
+
+            if (parsed == null) {
+              return;
+            }
+
+            onSubmitted(parsed);
+          },
+
+          onTapOutside: (_) {
+            FocusScope.of(context).unfocus();
+
+            final parsed =
+                int.tryParse(controller.text);
+
+            if (parsed != null) {
+              onSubmitted(parsed);
+            }
+          },
+        ),
+      ),
+
+      InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onIncrease,
+        child: const Padding(
+          padding: EdgeInsets.all(3),
+          child: Icon(
+            Icons.chevron_right_rounded,
+            size: 18,
+            color: AppColors.primary,
+          ),
+        ),
+      ),
+    ],
+  );
+}
+
+
+void _updateCustomDuration({
+  required int hours,
+  required int minutes,
+}) {
+  if (hours < 0) {
+    hours = 0;
+  }
+
+  if (hours > 12) {
+    hours = 12;
+  }
+
+  if (minutes < 0) {
+    minutes = 0;
+  }
+
+  if (minutes > 59) {
+    minutes = 59;
+  }
+
+  if (hours == 0 &&
+      minutes == 0) {
+    return;
+  }
+
+  widget.viewModel.setDuration(
+    Duration(
+      hours: hours,
+      minutes: minutes,
+    ),
+  );
+}
+
   Widget _buildWeekSelector(
     ScheduleState state,
   ) {
@@ -392,12 +892,34 @@ class _ScheduleViewState extends State<ScheduleView> {
       state.selectedDay,
     );
 
+    final sunday = monday.add(
+      const Duration(days: 6),
+    );
+
+    // ParchApp keeps its Monday-Friday visual layout.
     final days = List.generate(
       5,
       (index) => monday.add(
         Duration(days: index),
       ),
     );
+
+    // We only allow navigation inside 2026.
+    final previousWeekDay =
+        state.selectedDay.subtract(
+      const Duration(days: 7),
+    );
+
+    final nextWeekDay =
+        state.selectedDay.add(
+      const Duration(days: 7),
+    );
+
+    final canGoPrevious =
+        previousWeekDay.year == 2026;
+
+    final canGoNext =
+        nextWeekDay.year == 2026;
 
     return Container(
       width: double.infinity,
@@ -409,17 +931,148 @@ class _ScheduleViewState extends State<ScheduleView> {
         9,
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
         children: [
-          Text(
-            'Week of ${_monthShort(monday.month)} ${monday.day}',
-            style: const TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-            ),
+          Row(
+            children: [
+              // Previous week
+              IconButton(
+                tooltip: 'Previous week',
+                onPressed: canGoPrevious
+                    ? () {
+                        _changeWeek(
+                          state,
+                          -1,
+                        );
+                      }
+                    : null,
+                visualDensity:
+                    VisualDensity.compact,
+                icon: const Icon(
+                  Icons.chevron_left_rounded,
+                  size: 24,
+                ),
+                color: AppColors.textPrimary,
+                disabledColor:
+                    AppColors.textSecondary
+                        .withValues(
+                  alpha: 0.35,
+                ),
+              ),
+
+              // Week text.
+              // Tapping it also opens the calendar.
+              Expanded(
+                child: InkWell(
+                  borderRadius:
+                      BorderRadius.circular(10),
+                  onTap: () {
+                    _openCalendarPicker(
+                      state,
+                    );
+                  },
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(
+                      vertical: 5,
+                      horizontal: 4,
+                    ),
+                    child: Column(
+                      children: [
+                        const Text(
+                          'SELECTED WEEK',
+                          style: TextStyle(
+                            color: AppColors
+                                .textSecondary,
+                            fontSize: 8,
+                            letterSpacing: 0.8,
+                            fontWeight:
+                                FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          _weekRangeLabel(
+                            monday,
+                            sunday,
+                          ),
+                          textAlign:
+                              TextAlign.center,
+                          style:
+                              const TextStyle(
+                            color: AppColors
+                                .textPrimary,
+                            fontSize: 12,
+                            fontWeight:
+                                FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              // Next week
+              IconButton(
+                tooltip: 'Next week',
+                onPressed: canGoNext
+                    ? () {
+                        _changeWeek(
+                          state,
+                          1,
+                        );
+                      }
+                    : null,
+                visualDensity:
+                    VisualDensity.compact,
+                icon: const Icon(
+                  Icons.chevron_right_rounded,
+                  size: 24,
+                ),
+                color: AppColors.textPrimary,
+                disabledColor:
+                    AppColors.textSecondary
+                        .withValues(
+                  alpha: 0.35,
+                ),
+              ),
+
+              const SizedBox(width: 2),
+
+              // Open monthly calendar
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color:
+                      const Color(0xFFEAF1FF),
+                  borderRadius:
+                      BorderRadius.circular(10),
+                ),
+                child: IconButton(
+                  tooltip: 'Choose date',
+                  padding: EdgeInsets.zero,
+                  onPressed: () {
+                    _openCalendarPicker(
+                      state,
+                    );
+                  },
+                  icon: const Icon(
+                    Icons
+                        .calendar_month_outlined,
+                    size: 19,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 7),
+
+          const SizedBox(height: 6),
+
+          // Monday - Friday selector
           Row(
             children: days.map(
               (day) {
@@ -430,18 +1083,22 @@ class _ScheduleViewState extends State<ScheduleView> {
 
                 return Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(
+                    padding:
+                        const EdgeInsets.symmetric(
                       horizontal: 2,
                     ),
                     child: InkWell(
                       borderRadius:
                           BorderRadius.circular(12),
                       onTap: () {
-                        widget.viewModel.selectDay(day);
+                        widget.viewModel
+                            .selectDay(day);
                       },
                       child: AnimatedContainer(
                         duration:
-                            const Duration(milliseconds: 180),
+                            const Duration(
+                          milliseconds: 180,
+                        ),
                         padding:
                             const EdgeInsets.symmetric(
                           vertical: 6,
@@ -451,12 +1108,16 @@ class _ScheduleViewState extends State<ScheduleView> {
                               ? AppColors.primary
                               : Colors.transparent,
                           borderRadius:
-                              BorderRadius.circular(12),
+                              BorderRadius.circular(
+                            12,
+                          ),
                         ),
                         child: Column(
                           children: [
                             Text(
-                              _weekdayShort(day.weekday),
+                              _weekdayShort(
+                                day.weekday,
+                              ),
                               style: TextStyle(
                                 color: selected
                                     ? const Color(
@@ -466,16 +1127,20 @@ class _ScheduleViewState extends State<ScheduleView> {
                                         .textSecondary,
                                 fontSize: 9,
                                 letterSpacing: 0.5,
-                                fontWeight: FontWeight.w800,
+                                fontWeight:
+                                    FontWeight.w800,
                               ),
                             ),
-                            const SizedBox(height: 2),
+                            const SizedBox(
+                              height: 2,
+                            ),
                             Text(
                               '${day.day}',
                               style: TextStyle(
                                 color: selected
                                     ? Colors.white
-                                    : AppColors.textPrimary,
+                                    : AppColors
+                                        .textPrimary,
                                 fontSize: 12,
                                 fontWeight: selected
                                     ? FontWeight.w800
@@ -495,7 +1160,143 @@ class _ScheduleViewState extends State<ScheduleView> {
       ),
     );
   }
+  Future<void> _openCalendarPicker(
+    ScheduleState state,
+  ) async {
+    final pickedDate =
+        await showDatePicker(
+      context: context,
 
+      // Date currently selected in Schedule.
+      initialDate: _clampDateTo2026(
+        state.selectedDay,
+      ),
+
+      // STEP 0: calendar limited to 2026.
+      firstDate: DateTime(
+        2026,
+        1,
+        1,
+      ),
+
+      lastDate: DateTime(
+        2026,
+        12,
+        31,
+      ),
+
+      helpText: 'Select a date',
+
+      cancelText: 'CANCEL',
+
+      confirmText: 'SELECT',
+
+      // Forces the visual monthly calendar.
+      initialEntryMode:
+          DatePickerEntryMode.calendarOnly,
+
+      builder: (
+        BuildContext context,
+        Widget? child,
+      ) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme:
+                Theme.of(context)
+                    .colorScheme
+                    .copyWith(
+              primary:
+                  AppColors.primary,
+              surface: Colors.white,
+            ),
+            datePickerTheme:
+                const DatePickerThemeData(
+              backgroundColor:
+                  Colors.white,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    // User pressed Cancel.
+    if (pickedDate == null) {
+      return;
+    }
+
+    // Selecting a date makes Schedule jump
+    // to the week containing that date.
+    await widget.viewModel.selectDay(
+      pickedDate,
+    );
+  }
+
+  Future<void> _changeWeek(
+    ScheduleState state,
+    int weekOffset,
+  ) async {
+    final targetDate =
+        state.selectedDay.add(
+      Duration(
+        days: weekOffset * 7,
+      ),
+    );
+
+    // STEP 0 only supports 2026.
+    if (targetDate.year != 2026) {
+      return;
+    }
+
+    await widget.viewModel.selectDay(
+      targetDate,
+    );
+  }
+
+  DateTime _clampDateTo2026(
+    DateTime date,
+  ) {
+    final firstDate =
+        DateTime(2026, 1, 1);
+
+    final lastDate =
+        DateTime(2026, 12, 31);
+
+    if (date.isBefore(firstDate)) {
+      return firstDate;
+    }
+
+    if (date.isAfter(lastDate)) {
+      return lastDate;
+    }
+
+    return date;
+  }
+
+  String _weekRangeLabel(
+    DateTime monday,
+    DateTime sunday,
+  ) {
+    if (monday.year != sunday.year) {
+      return '${_monthShort(monday.month)} '
+          '${monday.day}, ${monday.year} – '
+          '${_monthShort(sunday.month)} '
+          '${sunday.day}, ${sunday.year}';
+    }
+
+    if (monday.month ==
+        sunday.month) {
+      return '${_monthShort(monday.month)} '
+          '${monday.day}–${sunday.day}, '
+          '${monday.year}';
+    }
+
+    return '${_monthShort(monday.month)} '
+        '${monday.day} – '
+        '${_monthShort(sunday.month)} '
+        '${sunday.day}, '
+        '${monday.year}';
+  }
   Widget _buildScheduleContent(
     BuildContext context,
     ScheduleState state,
@@ -1469,37 +2270,10 @@ class _ScheduleViewState extends State<ScheduleView> {
       return;
     }
 
-    final invited = state.friends
-        .where(
-          (friend) =>
-              state.selectedFriendIds.contains(
-            friend.id,
-          ),
-        )
-        .map((friend) => friend.name)
-        .join(', ');
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Ready to create an activity at ${_slotLabel(slot)}'
-          '${invited.isEmpty ? '' : ' with $invited'}.',
-        ),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-
-    // Later:
-    //
-    // context.push(
-    //   AppRoutes.createActivity,
-    //   extra: CreateActivityDraft(
-    //     start: slot.start,
-    //     end: slot.end,
-    //     invitedFriendIds:
-    //         state.selectedFriendIds.toList(),
-    //   ),
-    // );
+    context.push(Uri(path: AppRoutes.createActivity, queryParameters: {
+      'date': '${slot.start.year}-${slot.start.month.toString().padLeft(2, '0')}-${slot.start.day.toString().padLeft(2, '0')}',
+      'time': _slotLabel(slot),
+    }).toString());
   }
 
   double _topFor(

@@ -1,21 +1,23 @@
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
 import 'app/app.dart';
 import 'app/dependency_injection/app_dependencies.dart';
+import 'app/dependency_injection/firebase_dependencies.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final firebaseReady = await _initFirebase();
-  runApp(ParchApp(router: createAppRouter(firebaseReady: firebaseReady)));
-}
-
-Future<bool> _initFirebase() async {
   try {
-    await Firebase.initializeApp();
-    return true;
-  } catch (error) {
-    debugPrint('Firebase not configured, using demo data: $error');
-    return false;
+    final firebase = await FirebaseDependencies.initialize();
+    runApp(ParchApp(router: createAppRouter(firebase)));
+  } catch (error, stack) {
+    debugPrint('ParchApp initialization failed: $error');
+    debugPrintStack(stackTrace: stack);
+    runApp(const MaterialApp(
+        home: Scaffold(
+            body: Center(
+                child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Text(
+                        'Unable to start ParchApp. Check Firebase configuration and restart.'))))));
   }
 }

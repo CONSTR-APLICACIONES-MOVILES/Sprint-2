@@ -4,15 +4,33 @@ import '../../domain/entities/profile_user.dart';
 import '../../domain/use_cases/change_profile_photo.dart';
 import '../../domain/use_cases/manage_profile.dart';
 import 'profile_state.dart';
+import '../../../auth/domain/use_cases/sign_out.dart';
 
 class ProfileViewModel extends ValueNotifier<ProfileState> {
   final ManageProfile _profile;
+  final SignOut? _signOut;
   final ChangeProfilePhoto? _changePhoto;
   bool _disposed = false;
 
-  ProfileViewModel(this._profile, {ChangeProfilePhoto? changePhoto})
-      : _changePhoto = changePhoto,
+  ProfileViewModel(this._profile,
+      {SignOut? signOut, ChangeProfilePhoto? changePhoto})
+      : _signOut = signOut,
+        _changePhoto = changePhoto,
         super(ProfileState());
+
+  Future<bool> signOut() async {
+    if (_disposed || value.isUpdating) return false;
+    _emit(value.copyWith(isUpdating: true));
+    try {
+      await _signOut?.call();
+      _emit(value.copyWith(isUpdating: false));
+      return !_disposed;
+    } catch (_) {
+      _emit(value.copyWith(
+          isUpdating: false, error: 'Unable to sign out. Please try again.'));
+      return false;
+    }
+  }
 
   void _emit(ProfileState state) {
     if (!_disposed) value = state;

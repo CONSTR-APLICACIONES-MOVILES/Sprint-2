@@ -8,8 +8,10 @@ import '../../features/alerts/presentation/views/alerts_view.dart';
 class AlertsDependencies {
   final AlertsRepository repository;
   const AlertsDependencies({required this.repository});
-  factory AlertsDependencies.mock() =>
-      AlertsDependencies(repository: MockAlertsRepository());
+  factory AlertsDependencies.mock({bool includeActivityPreviews = true}) =>
+      AlertsDependencies(
+          repository: MockAlertsRepository(
+              includeActivityPreviews: includeActivityPreviews));
   AlertsViewModel createViewModel() =>
       AlertsViewModel(ManageAlerts(repository));
   Widget route() => _AlertsEntry(dependencies: this);
