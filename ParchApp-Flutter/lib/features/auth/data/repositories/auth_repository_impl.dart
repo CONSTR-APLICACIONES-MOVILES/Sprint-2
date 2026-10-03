@@ -8,12 +8,16 @@ import '../models/authenticated_user_model.dart';
 class AuthRepositoryImpl implements AuthRepository {
   final AuthDataSource _source;
   const AuthRepositoryImpl(this._source);
+  @override
+  Future<void> signOut() => _source.signOut();
 
   Future<AuthenticatedUser> _authenticate(
       Future<AuthenticatedUserModel?> Function() request) async {
     final AuthenticatedUserModel? model;
     try {
       model = await request();
+    } on AuthenticationException {
+      rethrow;
     } catch (_) {
       throw const AuthenticationException(
           'Authentication is unavailable. Please try again.');

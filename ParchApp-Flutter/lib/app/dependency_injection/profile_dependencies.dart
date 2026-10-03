@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../features/auth/domain/repositories/auth_repository.dart';
+import '../../features/auth/domain/use_cases/sign_out.dart';
 import '../../features/profile/data/repositories/mock_profile_repository.dart';
 import '../../features/profile/domain/repositories/profile_repository.dart';
 import '../../features/profile/domain/use_cases/manage_profile.dart';
@@ -7,13 +9,16 @@ import '../../features/profile/presentation/views/profile_view.dart';
 
 class ProfileDependencies {
   final ProfileRepository repository;
-  const ProfileDependencies({required this.repository});
+  final AuthRepository? authRepository;
+  const ProfileDependencies({required this.repository, this.authRepository});
 
-  factory ProfileDependencies.mock() =>
-      ProfileDependencies(repository: MockProfileRepository());
+  factory ProfileDependencies.mock({AuthRepository? authRepository}) =>
+      ProfileDependencies(
+          repository: MockProfileRepository(), authRepository: authRepository);
 
   ProfileViewModel createViewModel() =>
-      ProfileViewModel(ManageProfile(repository));
+      ProfileViewModel(ManageProfile(repository),
+          signOut: authRepository == null ? null : SignOut(authRepository!));
 
   Widget route() => _ProfileEntry(dependencies: this);
 }

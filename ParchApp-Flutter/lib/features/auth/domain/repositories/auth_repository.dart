@@ -2,6 +2,7 @@ import '../entities/authenticated_user.dart';
 import '../entities/google_account.dart';
 
 abstract interface class AuthRepository {
+  Future<void> signOut();
   Future<AuthenticatedUser?> getRecognizedUser();
   Future<GoogleAccount?> getSuggestedGoogleAccount();
   Future<AuthenticatedUser> signIn(String email, String password);

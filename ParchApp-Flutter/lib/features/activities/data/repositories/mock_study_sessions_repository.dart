@@ -1,25 +1,86 @@
 import '../../domain/entities/study_session.dart';
+import '../../domain/entities/activity_draft.dart';
+import '../../domain/entities/slot_recommendation.dart';
 import '../../domain/repositories/study_sessions_repository.dart';
 
 /// Session-scoped demo storage. No reservations or messages leave the app.
 class MockStudySessionsRepository implements StudySessionsRepository {
+  final Map<String, SlotRecommendations> recommendations;
+  final Map<String, RecommendationEvent> _events = {};
+  MockStudySessionsRepository({this.recommendations = const {}});
+  List<RecommendationEvent> get events => List.unmodifiable(_events.values);
+
+  @override
+  Future<List<ActivityGroup>> listGroups() async =>
+      const [ActivityGroup('demo-group', 'Demo group')];
+
+  @override
+  Future<String> createActivity(ActivityDraft draft) async {
+    final data = draft.validated();
+    final id = 'demo-${_sessions.length}';
+    _sessions[id] = StudySession(
+        id: id,
+        groupId: data.groupId,
+        title: data.title,
+        description: data.description,
+        location: data.location,
+        category: data.category,
+        status: data.status,
+        legacyDate: data.date,
+        legacyTime: data.time,
+        startsAt: null,
+        endsAt: null,
+        room: '',
+        reminder: '',
+        topics: const [],
+        participants: const [],
+        resources: const [],
+        canOrganize: true,
+        supportsActivityEditing: true,
+        supportsDetailsEditing: false);
+    return id;
+  }
+
+  @override
+  Future<SlotRecommendations> getRecommendedSlots(String activityId,
+          {int? durationMinutes}) async =>
+      recommendations[activityId] ??
+      SlotRecommendations(
+          id: 'demo-empty-$activityId',
+          activityId: activityId,
+          expiresAt: DateTime.now().add(const Duration(hours: 1)),
+          slots: const []);
+
+  @override
+  Future<void> recordRecommendationShown(RecommendationEvent event) async {
+    _events.putIfAbsent(event.deduplicationKey, () => event);
+  }
+
   final Map<String, StudySession> _sessions = {'linear-algebra': _sample()};
 
   @override
   Future<StudySession?> getById(String id) async => _sessions[id];
 
   @override
-  Future<StudySession> save(StudySession session) async {
+  Future<StudySession> save(StudySession session,
+      {RecommendationEvent? recommendationEvent}) async {
     if (!_sessions.containsKey(session.id)) {
       throw const SessionFailure('Session not found.');
     }
     _sessions[session.id] = session;
+    if (recommendationEvent != null) {
+      _events.putIfAbsent(
+          recommendationEvent.deduplicationKey, () => recommendationEvent);
+    }
     return session;
   }
 }
 
 StudySession _sample() => StudySession(
       id: 'linear-algebra',
+      canOrganize: true,
+      labels: const ['Group Study', 'Midterm Exam #2'],
+      amenities: const ['Eduroam Wi-Fi', '4 outlets • USB-C'],
       title: 'Study Session: Linear Algebra & Calculus',
       description:
           'Intensive review prior to the engineering faculty midterm exam.',

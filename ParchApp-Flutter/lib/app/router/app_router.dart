@@ -1,7 +1,6 @@
 import 'package:go_router/go_router.dart';
 
 import '../../features/welcome/presentation/views/welcome_view.dart';
-import '../../features/home/presentation/views/home_view.dart';
 
 import '../dependency_injection/auth_dependencies.dart';
 import '../dependency_injection/alerts_dependencies.dart';
@@ -20,10 +19,17 @@ abstract final class AppRouter {
     required ProfileDependencies profileDependencies,
     required GroupsDependencies groupsDependencies,
     String initialLocation = AppRoutes.welcome,
+    GoRouterRedirect? redirect,
   }) =>
       GoRouter(
         initialLocation: initialLocation,
+        redirect: redirect,
         routes: [
+          GoRoute(
+              path: AppRoutes.createActivity,
+              builder: (context, state) => activitiesDependencies.createRoute(
+                  date: state.uri.queryParameters['date'] ?? '',
+                  time: state.uri.queryParameters['time'] ?? '')),
           GoRoute(
             path: AppRoutes.studySessionPattern,
             builder: (context, state) => activitiesDependencies
@@ -32,13 +38,11 @@ abstract final class AppRouter {
           GoRoute(
             path: AppRoutes.activeGroups,
             name: 'activeGroups',
-            builder: (context, state) =>
-                groupsDependencies.activeGroupsRoute(),
+            builder: (context, state) => groupsDependencies.activeGroupsRoute(),
           ),
           GoRoute(
             path: AppRoutes.groups,
-            builder: (context, state) =>
-                groupsDependencies.activeGroupsRoute(),
+            builder: (context, state) => groupsDependencies.activeGroupsRoute(),
           ),
           GoRoute(
             path: AppRoutes.schedule,
@@ -62,7 +66,7 @@ abstract final class AppRouter {
           GoRoute(
             path: AppRoutes.home,
             name: 'home',
-            builder: (context, state) => const HomeView(),
+            builder: (context, state) => activitiesDependencies.homeRoute(),
           ),
           GoRoute(
             path: AppRoutes.alerts,

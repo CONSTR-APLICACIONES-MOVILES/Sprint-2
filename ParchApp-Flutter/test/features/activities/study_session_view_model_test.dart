@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:parchapp/features/activities/data/repositories/mock_study_sessions_repository.dart';
 import 'package:parchapp/features/activities/domain/entities/study_session.dart';
+import 'package:parchapp/features/activities/domain/entities/slot_recommendation.dart';
 import 'package:parchapp/features/activities/domain/use_cases/manage_study_session.dart';
 import 'package:parchapp/features/activities/presentation/view_models/study_session_view_model.dart';
 
@@ -17,11 +18,12 @@ class ControlledSessions extends MockStudySessionsRepository {
   }
 
   @override
-  Future<StudySession> save(StudySession session) async {
+  Future<StudySession> save(StudySession session,
+      {RecommendationEvent? recommendationEvent}) async {
     saves++;
     if (failSave) throw Exception('transport failure');
     if (pendingSave != null) await pendingSave!.future;
-    return super.save(session);
+    return super.save(session, recommendationEvent: recommendationEvent);
   }
 }
 
@@ -111,8 +113,8 @@ void main() {
           await model.update(
               title: input.$1,
               room: input.$2,
-              startsAt: before.startsAt,
-              endsAt: before.startsAt.add(Duration(hours: input.$3))),
+              startsAt: before.startsAt!,
+              endsAt: before.startsAt!.add(Duration(hours: input.$3))),
           isFalse);
       expect(repository.saves, 0);
       expect(model.value.session, same(before));
@@ -131,8 +133,8 @@ void main() {
         actions.update(session.id,
             title: 'Changed',
             room: 'Room',
-            startsAt: session.startsAt,
-            endsAt: session.endsAt),
+            startsAt: session.startsAt!,
+            endsAt: session.endsAt!),
         throwsA(isA<SessionFailure>()));
     expect(repository.saves, 1);
   });

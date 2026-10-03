@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../features/schedule/data/adapters/google_calendar_adapter.dart';
+import '../../features/schedule/data/data_sources/google_calendar_auth_data_source.dart';
 import '../../features/schedule/data/data_sources/google_calendar_data_source.dart';
 import '../../features/schedule/data/data_sources/mock_google_calendar_data_source.dart';
 import '../../features/schedule/data/repositories/calendar_import_repository_impl.dart';
@@ -10,6 +11,7 @@ import '../../features/schedule/domain/repositories/calendar_import_repository.d
 import '../../features/schedule/domain/repositories/schedule_repository.dart';
 import '../../features/schedule/domain/services/availability_service.dart';
 import '../../features/schedule/domain/use_cases/import_google_calendar.dart';
+import '../../features/schedule/domain/use_cases/authorize_google_calendar.dart';
 import '../../features/schedule/domain/use_cases/manage_schedule.dart';
 
 import '../../features/schedule/presentation/view_models/schedule_view_model.dart';
@@ -34,6 +36,7 @@ class ScheduleDependencies {
     final calendarImportRepository =
         CalendarImportRepositoryImpl(
       dataSource: calendarDataSource,
+      authDataSource: GoogleCalendarAuthDataSource(),
       adapter: const GoogleCalendarAdapter(),
     );
 
@@ -54,6 +57,7 @@ class ScheduleDependencies {
         calendarImportRepository,
         repository,
       ),
+      authorizeGoogleCalendar: AuthorizeGoogleCalendar(calendarImportRepository),
     );
   }
 
