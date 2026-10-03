@@ -30,6 +30,9 @@ class ActiveGroup {
   final GroupAction primaryAction;
   final GroupAction secondaryAction;
 
+  final String? invitationId;
+  final DateTime? invitationSentAt;
+
   const ActiveGroup({
     required this.id,
     required this.name,
@@ -46,6 +49,8 @@ class ActiveGroup {
     this.progressLabel,
     this.progressCurrent,
     this.progressTotal,
+    this.invitationId,
+    this.invitationSentAt,
   });
 
   ActiveGroup copyWith({
@@ -54,6 +59,8 @@ class ActiveGroup {
     GroupTone? tone,
     String? detail,
     int? progressCurrent,
+    String? invitationId,
+    DateTime? invitationSentAt,
   }) =>
       ActiveGroup(
         id: id,
@@ -71,7 +78,11 @@ class ActiveGroup {
         progressTotal: progressTotal,
         primaryAction: primaryAction,
         secondaryAction: secondaryAction,
+        invitationId: invitationId ?? this.invitationId,
+        invitationSentAt: invitationSentAt ?? this.invitationSentAt,
       );
+
+  bool get hasInvitation => invitationId != null && invitationSentAt != null;
 
   bool get hasProgress => progressCurrent != null && progressTotal != null;
 

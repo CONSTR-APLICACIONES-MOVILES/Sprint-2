@@ -1,9 +1,12 @@
 import '../../domain/entities/active_group.dart';
+import '../../domain/entities/response_time_estimate.dart';
 
 enum GroupsFilter { all, study, socialLiving, sports }
 
 class ActiveGroupsState {
   final List<ActiveGroup> groups;
+
+  final Map<String, ResponseTimeEstimate> estimates;
   final GroupsFilter filter;
   final bool isLoading;
   final bool isUpdating;
@@ -11,11 +14,14 @@ class ActiveGroupsState {
 
   ActiveGroupsState({
     List<ActiveGroup> groups = const [],
+    this.estimates = const {},
     this.filter = GroupsFilter.all,
     this.isLoading = false,
     this.isUpdating = false,
     this.error,
   }) : groups = List.unmodifiable(groups);
+
+  ResponseTimeEstimate? estimateFor(ActiveGroup group) => estimates[group.id];
 
   List<ActiveGroup> get visibleGroups => switch (filter) {
         GroupsFilter.all => groups,
@@ -46,6 +52,7 @@ class ActiveGroupsState {
 
   ActiveGroupsState copyWith({
     List<ActiveGroup>? groups,
+    Map<String, ResponseTimeEstimate>? estimates,
     GroupsFilter? filter,
     bool? isLoading,
     bool? isUpdating,
@@ -53,6 +60,7 @@ class ActiveGroupsState {
   }) =>
       ActiveGroupsState(
         groups: groups ?? this.groups,
+        estimates: estimates ?? this.estimates,
         filter: filter ?? this.filter,
         isLoading: isLoading ?? this.isLoading,
         isUpdating: isUpdating ?? this.isUpdating,

@@ -169,6 +169,7 @@ class _ActiveGroupsViewState extends State<ActiveGroupsView> {
                         child: ActiveGroupCard(
                           key: ValueKey(group.id),
                           group: group,
+                          estimate: state.estimateFor(group),
                           busy: state.isUpdating,
                           onAction: (action) => _handleAction(group, action),
                         ),
