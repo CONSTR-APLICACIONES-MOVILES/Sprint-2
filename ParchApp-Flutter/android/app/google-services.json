@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "632049552762",
+    "project_id": "parchapp-852e8",
+    "storage_bucket": "parchapp-852e8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:632049552762:android:1b5b1648ab9cf29ced9ac3",
+        "android_client_info": {
+          "package_name": "com.example.parchapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAUhtQ4ORAlm_BA3D3LbGwlNwqWXFgjUZk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

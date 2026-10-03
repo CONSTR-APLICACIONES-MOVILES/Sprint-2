@@ -3,6 +3,8 @@ import '../../domain/entities/schedule_friend.dart';
 import '../../domain/repositories/schedule_repository.dart';
 
 class MockScheduleRepository implements ScheduleRepository {
+  final List<ScheduleBlock> _importedCalendarBlocks = [];
+
   static const friends = [
     ScheduleFriend(
       id: 'sarah',
@@ -41,8 +43,10 @@ class MockScheduleRepository implements ScheduleRepository {
       const Duration(milliseconds: 100),
     );
 
+    final blocks = <ScheduleBlock>[];
+
     if (day.weekday == DateTime.tuesday) {
-      return [
+      blocks.add(
         ScheduleBlock(
           id: 'linear-algebra',
           start: DateTime(
@@ -63,10 +67,37 @@ class MockScheduleRepository implements ScheduleRepository {
           subtitle: 'MATH 224',
           location: 'Math Hall 101',
         ),
-      ];
+      );
     }
 
-    return [];
+    blocks.addAll(
+      _importedCalendarBlocks.where(
+        (block) => _sameDay(
+          block.start,
+          day,
+        ),
+      ),
+    );
+
+    return blocks;
+  }
+
+  @override
+  Future<void> replaceImportedCalendarBlocks(
+    List<ScheduleBlock> blocks,
+  ) async {
+    _importedCalendarBlocks
+      ..clear()
+      ..addAll(blocks);
+  }
+
+  bool _sameDay(
+    DateTime first,
+    DateTime second,
+  ) {
+    return first.year == second.year &&
+        first.month == second.month &&
+        first.day == second.day;
   }
 
   @override
