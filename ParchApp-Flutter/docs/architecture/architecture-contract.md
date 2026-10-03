@@ -28,13 +28,13 @@ Status: accepted. Auth is the reference implementation for new features.
 
 Welcome is presentation-only because it displays content and routes forward. Do not invent domain/data implementations for empty layers. Shared widgets and the existing `core/theme/` tokens remain reusable; theme relocation is outside this refactor.
 
-Auth remains a prototype: the mock does not authenticate against a server or persist a session. Successful submissions navigate to Home. Password recovery and Google account switching remain informational placeholders.
+App composition now injects Firebase Auth for email/password sign-in, account creation, restored sessions and sign-out. The mock remains available for tests. Password recovery and Google account switching remain informational placeholders. See [Firebase activity integration](activity-recommendations.md) for local emulator and live-project configuration.
 
 ## Current feature boundaries
 
 - Home is an explicitly scoped presentation-only preview. Its remaining sample actions are tracked in [the implementation backlog](implementation-backlog.md); it must adopt injected state before real data/actions are connected.
 - Activities owns study sessions. Its detail follows `StudySessionView → StudySessionViewModel → ManageStudySession → StudySessionsRepository ← MockStudySessionsRepository`. Domain validates title, room, time range, topic identity and cancellation constraints. UI handles navigation and dialogs.
-- Study-session repositories are scoped to the app router. Edits, cancellation and topic progress survive reopening a route, but reset when the app restarts. No reservation, notification or external file operation is performed.
+- Study-session repositories are scoped to the app router. FirebaseStudySessionsRepository persists recommendation decisions through the shared callable API, acknowledges candidate presentation before decisions, and maps backend data into the existing entities. The mock's edits, cancellation and topic progress remain in-memory test behavior; those unsupported fields are unavailable for Firebase activities. No reservation, notification or external file operation is performed.
 - Alerts references a study session by ID and navigates through the central router. It does not import Activities data or duplicate the session entity.
 - Groups and Schedule currently have explicit unavailable destinations. Registering a route does not count as implementing the feature.
 - Native ValueNotifier remains sufficient for these independent screens; no second state-management framework has been introduced.

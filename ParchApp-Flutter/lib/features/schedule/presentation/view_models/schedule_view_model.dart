@@ -16,8 +16,10 @@ class ScheduleViewModel extends ValueNotifier<ScheduleState> {
   ScheduleViewModel(
     this._schedule,
     this._importGoogleCalendar, {
+    required AuthorizeGoogleCalendar authorizeGoogleCalendar,
     DateTime? initialDay,
-  }) : super(
+  }) : _authorizeGoogleCalendar = authorizeGoogleCalendar,
+       super(
           ScheduleState(
             selectedDay:
                 initialDay ??
@@ -82,6 +84,7 @@ class ScheduleViewModel extends ValueNotifier<ScheduleState> {
     );
 
     try {
+      await _authorizeGoogleCalendar();
       final importedCount =
           await _importGoogleCalendar();
 

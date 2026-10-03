@@ -139,8 +139,8 @@ class _ProfileViewState extends State<ProfileView> {
                 ),
                 const SizedBox(height: 16),
                 const Text('ParchApp • Made for students',
-                    style:
-                        TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                    style: TextStyle(
+                        fontSize: 11, color: AppColors.textSecondary)),
               ]),
             ),
           ),
@@ -212,7 +212,13 @@ class _ProfileViewState extends State<ProfileView> {
       ),
     );
     if (!mounted || confirmed != true) return;
-    context.go(AppRoutes.welcome);
+    final signedOut = await widget.viewModel.signOut();
+    if (!mounted) return;
+    if (signedOut) {
+      context.go(AppRoutes.welcome);
+    } else {
+      _message(widget.viewModel.value.error ?? 'Unable to sign out.');
+    }
   }
 
   void _message(String message) {

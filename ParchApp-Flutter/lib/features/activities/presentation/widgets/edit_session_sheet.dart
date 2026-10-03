@@ -21,8 +21,8 @@ class EditSessionSheet extends StatefulWidget {
 class _EditSessionSheetState extends State<EditSessionSheet> {
   late final _title = TextEditingController(text: widget.session.title);
   late final _room = TextEditingController(text: widget.session.room);
-  late DateTime _start = widget.session.startsAt;
-  late DateTime _end = widget.session.endsAt;
+  late DateTime _start = widget.session.displayTime(widget.session.startsAt!);
+  late DateTime _end = widget.session.displayTime(widget.session.endsAt!);
   bool _saving = false;
   String? _error;
 
@@ -62,8 +62,11 @@ class _EditSessionSheetState extends State<EditSessionSheet> {
       _saving = true;
       _error = null;
     });
-    final error = await widget
-        .onSave(SessionDraft(_title.text, _room.text, _start, _end));
+    final error = await widget.onSave(SessionDraft(
+        _title.text,
+        _room.text,
+        widget.session.fromDisplayTime(_start),
+        widget.session.fromDisplayTime(_end)));
     if (!mounted) return;
     if (error == null) {
       Navigator.of(context).pop();
@@ -92,27 +95,37 @@ class _EditSessionSheetState extends State<EditSessionSheet> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('Modify Session Details',
+                Text(
+                    widget.session.supportsDetailsEditing
+                        ? 'Modify Session Details'
+                        : 'Modify recommended time',
                     style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: 20),
-                TextField(
-                    controller: _title,
-                    enabled: !_saving,
-                    decoration:
-                        const InputDecoration(labelText: 'Session Title')),
-                const SizedBox(height: 16),
-                TextField(
-                    controller: _room,
-                    enabled: !_saving,
-                    decoration:
-                        const InputDecoration(labelText: 'Location / Room')),
-                const SizedBox(height: 16),
+                if (widget.session.supportsDetailsEditing) ...[
+                  TextField(
+                      controller: _title,
+                      enabled: !_saving,
+                      decoration:
+                          const InputDecoration(labelText: 'Session Title')),
+                  const SizedBox(height: 16),
+                  TextField(
+                      controller: _room,
+                      enabled: !_saving,
+                      decoration:
+                          const InputDecoration(labelText: 'Location / Room')),
+                  const SizedBox(height: 16),
+                ],
                 OutlinedButton.icon(
-                    onPressed: _saving ? null : _date,
+                    onPressed: _saving || !widget.session.supportsDetailsEditing
+                        ? null
+                        : _date,
                     icon: const Icon(Icons.calendar_month),
                     label: Text(MaterialLocalizations.of(context)
                         .formatMediumDate(_start))),
                 const SizedBox(height: 8),
+                if (!widget.session.supportsDetailsEditing)
+                  const Text(
+                      'Today in Bogotá (UTC−05:00). Choose a time when everyone is available.'),
                 Wrap(spacing: 12, runSpacing: 8, children: [
                   TextButton(
                       onPressed: _saving ? null : () => _time(true),
@@ -129,8 +142,6 @@ class _EditSessionSheetState extends State<EditSessionSheet> {
                           color: Theme.of(context).colorScheme.error)),
                   const SizedBox(height: 12)
                 ],
-                const Text(
-                    'Changes are saved for this app session. No campus notifications are sent.'),
                 const SizedBox(height: 16),
                 FilledButton(
                     onPressed: _saving ? null : _save,

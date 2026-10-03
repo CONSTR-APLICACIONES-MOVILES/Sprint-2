@@ -7,15 +7,27 @@ import '../../domain/entities/study_session.dart';
 import '../view_models/study_session_view_model.dart';
 import '../widgets/edit_session_sheet.dart';
 import '../widgets/session_card.dart';
+import '../widgets/recommended_slots_card.dart';
+import '../widgets/activity_form.dart';
 
 class StudySessionView extends StatefulWidget {
   final StudySessionViewModel viewModel;
-  const StudySessionView({super.key, required this.viewModel});
+  final bool isDemo;
+  const StudySessionView(
+      {super.key, required this.viewModel, this.isDemo = false});
   @override
   State<StudySessionView> createState() => _StudySessionViewState();
 }
 
 class _StudySessionViewState extends State<StudySessionView> {
+  final _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -60,7 +72,8 @@ class _StudySessionViewState extends State<StudySessionView> {
                 ])),
       );
 
-  Future<void> _edit(StudySession session) => showModalBottomSheet<void>(
+  Future<void> _edit(StudySession session, {String? sourceSlotId}) =>
+      showModalBottomSheet<void>(
         context: context,
         useSafeArea: true,
         isScrollControlled: true,
@@ -74,20 +87,43 @@ class _StudySessionViewState extends State<StudySessionView> {
                   title: draft.title,
                   room: draft.room,
                   startsAt: draft.startsAt,
-                  endsAt: draft.endsAt);
+                  endsAt: draft.endsAt,
+                  sourceSlotId: sourceSlotId);
               return success
                   ? null
                   : widget.viewModel.value.error ?? 'Unable to save changes.';
             }),
       );
 
+  Future<void> _editDetails() async {
+    final editor = widget.viewModel.createDetailsEditor();
+    try {
+      final saved = await showModalBottomSheet<String>(
+          context: context,
+          useSafeArea: true,
+          isScrollControlled: true,
+          showDragHandle: true,
+          isDismissible: false,
+          enableDrag: false,
+          constraints: BoxConstraints(
+              maxWidth: 600, maxHeight: MediaQuery.sizeOf(context).height * .9),
+          builder: (sheetContext) => ActivityForm(
+              viewModel: editor,
+              onSaved: (id) => Navigator.of(sheetContext).pop(id)));
+      if (saved != null && mounted) {
+        await widget.viewModel.refreshDetails(savedMessage: 'Changes saved.');
+      }
+    } finally {
+      editor.dispose();
+    }
+  }
+
   Future<void> _cancel() async {
     final confirmed = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
               title: const Text('Cancel this study session?'),
-              content: const Text(
-                  'This cancels the demo session on this device. No room reservation is released and no notifications are sent.'),
+              content: const Text('Cancel this session?'),
               actions: [
                 TextButton(
                     onPressed: () => Navigator.of(context).pop(false),
@@ -124,7 +160,9 @@ class _StudySessionViewState extends State<StudySessionView> {
           body: SafeArea(top: false, bottom: false, child: _body(state)),
           bottomNavigationBar:
               Column(mainAxisSize: MainAxisSize.min, children: [
-            if (state.session != null)
+            if (state.session != null &&
+                (state.session!.supportsDetailsEditing ||
+                    state.session!.supportsActivityEditing))
               SafeArea(
                   top: false,
                   bottom: false,
@@ -132,23 +170,30 @@ class _StudySessionViewState extends State<StudySessionView> {
                     color: Colors.white,
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
                     child: Row(children: [
-                      Expanded(
-                          child: OutlinedButton(
-                              onPressed:
-                                  state.saving || state.session!.cancelled
-                                      ? null
-                                      : _cancel,
-                              style: OutlinedButton.styleFrom(
-                                  foregroundColor: AppColors.error,
-                                  minimumSize: const Size(0, 48)),
-                              child: const Text('Cancel'))),
-                      const SizedBox(width: 12),
+                      if (state.session!.supportsDetailsEditing)
+                        Expanded(
+                            child: OutlinedButton(
+                                onPressed: state.saving ||
+                                        state.session!.cancelled ||
+                                        !state.session!.canOrganize
+                                    ? null
+                                    : _cancel,
+                                style: OutlinedButton.styleFrom(
+                                    foregroundColor: AppColors.error,
+                                    minimumSize: const Size(0, 48)),
+                                child: const Text('Cancel'))),
+                      if (state.session!.supportsDetailsEditing)
+                        const SizedBox(width: 12),
                       Expanded(
                           flex: 2,
                           child: FilledButton(
-                              onPressed:
-                                  state.saving || state.session!.cancelled
-                                      ? null
+                              onPressed: state.saving ||
+                                      state.refreshing ||
+                                      state.session!.cancelled ||
+                                      !state.session!.canOrganize
+                                  ? null
+                                  : state.session!.supportsActivityEditing
+                                      ? _editDetails
                                       : () => _edit(state.session!),
                               style: FilledButton.styleFrom(
                                   minimumSize: const Size(0, 48)),
@@ -185,14 +230,19 @@ class _StudySessionViewState extends State<StudySessionView> {
     }
     final session = state.session!;
     final done = session.topics.where((topic) => topic.completed).length;
-    final blocked = state.saving || session.cancelled;
-    final date =
-        MaterialLocalizations.of(context).formatFullDate(session.startsAt);
-    final time =
-        '${TimeOfDay.fromDateTime(session.startsAt).format(context)} – ${TimeOfDay.fromDateTime(session.endsAt).format(context)}';
+    final blocked = state.saving || session.cancelled || !session.canOrganize;
+    final date = session.startsAt == null
+        ? 'Not scheduled'
+        : MaterialLocalizations.of(context)
+            .formatFullDate(session.displayTime(session.startsAt!));
+    final time = session.startsAt == null || session.endsAt == null
+        ? 'Choose a recommended time to schedule this activity.'
+        : '${TimeOfDay.fromDateTime(session.displayTime(session.startsAt!)).format(context)} – ${TimeOfDay.fromDateTime(session.displayTime(session.endsAt!)).format(context)}'
+            '${session.timeZone == 'America/Bogota' ? ' · Bogotá (UTC−05:00)' : ''}';
     return RefreshIndicator(
         onRefresh: widget.viewModel.load,
         child: SingleChildScrollView(
+          controller: _scrollController,
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(16),
           child: Center(
@@ -202,6 +252,13 @@ class _StudySessionViewState extends State<StudySessionView> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   if (state.saving) const LinearProgressIndicator(),
+                  if (state.refreshing) const LinearProgressIndicator(),
+                  if (state.refreshError != null) ...[
+                    Text(state.refreshError!),
+                    TextButton(
+                        onPressed: widget.viewModel.refreshDetails,
+                        child: const Text('Retry details refresh')),
+                  ],
                   if (state.error != null)
                     Padding(
                         padding: const EdgeInsets.only(bottom: 12),
@@ -218,17 +275,18 @@ class _StudySessionViewState extends State<StudySessionView> {
                                 : AppColors.success),
                         label: Text(session.cancelled
                             ? 'Cancelled'
-                            : 'Confirmed • ${session.participants.length}/${session.participants.length} ready')),
-                    const Chip(label: Text('Demo • saved in memory')),
+                            : '${session.participants.length} participants')),
+                    if (widget.isDemo)
+                      const Chip(label: Text('Demo • saved in memory')),
                   ]),
                   const SizedBox(height: 12),
                   SessionCard(
                       child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                        const Wrap(spacing: 8, runSpacing: 8, children: [
-                          Chip(label: Text('Group Study')),
-                          Chip(label: Text('Midterm Exam #2'))
+                        Wrap(spacing: 8, runSpacing: 8, children: [
+                          for (final label in session.labels)
+                            Chip(label: Text(label)),
                         ]),
                         const SizedBox(height: 12),
                         Text(session.title,
@@ -244,91 +302,119 @@ class _StudySessionViewState extends State<StudySessionView> {
                         _info(Icons.calendar_month_outlined, date),
                         const SizedBox(height: 12),
                         _info(Icons.schedule, time),
+                        if (session.startsAt == null &&
+                            (session.legacyDate.isNotEmpty ||
+                                session.legacyTime.isNotEmpty))
+                          Text(
+                              'Original plan: ${session.legacyDate} ${session.legacyTime}'),
                       ])),
-                  SessionCard(
-                      title: session.location,
-                      icon: Icons.apartment,
-                      child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Text(session.room,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w600)),
-                            const SizedBox(height: 16),
-                            Container(
-                                padding: const EdgeInsets.all(20),
-                                decoration: BoxDecoration(
-                                    color: const Color(0xFFEFF4FF),
-                                    borderRadius: BorderRadius.circular(16)),
-                                child: const Column(children: [
-                                  Icon(Icons.local_library_outlined,
-                                      size: 48, color: AppColors.primary),
-                                  SizedBox(height: 12),
-                                  Text('North Library Gate',
+                  if (session.canOrganize)
+                    RecommendedSlotsCard(
+                      state: state,
+                      scrollController: _scrollController,
+                      onRetry: () => widget.viewModel.loadRecommendations(),
+                      onSearch: (duration) => widget.viewModel
+                          .loadRecommendations(durationMinutes: duration),
+                      onChangeDuration:
+                          widget.viewModel.changeRecommendationDuration,
+                      onRetryAnalytics: widget.viewModel.retryAnalytics,
+                      onShown: widget.viewModel.recommendationShown,
+                      onAccept: widget.viewModel.acceptSlot,
+                      onModify: (id) {
+                        final slot = state.recommendations!.getSlot(id);
+                        _edit(
+                            session.copyWith(
+                                startsAt: slot.startsAt, endsAt: slot.endsAt),
+                            sourceSlotId: id);
+                      },
+                    ),
+                  if (session.location.isNotEmpty)
+                    SessionCard(
+                        title: session.location,
+                        icon: Icons.apartment,
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text(session.room,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w600)),
+                              const SizedBox(height: 16),
+                              Container(
+                                  padding: const EdgeInsets.all(20),
+                                  decoration: BoxDecoration(
+                                      color: const Color(0xFFEFF4FF),
+                                      borderRadius: BorderRadius.circular(16)),
+                                  child: Column(children: [
+                                    const Icon(Icons.local_library_outlined,
+                                        size: 48, color: AppColors.primary),
+                                    const SizedBox(height: 12),
+                                    Text(session.location,
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.w700)),
+                                    const Text('Campus location preview',
+                                        textAlign: TextAlign.center)
+                                  ])),
+                              const SizedBox(height: 12),
+                              Wrap(spacing: 12, runSpacing: 8, children: [
+                                TextButton.icon(
+                                    onPressed: () => _sheet(
+                                        'Campus Walking Route',
+                                        const Text(
+                                            'Walking directions require a connected maps provider. No live location is being read.')),
+                                    icon: const Icon(Icons.directions_walk),
+                                    label: const Text('Route')),
+                                TextButton.icon(
+                                    onPressed: () => _sheet(
+                                        'Study room',
+                                        Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(session.location),
+                                              Text(session.room),
+                                              const SizedBox(height: 16),
+                                              const Text(
+                                                  'Room reservations and access codes are not connected.')
+                                            ])),
+                                    icon:
+                                        const Icon(Icons.meeting_room_outlined),
+                                    label: const Text('View room')),
+                              ]),
+                            ])),
+                  if (session.topics.isNotEmpty)
+                    SessionCard(
+                        title: 'Topics & Objectives',
+                        icon: Icons.assignment_outlined,
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text('$done / ${session.topics.length} completed',
+                                  style: const TextStyle(
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.w700)),
+                              const SizedBox(height: 8),
+                              for (final topic in session.topics)
+                                CheckboxListTile(
+                                  key: ValueKey('topic-${topic.id}'),
+                                  contentPadding: EdgeInsets.zero,
+                                  controlAffinity:
+                                      ListTileControlAffinity.leading,
+                                  value: topic.completed,
+                                  activeColor: AppColors.success,
+                                  onChanged: blocked
+                                      ? null
+                                      : (_) => widget.viewModel
+                                          .toggleTopic(topic.id),
+                                  title: Text(topic.title,
                                       style: TextStyle(
-                                          fontWeight: FontWeight.w700)),
-                                  Text('Campus location preview',
-                                      textAlign: TextAlign.center)
-                                ])),
-                            const SizedBox(height: 12),
-                            Wrap(spacing: 12, runSpacing: 8, children: [
-                              TextButton.icon(
-                                  onPressed: () => _sheet(
-                                      'Campus Walking Route',
-                                      const Text(
-                                          'Walking directions require a connected maps provider. No live location is being read.')),
-                                  icon: const Icon(Icons.directions_walk),
-                                  label: const Text('Route')),
-                              TextButton.icon(
-                                  onPressed: () => _sheet(
-                                      'Study room',
-                                      Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(session.location),
-                                            Text(session.room),
-                                            const SizedBox(height: 16),
-                                            const Text(
-                                                'Room reservations and access codes are not connected.')
-                                          ])),
-                                  icon: const Icon(Icons.meeting_room_outlined),
-                                  label: const Text('View room')),
-                            ]),
-                          ])),
-                  SessionCard(
-                      title: 'Topics & Objectives',
-                      icon: Icons.assignment_outlined,
-                      child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Text('$done / ${session.topics.length} completed',
-                                style: const TextStyle(
-                                    color: AppColors.primary,
-                                    fontWeight: FontWeight.w700)),
-                            const SizedBox(height: 8),
-                            for (final topic in session.topics)
-                              CheckboxListTile(
-                                key: ValueKey('topic-${topic.id}'),
-                                contentPadding: EdgeInsets.zero,
-                                controlAffinity:
-                                    ListTileControlAffinity.leading,
-                                value: topic.completed,
-                                activeColor: AppColors.success,
-                                onChanged: blocked
-                                    ? null
-                                    : (_) =>
-                                        widget.viewModel.toggleTopic(topic.id),
-                                title: Text(topic.title,
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        decoration: topic.completed
-                                            ? TextDecoration.lineThrough
-                                            : null)),
-                                subtitle: Text(
-                                    '${topic.completed ? 'Completed' : 'Pending'}\n${topic.objective}'),
-                              ),
-                          ])),
+                                          fontWeight: FontWeight.w600,
+                                          decoration: topic.completed
+                                              ? TextDecoration.lineThrough
+                                              : null)),
+                                  subtitle: Text(
+                                      '${topic.completed ? 'Completed' : 'Pending'}\n${topic.objective}'),
+                                ),
+                            ])),
                   SessionCard(
                       title: 'Participants (${session.participants.length})',
                       icon: Icons.people_outline,
@@ -367,45 +453,40 @@ class _StudySessionViewState extends State<StudySessionView> {
                                     ])),
                           )
                       ])),
-                  SessionCard(
-                      title: 'Logistics & Shared Resources',
-                      icon: Icons.folder_shared_outlined,
-                      child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            const Wrap(spacing: 8, runSpacing: 8, children: [
-                              Chip(
-                                  avatar: Icon(Icons.wifi),
-                                  label: Text('Eduroam Wi-Fi')),
-                              Chip(
-                                  avatar: Icon(Icons.power_outlined),
-                                  label: Text('4 outlets • USB-C'))
-                            ]),
-                            const Text(
-                                'Room amenities from the demo listing; connectivity is not measured.',
-                                style:
-                                    TextStyle(color: AppColors.textSecondary)),
-                            const SizedBox(height: 12),
-                            for (final resource in session.resources)
-                              ListTile(
-                                  contentPadding: EdgeInsets.zero,
-                                  leading: const Icon(
-                                      Icons.description_outlined,
-                                      color: AppColors.primary),
-                                  title: Text(resource.title),
-                                  subtitle: Text(resource.description),
-                                  onTap: () => _sheet(
-                                      resource.title,
-                                      const Text(
-                                          'Resource preview. No file URL is configured and nothing has been downloaded.'))),
-                            const SizedBox(height: 16),
-                            Container(
-                                padding: const EdgeInsets.all(14),
-                                decoration: BoxDecoration(
-                                    color: const Color(0xFFFFF8E1),
-                                    borderRadius: BorderRadius.circular(12)),
-                                child: Text('Reminder: ${session.reminder}')),
-                          ])),
+                  if (session.resources.isNotEmpty ||
+                      session.reminder.isNotEmpty ||
+                      session.amenities.isNotEmpty)
+                    SessionCard(
+                        title: 'Logistics & Shared Resources',
+                        icon: Icons.folder_shared_outlined,
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Wrap(spacing: 8, runSpacing: 8, children: [
+                                for (final amenity in session.amenities)
+                                  Chip(label: Text(amenity)),
+                              ]),
+                              const SizedBox(height: 12),
+                              for (final resource in session.resources)
+                                ListTile(
+                                    contentPadding: EdgeInsets.zero,
+                                    leading: const Icon(
+                                        Icons.description_outlined,
+                                        color: AppColors.primary),
+                                    title: Text(resource.title),
+                                    subtitle: Text(resource.description),
+                                    onTap: () => _sheet(
+                                        resource.title,
+                                        const Text(
+                                            'Resource preview. No file URL is configured and nothing has been downloaded.'))),
+                              const SizedBox(height: 16),
+                              Container(
+                                  padding: const EdgeInsets.all(14),
+                                  decoration: BoxDecoration(
+                                      color: const Color(0xFFFFF8E1),
+                                      borderRadius: BorderRadius.circular(12)),
+                                  child: Text('Reminder: ${session.reminder}')),
+                            ])),
                 ]),
           )),
         ));

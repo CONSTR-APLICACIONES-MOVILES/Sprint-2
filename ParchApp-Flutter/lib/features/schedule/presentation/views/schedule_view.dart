@@ -2270,37 +2270,10 @@ void _updateCustomDuration({
       return;
     }
 
-    final invited = state.friends
-        .where(
-          (friend) =>
-              state.selectedFriendIds.contains(
-            friend.id,
-          ),
-        )
-        .map((friend) => friend.name)
-        .join(', ');
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Ready to create an activity at ${_slotLabel(slot)}'
-          '${invited.isEmpty ? '' : ' with $invited'}.',
-        ),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-
-    // Later:
-    //
-    // context.push(
-    //   AppRoutes.createActivity,
-    //   extra: CreateActivityDraft(
-    //     start: slot.start,
-    //     end: slot.end,
-    //     invitedFriendIds:
-    //         state.selectedFriendIds.toList(),
-    //   ),
-    // );
+    context.push(Uri(path: AppRoutes.createActivity, queryParameters: {
+      'date': '${slot.start.year}-${slot.start.month.toString().padLeft(2, '0')}-${slot.start.day.toString().padLeft(2, '0')}',
+      'time': _slotLabel(slot),
+    }).toString());
   }
 
   double _topFor(

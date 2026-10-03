@@ -4,6 +4,8 @@ import '../models/google_account_model.dart';
 
 /// Demo responses only; no real credentials, OAuth or persistent session.
 class MockAuthDataSource implements AuthDataSource {
+  @override
+  Future<void> signOut() async {}
   static const _user = AuthenticatedUserModel(
       id: 'user-001',
       name: 'Alex Valenzuela',
