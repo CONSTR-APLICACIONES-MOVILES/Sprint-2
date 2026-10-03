@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/entities/profile_user.dart';
+import '../../domain/entities/photo_source.dart';
 
 Future<T?> showProfileSheet<T>(BuildContext context, {required Widget child}) =>
     showModalBottomSheet<T>(
@@ -53,7 +54,10 @@ class AvailabilitySheet extends StatelessWidget {
 
 class EditProfileSheet extends StatefulWidget {
   final ProfileUser user;
-  const EditProfileSheet({super.key, required this.user});
+  final ValueChanged<PhotoSource> onPhoto;
+
+  const EditProfileSheet(
+      {super.key, required this.user, required this.onPhoto});
 
   @override
   State<EditProfileSheet> createState() => _EditProfileSheetState();
@@ -90,6 +94,11 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
     ));
   }
 
+  void _photo(PhotoSource source) {
+    Navigator.of(context).pop();
+    widget.onPhoto(source);
+  }
+
   @override
   Widget build(BuildContext context) => Column(
         mainAxisSize: MainAxisSize.min,
@@ -97,6 +106,24 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
         children: [
           const Text('Edit profile',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 16),
+                    Row(children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => _photo(PhotoSource.frontCamera),
+                icon: const Icon(Icons.camera_front_outlined, size: 18),
+                label: const Text('Take a selfie'),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => _photo(PhotoSource.rearCamera),
+                icon: const Icon(Icons.photo_camera_outlined, size: 18),
+                label: const Text('Rear camera'),
+              ),
+            ),
+          ]),
           const SizedBox(height: 16),
           _field(_name, 'Full name'),
           const SizedBox(height: 12),

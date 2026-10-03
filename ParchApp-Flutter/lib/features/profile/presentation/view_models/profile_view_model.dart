@@ -1,13 +1,18 @@
 import 'package:flutter/foundation.dart';
+import '../../domain/entities/photo_source.dart';
 import '../../domain/entities/profile_user.dart';
+import '../../domain/use_cases/change_profile_photo.dart';
 import '../../domain/use_cases/manage_profile.dart';
 import 'profile_state.dart';
 
 class ProfileViewModel extends ValueNotifier<ProfileState> {
   final ManageProfile _profile;
+  final ChangeProfilePhoto? _changePhoto;
   bool _disposed = false;
 
-  ProfileViewModel(this._profile) : super(ProfileState());
+  ProfileViewModel(this._profile, {ChangeProfilePhoto? changePhoto})
+      : _changePhoto = changePhoto,
+        super(ProfileState());
 
   void _emit(ProfileState state) {
     if (!_disposed) value = state;
@@ -34,6 +39,31 @@ class ProfileViewModel extends ValueNotifier<ProfileState> {
 
   Future<bool> updateProfile(ProfileUser user) =>
       _update(() => _profile.updateProfile(user));
+
+  Future<bool> changePhoto(PhotoSource source) async {
+    final user = value.user;
+    final changePhoto = _changePhoto;
+    if (_disposed ||
+        user == null ||
+        changePhoto == null ||
+        value.isLoading ||
+        value.isUpdating) {
+      return false;
+    }
+    _emit(value.copyWith(isUpdating: true));
+    try {
+      final updated = await changePhoto(user, source);
+      if (_disposed) return false;
+      _emit(value.copyWith(user: updated, isUpdating: false));
+      return updated != null;
+    } catch (_) {
+      _emit(value.copyWith(
+          isUpdating: false,
+          error:
+              'We could not open the camera. Check the camera permission and try again.'));
+      return false;
+    }
+  }
 
   Future<bool> _update(Future<ProfileUser> Function() operation) async {
     if (_disposed || value.isLoading || value.isUpdating) return false;

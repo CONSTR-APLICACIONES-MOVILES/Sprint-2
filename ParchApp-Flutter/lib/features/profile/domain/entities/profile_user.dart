@@ -23,6 +23,8 @@ class ProfileUser {
   final int activeGroups;
   final int onTimeRate;
 
+  final String? photoPath;
+
   // Constructor
   const ProfileUser({
     required this.id,
@@ -39,6 +41,7 @@ class ProfileUser {
     required this.plansCompleted,
     required this.activeGroups,
     required this.onTimeRate,
+    this.photoPath,
   });
 
   ProfileUser copyWith(
@@ -49,7 +52,8 @@ class ProfileUser {
           AcademicLevel? academicLevel,
           String? campus,
           String? university,
-          AvailabilityStatus? status}) =>
+          AvailabilityStatus? status,
+          String? photoPath}) =>
       ProfileUser(
           id: id,
           name: name ?? this.name,
@@ -64,7 +68,8 @@ class ProfileUser {
           status: status ?? this.status,
           plansCompleted: plansCompleted,
           activeGroups: activeGroups,
-          onTimeRate: onTimeRate);
+          onTimeRate: onTimeRate,
+          photoPath: photoPath ?? this.photoPath);
 
   String get initials {
     final parts =

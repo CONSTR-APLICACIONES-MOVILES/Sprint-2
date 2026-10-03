@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/entities/profile_user.dart';
@@ -23,14 +24,18 @@ class ProfileIdentityCard extends StatelessWidget {
         Container(
           width: 96,
           height: 96,
+          clipBehavior: Clip.antiAlias,
           decoration: const BoxDecoration(
               color: AppColors.primary, shape: BoxShape.circle),
           alignment: Alignment.center,
-          child: Text(user.initials,
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 32,
-                  fontWeight: FontWeight.w800)),
+          child: user.photoPath == null
+              ? Text(user.initials,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 32,
+                      fontWeight: FontWeight.w800))
+              : Image.file(File(user.photoPath!),
+                  width: 96, height: 96, fit: BoxFit.cover),
         ),
         if (user.verified)
           Positioned(

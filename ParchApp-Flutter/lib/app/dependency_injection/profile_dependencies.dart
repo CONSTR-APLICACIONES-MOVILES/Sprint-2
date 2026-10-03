@@ -4,16 +4,25 @@ import '../../features/profile/domain/repositories/profile_repository.dart';
 import '../../features/profile/domain/use_cases/manage_profile.dart';
 import '../../features/profile/presentation/view_models/profile_view_model.dart';
 import '../../features/profile/presentation/views/profile_view.dart';
+import '../../features/profile/data/repositories/device_profile_photo_repository.dart';
+import '../../features/profile/domain/repositories/profile_photo_repository.dart';
+import '../../features/profile/domain/use_cases/change_profile_photo.dart';
 
 class ProfileDependencies {
   final ProfileRepository repository;
-  const ProfileDependencies({required this.repository});
+  final ProfilePhotoRepository photos;
 
-  factory ProfileDependencies.mock() =>
-      ProfileDependencies(repository: MockProfileRepository());
+  const ProfileDependencies({required this.repository, required this.photos});
 
-  ProfileViewModel createViewModel() =>
-      ProfileViewModel(ManageProfile(repository));
+  factory ProfileDependencies.mock() => ProfileDependencies(
+        repository: MockProfileRepository(),
+        photos: DeviceProfilePhotoRepository(),
+      );
+
+  ProfileViewModel createViewModel() => ProfileViewModel(
+        ManageProfile(repository),
+        changePhoto: ChangeProfilePhoto(photos, repository),
+      );
 
   Widget route() => _ProfileEntry(dependencies: this);
 }
