@@ -9,6 +9,7 @@ import '../view_models/profile_view_model.dart';
 import '../widgets/profile_cards.dart';
 import '../widgets/profile_menu_tile.dart';
 import '../widgets/profile_sheets.dart';
+import '../../domain/entities/photo_source.dart';
 
 const _surface = Color(0xFFF8FAFE);
 
@@ -188,10 +189,16 @@ class _ProfileViewState extends State<ProfileView> {
 
   Future<void> _edit(ProfileUser user) async {
     final updated = await showProfileSheet<ProfileUser>(context,
-        child: EditProfileSheet(user: user));
+        child: EditProfileSheet(user: user, onPhoto: _changePhoto));
     if (!mounted || updated == null) return;
     if (await widget.viewModel.updateProfile(updated)) {
       _message('Profile updated');
+    }
+  }
+
+    Future<void> _changePhoto(PhotoSource source) async {
+    if (await widget.viewModel.changePhoto(source)) {
+      _message('Profile photo updated');
     }
   }
 

@@ -1,4 +1,6 @@
 import 'package:go_router/go_router.dart';
+import '../../core/analytics/firebase_analytics_service.dart';
+import '../../features/groups/data/repositories/firestore_response_time_insights_repository.dart';
 import '../router/app_router.dart';
 import 'auth_dependencies.dart';
 import 'alerts_dependencies.dart';
@@ -18,7 +20,10 @@ GoRouter createAppRouter(FirebaseDependencies firebase) {
     scheduleDependencies: ScheduleDependencies.mock(),
     profileDependencies:
         ProfileDependencies.mock(authRepository: auth.repository),
-    groupsDependencies: GroupsDependencies.mock(),
+    groupsDependencies: GroupsDependencies.mock(
+      insights: FirestoreResponseTimeInsightsRepository(firebase.firestore),
+      analytics: FirebaseAnalyticsService(),
+    ),
     initialLocation:
         firebase.auth.currentUser == null ? AppRoutes.welcome : AppRoutes.home,
     redirect: (context, state) {

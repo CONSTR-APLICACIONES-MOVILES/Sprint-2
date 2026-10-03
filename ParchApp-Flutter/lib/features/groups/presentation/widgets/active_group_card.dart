@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/entities/active_group.dart';
+import '../../domain/entities/response_time_estimate.dart';
 
 class ActiveGroupCard extends StatelessWidget {
   final ActiveGroup group;
+
+  final ResponseTimeEstimate? estimate;
   final bool busy;
   final void Function(GroupAction action) onAction;
 
   const ActiveGroupCard({
     super.key,
     required this.group,
+    this.estimate,
     required this.busy,
     required this.onAction,
   });
@@ -115,6 +119,7 @@ class ActiveGroupCard extends StatelessWidget {
                       const AlwaysStoppedAnimation(AppColors.warning),
                 ),
               ),
+              if (estimate != null) _ResponseTimeHint(group, estimate!),
             ],
             const SizedBox(height: 14),
             Row(children: [
@@ -230,3 +235,54 @@ IconData _actionIcon(GroupAction action) => switch (action) {
       GroupAction.dropIn => Icons.location_on_outlined,
       GroupAction.chat => Icons.chat_bubble_outline,
     };
+class _ResponseTimeHint extends StatelessWidget {
+  final ActiveGroup group;
+  final ResponseTimeEstimate estimate;
+  const _ResponseTimeHint(this.group, this.estimate);
+
+  @override
+  Widget build(BuildContext context) {
+    final complete = group.progressCurrent! >= group.progressTotal!;
+    final text = switch (estimate.kind) {
+      EstimateKind.allResponded =>
+        'Groups of ${estimate.groupSize} usually all reply within ~${estimate.durationLabel}',
+      EstimateKind.perResponse =>
+        'Members of groups of ${estimate.groupSize} usually reply in ~${estimate.durationLabel}',
+    };
+    final expectedAt = group.invitationSentAt?.add(estimate.duration);
+    final late = expectedAt != null && DateTime.now().isAfter(expectedAt);
+    final detail = complete || expectedAt == null
+        ? null
+        : estimate.kind != EstimateKind.allResponded
+            ? null
+            : late
+                ? 'Taking longer than usual — a reminder may help'
+                : 'Everyone should have replied by ${TimeOfDay.fromDateTime(expectedAt).format(context)}';
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Icon(late && !complete ? Icons.hourglass_bottom : Icons.schedule,
+            size: 14, color: AppColors.textSecondary),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text.rich(
+            TextSpan(text: text, children: [
+              if (detail != null)
+                TextSpan(
+                    text: '\n$detail',
+                    style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: late
+                            ? const Color(0xFF92400E)
+                            : AppColors.primary)),
+            ]),
+            key: const ValueKey('bq5-estimate'),
+            style: const TextStyle(
+                fontSize: 11, color: AppColors.textSecondary, height: 1.35),
+          ),
+        ),
+      ]),
+    );
+  }
+}

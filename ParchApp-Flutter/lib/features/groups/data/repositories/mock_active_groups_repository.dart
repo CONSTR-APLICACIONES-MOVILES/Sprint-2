@@ -3,7 +3,15 @@ import '../../domain/repositories/active_groups_repository.dart';
 
 /// Solo demostración en memoria. Los cambios se pierden al reiniciar la app.
 class MockActiveGroupsRepository implements ActiveGroupsRepository {
-  final List<ActiveGroup> _groups = List.of(_samples);
+  final List<ActiveGroup> _groups = [
+    for (final group in _samples)
+      group.id == 'futbol-5'
+          ? group.copyWith(
+              invitationId: 'demo-futbol-5-match',
+              invitationSentAt:
+                  DateTime.now().subtract(const Duration(minutes: 50)))
+          : group,
+  ];
 
   @override
   Future<List<ActiveGroup>> getActiveGroups() async {

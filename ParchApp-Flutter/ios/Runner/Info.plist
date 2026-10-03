@@ -82,5 +82,8 @@
 			</array>
 		</dict>
 	</array>
+
+	<key>NSCameraUsageDescription</key>
+	<string>ParchApp uses the camera to take your profile photo.</string>
 </dict>
 </plist>
