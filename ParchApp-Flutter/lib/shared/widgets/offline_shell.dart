@@ -7,7 +7,13 @@ import 'pending_invitations_panel.dart';
 class OfflineShell extends StatefulWidget {
   final OfflineMobileApi api;
   final Widget child;
-  const OfflineShell({super.key, required this.api, required this.child});
+  final bool showDebugControls;
+  const OfflineShell(
+      {super.key,
+      required this.api,
+      required this.child,
+      this.showDebugControls =
+          const bool.fromEnvironment('SHOW_CONNECTIVITY_DEBUG_CONTROLS')});
   @override
   State<OfflineShell> createState() => _OfflineShellState();
 }
@@ -60,7 +66,8 @@ class _OfflineShellState extends State<OfflineShell>
   Widget build(BuildContext context) => ValueListenableBuilder<OfflineStatus>(
       valueListenable: widget.api,
       builder: (context, state, _) => Column(children: [
-            if (widget.api.currentUserId() != null)
+            if (widget.api.currentUserId() != null &&
+                (widget.showDebugControls || state.pending > 0))
               Material(
                   color: state.offline
                       ? const Color(0xFFFFF3D6)
@@ -76,7 +83,7 @@ class _OfflineShellState extends State<OfflineShell>
                                         ? 'Discard all unsynced responses? Refresh the inbox afterwards.'
                                         : state.syncing
                                             ? 'Syncing responses…'
-                                            : '${state.forced ? 'Offline mode' : state.offline ? 'Offline · saved data' : 'Online'}'
+                                            : '${widget.showDebugControls ? state.forced ? 'Offline mode' : state.offline ? 'Offline · saved data' : 'Online' : 'Responses waiting to sync'}'
                                                 '${state.pending > 0 ? ' · ${state.pending} pending' : ''}'
                                                 '${state.error == null ? '' : '\n${state.error}'}',
                                     style: const TextStyle(fontSize: 12))),
@@ -93,7 +100,8 @@ class _OfflineShellState extends State<OfflineShell>
                                       ? null
                                       : widget.api.flush,
                                   icon: const Icon(Icons.sync, size: 20)),
-                              if (state.error != null)
+                              if (widget.showDebugControls &&
+                                  state.error != null)
                                 IconButton(
                                     tooltip: 'Discard pending responses',
                                     onPressed: _discard,
@@ -109,7 +117,7 @@ class _OfflineShellState extends State<OfflineShell>
                                   onPressed: () =>
                                       setState(() => confirmDiscard = false),
                                   child: const Text('Cancel')),
-                            if (!confirmDiscard)
+                            if (!confirmDiscard && widget.showDebugControls)
                               TextButton(
                                   onPressed: () => widget.api
                                       .setForcedOffline(!state.forced),

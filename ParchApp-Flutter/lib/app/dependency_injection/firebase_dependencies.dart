@@ -7,6 +7,7 @@ import '../../firebase_options.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/data/mobile_api.dart';
 import '../../core/data/offline_mobile_api.dart';
+import '../../core/data/restore_auth_session.dart';
 
 /// Uses the checked-in live configuration or the shared demo-parchapp emulators.
 class FirebaseDependencies {
@@ -64,6 +65,7 @@ class FirebaseDependencies {
     }
     // Wait for any persisted account before constructing routes/catalog queries.
     await auth.authStateChanges().first;
+    await validateRestoredAuthSession(auth);
     final mobile = OfflineMobileApi(
         remote: FirebaseMobileApi(functions),
         store: PreferencesOfflineStore(await SharedPreferences.getInstance()),

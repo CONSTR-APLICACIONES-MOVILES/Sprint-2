@@ -124,13 +124,14 @@ class _HomeEntry extends StatefulWidget {
   State<_HomeEntry> createState() => _HomeEntryState();
 }
 
-class _HomeEntryState extends State<_HomeEntry> {
+class _HomeEntryState extends State<_HomeEntry> with WidgetsBindingObserver {
   late final model = ActivityListViewModel(GetActivities(widget.catalog))
     ..load();
   ProfileUser? profile;
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadProfile();
   }
 
@@ -143,9 +144,13 @@ class _HomeEntryState extends State<_HomeEntry> {
     }
   }
 
-  void _refresh() {
-    model.load();
-    _loadProfile();
+  Future<void> _refresh() async {
+    await Future.wait([model.load(), _loadProfile()]);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _refresh();
   }
 
   @override
@@ -160,6 +165,7 @@ class _HomeEntryState extends State<_HomeEntry> {
               groupCount: profile?.activeGroups));
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     model.dispose();
     super.dispose();
   }

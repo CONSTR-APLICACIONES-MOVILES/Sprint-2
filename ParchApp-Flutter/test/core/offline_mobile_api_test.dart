@@ -1,6 +1,8 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:parchapp/shared/widgets/offline_shell.dart';
 import 'package:parchapp/shared/widgets/pending_invitations_panel.dart';
 import 'package:parchapp/core/data/mobile_api.dart';
 import 'package:parchapp/core/data/offline_mobile_api.dart';
@@ -75,6 +77,38 @@ void main() {
     api = create();
   });
   tearDown(() => api.dispose());
+
+  for (final debug in [false, true]) {
+    testWidgets(
+        'connectivity simulation controls require explicit opt-in: $debug',
+        (tester) async {
+      api.dispose();
+      api = create();
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      const connectivity =
+          MethodChannel('dev.fluttercommunity.plus/connectivity');
+      const events =
+          MethodChannel('dev.fluttercommunity.plus/connectivity_status');
+      messenger.setMockMethodCallHandler(connectivity, (_) async => ['wifi']);
+      messenger.setMockMethodCallHandler(events, (_) async => null);
+      addTearDown(() {
+        messenger.setMockMethodCallHandler(connectivity, null);
+        messenger.setMockMethodCallHandler(events, null);
+      });
+      await tester.pumpWidget(MaterialApp(
+          home: OfflineShell(
+        api: api,
+        showDebugControls: debug,
+        child: const Text('App content'),
+      )));
+      await tester.pumpAndSettle();
+      expect(find.text('App content'), findsOneWidget);
+      expect(find.text('Use offline'), debug ? findsOneWidget : findsNothing);
+      expect(find.text('Online'), debug ? findsOneWidget : findsNothing);
+      await tester.pumpWidget(const SizedBox());
+    });
+  }
 
   testWidgets('review panel confirms discard of only the selected response',
       (tester) async {

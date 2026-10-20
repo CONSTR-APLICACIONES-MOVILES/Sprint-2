@@ -4,6 +4,19 @@ import 'package:parchapp/features/home/presentation/views/home_view.dart';
 import 'package:parchapp/features/activities/presentation/view_models/activity_list_view_model.dart';
 
 void main() {
+  testWidgets('Home refresh gesture invokes the data reload', (tester) async {
+    var refreshes = 0;
+    await tester.pumpWidget(MaterialApp(
+        home: HomeView(
+      activityState: ActivityListState(loading: false),
+      onRefreshActivities: () async {
+        refreshes++;
+      },
+    )));
+    await tester.drag(find.byType(SingleChildScrollView), const Offset(0, 400));
+    await tester.pumpAndSettle();
+    expect(refreshes, 1);
+  });
   testWidgets(
       'production Home displays current identity instead of static Alex',
       (tester) async {

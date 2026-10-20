@@ -18,7 +18,7 @@ const _greenTint = Color(0xFFECFDF5);
 /// placeholders with injected HomeViewModel state and commands when available.
 class HomeView extends StatelessWidget {
   final ActivityListState? activityState;
-  final VoidCallback? onRefreshActivities;
+  final Future<void> Function()? onRefreshActivities;
   final String? demoStudySessionId;
   final String? userName;
   final String? userInitials;
@@ -96,110 +96,115 @@ class HomeView extends StatelessWidget {
           body: SafeArea(
             top: false,
             bottom: false,
-            child: SingleChildScrollView(
-              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 112),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 600),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _buildGreeting(context),
-                      const SizedBox(height: 20),
-                      if (activityState == null)
-                        _buildInviteCard(context)
-                      else
-                        OutlinedButton.icon(
-                            onPressed: () => context.push(AppRoutes.alerts),
-                            icon: const Icon(Icons.mail_outline),
-                            label: const Text('View invitations')),
-                      const SizedBox(height: 16),
-                      if (activityState == null)
-                        _buildQuickStatus(context)
-                      else
-                        OutlinedButton.icon(
-                            onPressed: () => context.push(AppRoutes.schedule),
-                            icon: const Icon(Icons.calendar_month),
-                            label: const Text('Compare availability')),
-                      const SizedBox(height: 24),
-                      _sectionHeading(
-                        activityState == null
-                            ? "Today's Plans"
-                            : 'Your Activities',
-                        count: activityState == null
-                            ? '2'
-                            : '${activityState!.activities.length}',
-                        trailing: TextButton.icon(
-                          onPressed: () => _onCalendarTapped(context),
-                          icon: const Icon(Icons.calendar_month_outlined,
-                              size: 16),
-                          label: const Text('View calendar'),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      if (activityState != null) ...[
-                        if (activityState!.loading)
-                          const LinearProgressIndicator(),
-                        if (activityState!.error != null)
-                          Text(activityState!.error!),
-                        if (!activityState!.loading &&
-                            activityState!.activities.isEmpty &&
-                            activityState!.error == null)
-                          const Text('No activities in your groups yet.'),
-                        for (final activity in activityState!.activities) ...[
-                          _buildPlanCard(context,
-                              title: activity.title,
-                              time: '${activity.date} ${activity.time}'
-                                      .trim()
-                                      .isEmpty
-                                  ? 'Not scheduled'
-                                  : '${activity.date} ${activity.time}',
-                              location: activity.location,
-                              confirmed: activity.confirmed,
-                              activityId: activity.id),
-                          const SizedBox(height: 12),
-                        ],
-                        TextButton(
-                            onPressed: activityState!.loading
-                                ? null
-                                : onRefreshActivities,
-                            child: const Text('Refresh activities')),
-                      ] else ...[
-                        _buildPlanCard(
-                          context,
-                          title: _studyTitle,
-                          time: '4:00 PM – 6:00 PM',
-                          location: 'Central Library • Room 302',
-                          confirmed: true,
+            child: RefreshIndicator(
+              onRefresh: onRefreshActivities ?? () async {},
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 112),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 600),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _buildGreeting(context),
+                        const SizedBox(height: 20),
+                        if (activityState == null)
+                          _buildInviteCard(context)
+                        else
+                          OutlinedButton.icon(
+                              onPressed: () => context.push(AppRoutes.alerts),
+                              icon: const Icon(Icons.mail_outline),
+                              label: const Text('View invitations')),
+                        const SizedBox(height: 16),
+                        if (activityState == null)
+                          _buildQuickStatus(context)
+                        else
+                          OutlinedButton.icon(
+                              onPressed: () => context.push(AppRoutes.schedule),
+                              icon: const Icon(Icons.calendar_month),
+                              label: const Text('Compare availability')),
+                        const SizedBox(height: 24),
+                        _sectionHeading(
+                          activityState == null
+                              ? "Today's Plans"
+                              : 'Your Activities',
+                          count: activityState == null
+                              ? '2'
+                              : '${activityState!.activities.length}',
+                          trailing: TextButton.icon(
+                            onPressed: () => _onCalendarTapped(context),
+                            icon: const Icon(Icons.calendar_month_outlined,
+                                size: 16),
+                            label: const Text('View calendar'),
+                          ),
                         ),
                         const SizedBox(height: 12),
-                        _buildPlanCard(
-                          context,
-                          title: _soccerTitle,
-                          time: 'Friday, 7:30 PM',
-                          location: 'Campus Sports Center',
-                          confirmed: false,
+                        if (activityState != null) ...[
+                          if (activityState!.loading)
+                            const LinearProgressIndicator(),
+                          if (activityState!.error != null)
+                            Text(activityState!.error!),
+                          if (!activityState!.loading &&
+                              activityState!.activities.isEmpty &&
+                              activityState!.error == null)
+                            const Text('No activities in your groups yet.'),
+                          for (final activity in activityState!.activities) ...[
+                            _buildPlanCard(context,
+                                title: activity.title,
+                                time: '${activity.date} ${activity.time}'
+                                        .trim()
+                                        .isEmpty
+                                    ? 'Not scheduled'
+                                    : '${activity.date} ${activity.time}',
+                                location: activity.location,
+                                confirmed: activity.confirmed,
+                                activityId: activity.id),
+                            const SizedBox(height: 12),
+                          ],
+                          TextButton(
+                              onPressed: activityState!.loading
+                                  ? null
+                                  : onRefreshActivities,
+                              child: const Text('Refresh activities')),
+                        ] else ...[
+                          _buildPlanCard(
+                            context,
+                            title: _studyTitle,
+                            time: '4:00 PM – 6:00 PM',
+                            location: 'Central Library • Room 302',
+                            confirmed: true,
+                          ),
+                          const SizedBox(height: 12),
+                          _buildPlanCard(
+                            context,
+                            title: _soccerTitle,
+                            time: 'Friday, 7:30 PM',
+                            location: 'Campus Sports Center',
+                            confirmed: false,
+                          ),
+                        ],
+                        const SizedBox(height: 24),
+                        _sectionHeading(
+                          'Your Active Groups',
+                          trailing: TextButton(
+                            onPressed: () => _onAllGroupsTapped(context),
+                            child: Text(activityState == null
+                                ? 'View all (5)'
+                                : 'View all${groupCount == null ? '' : ' ($groupCount)'}'),
+                          ),
                         ),
+                        const SizedBox(height: 12),
+                        if (activityState == null)
+                          _buildGroups(context)
+                        else
+                          OutlinedButton(
+                              onPressed: () => context.push(AppRoutes.groups),
+                              child: const Text('Open your groups')),
                       ],
-                      const SizedBox(height: 24),
-                      _sectionHeading(
-                        'Your Active Groups',
-                        trailing: TextButton(
-                          onPressed: () => _onAllGroupsTapped(context),
-                          child: Text(activityState == null
-                              ? 'View all (5)'
-                              : 'View all${groupCount == null ? '' : ' ($groupCount)'}'),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      if (activityState == null)
-                        _buildGroups(context)
-                      else
-                        OutlinedButton(
-                            onPressed: () => context.push(AppRoutes.groups),
-                            child: const Text('Open your groups')),
-                    ],
+                    ),
                   ),
                 ),
               ),

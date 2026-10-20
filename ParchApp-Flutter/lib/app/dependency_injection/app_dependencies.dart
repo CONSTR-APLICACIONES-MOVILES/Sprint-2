@@ -24,8 +24,8 @@ GoRouter createAppRouter(FirebaseDependencies firebase) {
       firebase,
       analytics: FirebaseAnalyticsService(),
     ),
-    initialLocation:
-        firebase.auth.currentUser == null ? AppRoutes.welcome : AppRoutes.home,
+    // A saved account is offered on Sign-In and explicitly confirmed by the user.
+    initialLocation: AppRoutes.signIn,
     redirect: (context, state) {
       final public = [
         AppRoutes.welcome,
