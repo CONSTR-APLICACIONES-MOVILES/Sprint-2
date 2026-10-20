@@ -68,7 +68,7 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
   late final _program = TextEditingController(text: widget.user.program);
   late final _campus = TextEditingController(text: widget.user.campus);
   late final _university = TextEditingController(text: widget.user.university);
-  late int _semester = widget.user.semester;
+  late int _semester = widget.user.semester == 0 ? 1 : widget.user.semester;
   late AcademicLevel _level = widget.user.academicLevel;
 
   @override
@@ -107,7 +107,7 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
           const Text('Edit profile',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
           const SizedBox(height: 16),
-                    Row(children: [
+          Row(children: [
             Expanded(
               child: OutlinedButton.icon(
                 onPressed: () => _photo(PhotoSource.frontCamera),

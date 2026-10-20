@@ -20,11 +20,17 @@ class HomeView extends StatelessWidget {
   final ActivityListState? activityState;
   final VoidCallback? onRefreshActivities;
   final String? demoStudySessionId;
+  final String? userName;
+  final String? userInitials;
+  final int? groupCount;
   const HomeView(
       {super.key,
       this.activityState,
       this.onRefreshActivities,
-      this.demoStudySessionId});
+      this.demoStudySessionId,
+      this.userName,
+      this.userInitials,
+      this.groupCount});
 
   static const _inviteLink = 'parchapp.me/u/alex-k26';
   static const _studyTitle = 'Study Session: Linear Algebra & Calculus';
@@ -101,9 +107,21 @@ class HomeView extends StatelessWidget {
                     children: [
                       _buildGreeting(context),
                       const SizedBox(height: 20),
-                      _buildInviteCard(context),
+                      if (activityState == null)
+                        _buildInviteCard(context)
+                      else
+                        OutlinedButton.icon(
+                            onPressed: () => context.push(AppRoutes.alerts),
+                            icon: const Icon(Icons.mail_outline),
+                            label: const Text('View invitations')),
                       const SizedBox(height: 16),
-                      _buildQuickStatus(context),
+                      if (activityState == null)
+                        _buildQuickStatus(context)
+                      else
+                        OutlinedButton.icon(
+                            onPressed: () => context.push(AppRoutes.schedule),
+                            icon: const Icon(Icons.calendar_month),
+                            label: const Text('Compare availability')),
                       const SizedBox(height: 24),
                       _sectionHeading(
                         activityState == null
@@ -169,11 +187,18 @@ class HomeView extends StatelessWidget {
                         'Your Active Groups',
                         trailing: TextButton(
                           onPressed: () => _onAllGroupsTapped(context),
-                          child: const Text('View all (5)'),
+                          child: Text(activityState == null
+                              ? 'View all (5)'
+                              : 'View all${groupCount == null ? '' : ' ($groupCount)'}'),
                         ),
                       ),
                       const SizedBox(height: 12),
-                      _buildGroups(context),
+                      if (activityState == null)
+                        _buildGroups(context)
+                      else
+                        OutlinedButton(
+                            onPressed: () => context.push(AppRoutes.groups),
+                            child: const Text('Open your groups')),
                     ],
                   ),
                 ),
@@ -243,11 +268,11 @@ class HomeView extends StatelessWidget {
         IconButton(
           tooltip: 'Profile',
           onPressed: () => _onProfile(context),
-          icon: const CircleAvatar(
+          icon: CircleAvatar(
             radius: 17,
             backgroundColor: _cobalt,
-            child: Text('AK',
-                style: TextStyle(
+            child: Text(userInitials ?? (activityState == null ? 'AK' : ''),
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -263,30 +288,35 @@ class HomeView extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Expanded(
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Hello, Alex! 👋',
-                  style: TextStyle(
+              Text(
+                  'Hello, ${userName ?? (activityState == null ? 'Alex' : 'there')}! 👋',
+                  style: const TextStyle(
                     color: _ink,
                     fontSize: 25,
                     fontWeight: FontWeight.w800,
                     letterSpacing: -0.7,
                   )),
-              SizedBox(height: 6),
+              const SizedBox(height: 6),
               Text.rich(
                 TextSpan(children: [
-                  TextSpan(text: 'You have '),
+                  const TextSpan(text: 'You have '),
                   TextSpan(
-                      text: '2 active plans',
-                      style: TextStyle(
+                      text: activityState == null
+                          ? '2 active plans'
+                          : '${activityState!.activities.length} activities',
+                      style: const TextStyle(
                         color: _cobalt,
                         fontWeight: FontWeight.w700,
                       )),
-                  TextSpan(text: ' today'),
+                  TextSpan(
+                      text:
+                          activityState == null ? ' today' : ' in your groups'),
                 ]),
-                style: TextStyle(color: _muted, fontSize: 13),
+                style: const TextStyle(color: _muted, fontSize: 13),
               ),
             ],
           ),
@@ -294,15 +324,17 @@ class HomeView extends StatelessWidget {
         const SizedBox(width: 8),
         ActionChip(
           avatar: const Icon(Icons.circle, size: 9, color: _emerald),
-          label: const Text('FREE',
-              style: TextStyle(
+          label: Text(activityState == null ? 'FREE' : 'Profile',
+              style: const TextStyle(
                 color: Color(0xFF047857),
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
               )),
           backgroundColor: _greenTint,
           side: const BorderSide(color: Color(0xFFA7F3D0)),
-          onPressed: () => _onQuickStatusTapped(context),
+          onPressed: () => activityState == null
+              ? _onQuickStatusTapped(context)
+              : _onProfile(context),
         ),
       ],
     );
@@ -1182,6 +1214,10 @@ class HomeView extends StatelessWidget {
   }
 
   void _onProfile(BuildContext context) {
+    if (activityState != null) {
+      context.push(AppRoutes.profile).then((_) => onRefreshActivities?.call());
+      return;
+    }
     _showSheet(
         context,
         'Student Profile',

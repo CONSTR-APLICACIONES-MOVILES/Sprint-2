@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'firebase_dependencies.dart';
+import '../../features/profile/data/repositories/firebase_profile_repository.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/domain/use_cases/sign_out.dart';
 import '../../features/profile/data/repositories/mock_profile_repository.dart';
@@ -21,6 +23,13 @@ class ProfileDependencies {
   factory ProfileDependencies.mock({AuthRepository? authRepository}) =>
       ProfileDependencies(
           repository: MockProfileRepository(),
+          authRepository: authRepository,
+          photos: DeviceProfilePhotoRepository());
+
+  factory ProfileDependencies.firebase(FirebaseDependencies firebase,
+          {required AuthRepository authRepository}) =>
+      ProfileDependencies(
+          repository: FirebaseProfileRepository(firebase.mobile),
           authRepository: authRepository,
           photos: DeviceProfilePhotoRepository());
 

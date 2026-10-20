@@ -385,6 +385,15 @@ class _AlertsViewState extends State<AlertsView> {
     }
     final updated = await widget.viewModel.respond(alert, response);
     if (updated) {
+      final pending = widget.viewModel.value.alerts
+              .where((a) => a.id == alert.id)
+              .firstOrNull
+              ?.pendingSync ==
+          true;
+      if (pending) {
+        _message('Response saved on this device. Waiting to sync.');
+        return;
+      }
       _message(switch (response) {
         AlertResponse.accepted => 'Request accepted',
         AlertResponse.maybe => 'Response saved: Maybe',

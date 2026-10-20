@@ -38,7 +38,9 @@ class ActivityModel {
       StudyParticipant(
           person['name'] as String,
           person['initials'] as String? ?? '',
-          'Group RSVP: ${person['groupRsvpStatus']}',
+          person['activityRsvpStatus'] == null
+              ? 'Group RSVP: ${person['groupRsvpStatus']}'
+              : 'Activity RSVP: ${person['activityRsvpStatus']}',
           'Availability: ${person['availability']}',
           leader: person['id'] == data['createdBy']);
 

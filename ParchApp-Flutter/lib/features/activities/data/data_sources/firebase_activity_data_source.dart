@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../../../core/data/mobile_api.dart';
 import '../models/activity_model.dart';
 import 'activity_data_source.dart';
 
@@ -8,14 +9,26 @@ class FirebaseActivityDataSource implements ActivityDataSource {
   final FirebaseFunctions functions;
   final FirebaseAuth auth;
   final FirebaseFirestore firestore;
+  final MobileApi? api;
+  final bool Function()? offline;
   FirebaseActivityDataSource(
-      {required this.functions, required this.auth, required this.firestore});
+      {required this.functions,
+      required this.auth,
+      required this.firestore,
+      this.api,
+      this.offline});
+  void _requireOnline() {
+    if (offline?.call() == true) {
+      throw StateError('This action requires a connection.');
+    }
+  }
 
   @override
   String? get currentUserId => auth.currentUser?.uid;
 
   @override
   Future<List<Map<String, dynamic>>> listGroups() async {
+    _requireOnline();
     final uid = currentUserId;
     if (uid == null) throw FirebaseAuthException(code: 'unauthenticated');
     final groups = await firestore
@@ -29,6 +42,7 @@ class FirebaseActivityDataSource implements ActivityDataSource {
 
   @override
   Future<String> createActivity(Map<String, dynamic> fields) async {
+    _requireOnline();
     final uid = currentUserId;
     if (uid == null) throw FirebaseAuthException(code: 'unauthenticated');
     final ref = firestore.collection('activities').doc();
@@ -41,18 +55,28 @@ class FirebaseActivityDataSource implements ActivityDataSource {
   }
 
   @override
-  Future<void> updateActivity(String id, Map<String, dynamic> fields) =>
-      firestore.collection('activities').doc(id).update(fields);
+  Future<void> updateActivity(String id, Map<String, dynamic> fields) {
+    _requireOnline();
+    return firestore.collection('activities').doc(id).update(fields);
+  }
 
   @override
   Future<Map<String, dynamic>> call(
       String name, Map<String, dynamic> input) async {
+    if (api != null) return api!.call(name, input);
     final result = await functions.httpsCallable(name).call(input);
     return Map<String, dynamic>.from(result.data as Map);
   }
 
   @override
   Future<List<ActivityModel>> listActivities() async {
+    if (api != null) {
+      final result = await api!.call('getActivities', {});
+      return [
+        for (final raw in result['activities'] as List)
+          ActivityModel(Map<String, dynamic>.from(raw as Map))
+      ];
+    }
     final uid = currentUserId;
     if (uid == null) throw FirebaseAuthException(code: 'unauthenticated');
     final groups = await firestore

@@ -53,57 +53,37 @@ class ScheduleState {
 
   ScheduleState copyWith({
     ScheduleLoadStatus? status,
-
     CalendarImportStatus? calendarImportStatus,
     String? calendarImportMessage,
     bool clearCalendarImportMessage = false,
-
     List<ScheduleFriend>? friends,
     Set<String>? selectedFriendIds,
-
     DateTime? selectedDay,
     Duration? meetingDuration,
-
     List<ScheduleBlock>? myBlocks,
     List<ScheduleBlock>? friendBlocks,
     List<CommonSlot>? commonSlots,
-
     CommonSlot? selectedSlot,
     bool clearSelectedSlot = false,
-
     String? error,
+    bool clearError = false,
   }) {
     return ScheduleState(
       status: status ?? this.status,
-
-      calendarImportStatus:
-          calendarImportStatus ?? this.calendarImportStatus,
-
+      calendarImportStatus: calendarImportStatus ?? this.calendarImportStatus,
       calendarImportMessage: clearCalendarImportMessage
           ? null
           : calendarImportMessage ?? this.calendarImportMessage,
-
       friends: friends ?? this.friends,
-
-      selectedFriendIds:
-          selectedFriendIds ?? this.selectedFriendIds,
-
+      selectedFriendIds: selectedFriendIds ?? this.selectedFriendIds,
       selectedDay: selectedDay ?? this.selectedDay,
-
-      meetingDuration:
-          meetingDuration ?? this.meetingDuration,
-
+      meetingDuration: meetingDuration ?? this.meetingDuration,
       myBlocks: myBlocks ?? this.myBlocks,
-
       friendBlocks: friendBlocks ?? this.friendBlocks,
-
       commonSlots: commonSlots ?? this.commonSlots,
-
-      selectedSlot: clearSelectedSlot
-          ? null
-          : selectedSlot ?? this.selectedSlot,
-
-      error: error ?? this.error,
+      selectedSlot:
+          clearSelectedSlot ? null : selectedSlot ?? this.selectedSlot,
+      error: clearError ? null : error ?? this.error,
     );
   }
 }

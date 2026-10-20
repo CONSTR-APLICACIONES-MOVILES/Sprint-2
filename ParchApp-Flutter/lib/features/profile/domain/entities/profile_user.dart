@@ -12,6 +12,7 @@ class ProfileUser {
   final int semester;
   final int year;
   final AcademicLevel academicLevel;
+  final bool academicLevelKnown;
 
   final String campus;
   final String university;
@@ -21,7 +22,7 @@ class ProfileUser {
 
   final int plansCompleted;
   final int activeGroups;
-  final int onTimeRate;
+  final int? onTimeRate;
 
   final String? photoPath;
 
@@ -34,6 +35,7 @@ class ProfileUser {
     required this.semester,
     required this.year,
     required this.academicLevel,
+    this.academicLevelKnown = true,
     required this.campus,
     required this.university,
     required this.studentId,
@@ -62,6 +64,7 @@ class ProfileUser {
           semester: semester ?? this.semester,
           year: year ?? this.year,
           academicLevel: academicLevel ?? this.academicLevel,
+          academicLevelKnown: academicLevel != null || academicLevelKnown,
           campus: campus ?? this.campus,
           university: university ?? this.university,
           studentId: studentId,
@@ -90,10 +93,12 @@ class ProfileUser {
         AvailabilityStatus.busy => 'Busy • Not available right now',
       };
 
-  String get academicLevelLabel => switch (academicLevel) {
-        AcademicLevel.undergraduate => 'Undergraduate',
-        AcademicLevel.graduate => 'Graduate',
-        AcademicLevel.master => 'Master',
-        AcademicLevel.phd => 'PhD',
-      };
+  String get academicLevelLabel => !academicLevelKnown
+      ? 'Not set'
+      : switch (academicLevel) {
+          AcademicLevel.undergraduate => 'Undergraduate',
+          AcademicLevel.graduate => 'Graduate',
+          AcademicLevel.master => 'Master',
+          AcademicLevel.phd => 'PhD',
+        };
 }

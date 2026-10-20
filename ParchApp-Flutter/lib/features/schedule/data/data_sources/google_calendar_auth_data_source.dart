@@ -2,12 +2,22 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 class GoogleCalendarAuthDataSource {
   static const List<String> calendarScopes = [
-    'https://www.googleapis.com/auth/calendar.events.readonly',
+    'https://www.googleapis.com/auth/calendar.freebusy',
   ];
 
   final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
 
   bool _initialized = false;
+  GoogleSignInAccount? _account;
+
+  Future<Map<String, String>> authorizationHeaders() async {
+    final account = _account;
+    if (account == null) throw StateError('Authorize Google Calendar first.');
+    final headers = await account.authorizationClient
+        .authorizationHeaders(calendarScopes, promptIfNecessary: true);
+    if (headers == null) throw StateError('Calendar access was not granted.');
+    return headers;
+  }
 
   Future<void> initialize() async {
     if (_initialized) return;
@@ -23,8 +33,8 @@ class GoogleCalendarAuthDataSource {
   Future<GoogleSignInAccount> authorizeCalendar() async {
     await initialize();
 
-    final GoogleSignInAccount account =
-        await _googleSignIn.authenticate();
+    final GoogleSignInAccount account = await _googleSignIn.authenticate();
+    _account = account;
 
     final existingAuthorization =
         await account.authorizationClient.authorizationForScopes(

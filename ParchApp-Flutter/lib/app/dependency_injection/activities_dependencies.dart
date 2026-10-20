@@ -10,6 +10,9 @@ import '../../features/activities/domain/use_cases/get_activities.dart';
 import '../../features/activities/presentation/view_models/activity_list_view_model.dart';
 import '../../features/home/presentation/views/home_view.dart';
 import 'firebase_dependencies.dart';
+import '../../features/profile/domain/repositories/profile_repository.dart';
+import '../../features/profile/domain/entities/profile_user.dart';
+import '../../features/profile/data/repositories/firebase_profile_repository.dart';
 import '../../features/activities/data/repositories/mock_study_sessions_repository.dart';
 import '../../features/activities/domain/repositories/study_sessions_repository.dart';
 import '../../features/activities/domain/use_cases/manage_study_session.dart';
@@ -21,8 +24,14 @@ class ActivitiesDependencies {
   final StudySessionsRepository repository;
   final bool isDemo;
   final ActivityCatalog? catalog;
+  final ProfileRepository? profiles;
+  final String Function()? currentName;
   const ActivitiesDependencies(
-      {required this.repository, this.isDemo = false, this.catalog});
+      {required this.repository,
+      this.isDemo = false,
+      this.catalog,
+      this.profiles,
+      this.currentName});
   factory ActivitiesDependencies.mock() => ActivitiesDependencies(
       repository: MockStudySessionsRepository(), isDemo: true);
   factory ActivitiesDependencies.firebase(FirebaseDependencies firebase) {
@@ -30,8 +39,18 @@ class ActivitiesDependencies {
         FirebaseActivityDataSource(
             functions: firebase.functions,
             auth: firebase.auth,
-            firestore: firebase.firestore));
-    return ActivitiesDependencies(repository: repository, catalog: repository);
+            firestore: firebase.firestore,
+            api: firebase.mobile,
+            offline: () =>
+                firebase.mobile.value.offline || firebase.mobile.value.forced));
+    return ActivitiesDependencies(
+        repository: repository,
+        catalog: repository,
+        profiles: FirebaseProfileRepository(firebase.mobile),
+        currentName: () =>
+            firebase.auth.currentUser?.displayName ??
+            firebase.auth.currentUser?.email ??
+            'there');
   }
   StudySessionViewModel createViewModel(String id) =>
       StudySessionViewModel(ManageStudySession(repository), id,
@@ -44,7 +63,8 @@ class ActivitiesDependencies {
           ? HomeView(
               activityState: ActivityListState(
                   loading: false, error: 'Activity discovery is unavailable.'))
-          : _HomeEntry(catalog: catalog!);
+          : _HomeEntry(
+              catalog: catalog!, profiles: profiles, currentName: currentName);
   Widget route(String id) =>
       _SessionEntry(key: ValueKey(id), dependencies: this, id: id);
   Widget createRoute({String date = '', String time = ''}) =>
@@ -97,7 +117,9 @@ class _CreateActivityEntryState extends State<_CreateActivityEntry> {
 
 class _HomeEntry extends StatefulWidget {
   final ActivityCatalog catalog;
-  const _HomeEntry({required this.catalog});
+  final ProfileRepository? profiles;
+  final String Function()? currentName;
+  const _HomeEntry({required this.catalog, this.profiles, this.currentName});
   @override
   State<_HomeEntry> createState() => _HomeEntryState();
 }
@@ -105,12 +127,37 @@ class _HomeEntry extends StatefulWidget {
 class _HomeEntryState extends State<_HomeEntry> {
   late final model = ActivityListViewModel(GetActivities(widget.catalog))
     ..load();
+  ProfileUser? profile;
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    try {
+      final loaded = await widget.profiles?.getProfile();
+      if (mounted) setState(() => profile = loaded);
+    } catch (_) {
+      /* Auth identity remains visible if the profile service is unavailable. */
+    }
+  }
+
+  void _refresh() {
+    model.load();
+    _loadProfile();
+  }
+
   @override
   Widget build(BuildContext context) =>
       ValueListenableBuilder<ActivityListState>(
           valueListenable: model,
-          builder: (context, state, _) =>
-              HomeView(activityState: state, onRefreshActivities: model.load));
+          builder: (context, state, _) => HomeView(
+              activityState: state,
+              onRefreshActivities: _refresh,
+              userName: profile?.name ?? widget.currentName?.call() ?? 'there',
+              userInitials: profile?.initials,
+              groupCount: profile?.activeGroups));
   @override
   void dispose() {
     model.dispose();

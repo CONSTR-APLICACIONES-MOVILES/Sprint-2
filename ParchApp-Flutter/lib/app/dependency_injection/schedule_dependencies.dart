@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'firebase_dependencies.dart';
+import '../../features/schedule/data/repositories/firebase_schedule_repository.dart';
+import '../../features/schedule/data/data_sources/google_free_busy_data_source.dart';
 
 import '../../features/schedule/data/adapters/google_calendar_adapter.dart';
 import '../../features/schedule/data/data_sources/google_calendar_auth_data_source.dart';
@@ -27,14 +30,12 @@ class ScheduleDependencies {
   });
 
   factory ScheduleDependencies.mock() {
-    final scheduleRepository =
-        MockScheduleRepository();
+    final scheduleRepository = MockScheduleRepository();
 
     final GoogleCalendarDataSource calendarDataSource =
         MockGoogleCalendarDataSource();
 
-    final calendarImportRepository =
-        CalendarImportRepositoryImpl(
+    final calendarImportRepository = CalendarImportRepositoryImpl(
       dataSource: calendarDataSource,
       authDataSource: GoogleCalendarAuthDataSource(),
       adapter: const GoogleCalendarAdapter(),
@@ -42,8 +43,20 @@ class ScheduleDependencies {
 
     return ScheduleDependencies(
       repository: scheduleRepository,
-      calendarImportRepository:
-          calendarImportRepository,
+      calendarImportRepository: calendarImportRepository,
+    );
+  }
+
+  factory ScheduleDependencies.firebase(FirebaseDependencies firebase) {
+    final auth = GoogleCalendarAuthDataSource();
+    return ScheduleDependencies(
+      repository: FirebaseScheduleRepository(
+          firebase.mobile, () => firebase.auth.currentUser?.uid),
+      calendarImportRepository: CalendarImportRepositoryImpl(
+          dataSource:
+              GoogleFreeBusyDataSource(headers: auth.authorizationHeaders),
+          authDataSource: auth,
+          adapter: const GoogleCalendarAdapter()),
     );
   }
 
@@ -57,7 +70,8 @@ class ScheduleDependencies {
         calendarImportRepository,
         repository,
       ),
-      authorizeGoogleCalendar: AuthorizeGoogleCalendar(calendarImportRepository),
+      authorizeGoogleCalendar:
+          AuthorizeGoogleCalendar(calendarImportRepository),
     );
   }
 
@@ -76,20 +90,17 @@ class _ScheduleEntry extends StatefulWidget {
   });
 
   @override
-  State<_ScheduleEntry> createState() =>
-      _ScheduleEntryState();
+  State<_ScheduleEntry> createState() => _ScheduleEntryState();
 }
 
-class _ScheduleEntryState
-    extends State<_ScheduleEntry> {
+class _ScheduleEntryState extends State<_ScheduleEntry> {
   late final ScheduleViewModel _viewModel;
 
   @override
   void initState() {
     super.initState();
 
-    _viewModel =
-        widget.dependencies.createViewModel();
+    _viewModel = widget.dependencies.createViewModel();
   }
 
   @override

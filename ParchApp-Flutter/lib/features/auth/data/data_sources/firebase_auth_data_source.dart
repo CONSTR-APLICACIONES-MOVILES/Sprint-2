@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../../../core/data/mobile_api.dart';
 import '../../domain/entities/auth_failure.dart';
 import '../models/authenticated_user_model.dart';
 import '../models/google_account_model.dart';
@@ -6,7 +7,24 @@ import 'auth_data_source.dart';
 
 class FirebaseAuthDataSource implements AuthDataSource {
   final FirebaseAuth _auth;
-  FirebaseAuthDataSource(this._auth);
+  final MobileApi? profiles;
+  FirebaseAuthDataSource(this._auth, {this.profiles});
+  Future<AuthenticatedUserModel?> _resolvedUser(User? user) async {
+    final model = _model(user);
+    if (model == null || profiles == null) return model;
+    try {
+      final profile = await profiles!.call('getProfile', {});
+      if (_auth.currentUser?.uid != user!.uid) return null;
+      return AuthenticatedUserModel(
+          id: model.id,
+          name: profile['name'] as String? ?? model.name,
+          email: model.email,
+          verified: model.verified);
+    } catch (_) {
+      return model;
+    }
+  }
+
   @override
   Future<void> signOut() => _auth.signOut();
 
@@ -21,7 +39,7 @@ class FirebaseAuthDataSource implements AuthDataSource {
   Future<AuthenticatedUserModel?> _authenticate(
       Future<UserCredential> Function() action) async {
     try {
-      return _model((await action()).user);
+      return await _resolvedUser((await action()).user);
     } on FirebaseAuthException catch (error) {
       throw AuthenticationException(switch (error.code) {
         'invalid-credential' ||
@@ -53,12 +71,23 @@ class FirebaseAuthDataSource implements AuthDataSource {
     try {
       await _auth.currentUser?.updateDisplayName(name);
     } on FirebaseAuthException {/* Retryable profile update. */}
-    return _model(_auth.currentUser) ?? model;
+    try {
+      await profiles?.call('updateProfile', {
+        'fields': {'name': name.trim()}
+      });
+    } catch (_) {
+      /* Account exists; never request creating it again after a profile failure. */
+    }
+    return AuthenticatedUserModel(
+        id: _auth.currentUser?.uid ?? model!.id,
+        name: name.trim(),
+        email: email,
+        verified: _auth.currentUser?.emailVerified ?? false);
   }
 
   @override
   Future<AuthenticatedUserModel?> getRecognizedUser() async =>
-      _model(_auth.currentUser);
+      _resolvedUser(_auth.currentUser);
 
   @override
   Future<AuthenticatedUserModel?> continueAsRecognizedUser(
@@ -69,7 +98,7 @@ class FirebaseAuthDataSource implements AuthDataSource {
     }
     await user.reload();
     await _auth.currentUser?.getIdToken(true);
-    return _model(_auth.currentUser);
+    return _resolvedUser(_auth.currentUser);
   }
 
   @override

@@ -78,7 +78,7 @@ class ProfileViewModel extends ValueNotifier<ProfileState> {
       _emit(value.copyWith(
           isUpdating: false,
           error:
-              'We could not open the camera. Check the camera permission and try again.'));
+              'Unable to save your photo. Check camera permission, image size and connection, then try again.'));
       return false;
     }
   }

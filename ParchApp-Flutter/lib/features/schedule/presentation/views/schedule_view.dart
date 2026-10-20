@@ -138,16 +138,8 @@ class _ScheduleViewState extends State<ScheduleView> {
       ),
       actions: [
         IconButton(
-          tooltip: 'Search',
-          onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'Schedule search will be connected later.',
-                ),
-              ),
-            );
-          },
+          tooltip: 'Find friends',
+          onPressed: () => _showFriendPicker(context),
           icon: const Icon(
             Icons.search_rounded,
             color: AppColors.primary,
@@ -158,26 +150,14 @@ class _ScheduleViewState extends State<ScheduleView> {
           onPressed: () => context.push(
             AppRoutes.alerts,
           ),
-          icon: const Badge(
-            smallSize: 7,
-            backgroundColor: AppColors.error,
-            child: Icon(
+          icon: const Icon(
               Icons.notifications_none_rounded,
               color: AppColors.primary,
             ),
-          ),
         ),
         IconButton(
           tooltip: 'Profile',
-          onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'Profile will be connected later.',
-                ),
-              ),
-            );
-          },
+          onPressed: () => context.push(AppRoutes.profile),
           icon: const CircleAvatar(
             radius: 17,
             backgroundColor: AppColors.primary,
@@ -367,7 +347,7 @@ class _ScheduleViewState extends State<ScheduleView> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Text(
-                  'Google Calendar',
+                  'Google Calendar · Bogotá',
                   style: TextStyle(
                     color: AppColors.textPrimary,
                     fontSize: 12,
@@ -402,7 +382,7 @@ class _ScheduleViewState extends State<ScheduleView> {
             width: 105,
             height: 34,
             child: FilledButton.icon(
-              onPressed: importing || imported
+              onPressed: importing
                   ? null
                   : widget
                       .viewModel
@@ -473,7 +453,7 @@ class _ScheduleViewState extends State<ScheduleView> {
                   importing
                       ? 'Importing'
                       : imported
-                          ? 'Imported'
+                          ? 'Sync again'
                           : hasError
                               ? 'Try again'
                               : 'Import',
@@ -496,15 +476,15 @@ class _ScheduleViewState extends State<ScheduleView> {
   ) {
     switch (state.calendarImportStatus) {
       case CalendarImportStatus.importing:
-        return 'Importing your calendar events...';
+        return 'Syncing your busy periods...';
       case CalendarImportStatus.imported:
         return state.calendarImportMessage ??
-            'Calendar events imported.';
+            'Calendar availability synced.';
       case CalendarImportStatus.error:
         return state.calendarImportMessage ??
             'Could not import calendar.';
       case CalendarImportStatus.idle:
-        return 'Import your events into My Schedule.';
+        return 'Sync busy periods without sharing event details.';
     }
   }
 
@@ -2155,19 +2135,20 @@ void _updateCustomDuration({
                               ),
                               child: Row(
                                 children: [
-                                  Radio<String>(
-                                    value: slot.id,
+                                  RadioGroup<String>(
                                     groupValue: state
                                         .selectedSlot
                                         ?.id,
-                                    activeColor:
-                                        AppColors.success,
                                     onChanged: (_) {
                                       widget.viewModel
                                           .selectSlot(
                                         slot,
                                       );
                                     },
+                                    child: Radio<String>(
+                                      value: slot.id,
+                                      activeColor: AppColors.success,
+                                    ),
                                   ),
                                   Expanded(
                                     child: Column(

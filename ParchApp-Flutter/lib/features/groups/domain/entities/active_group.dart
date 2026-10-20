@@ -32,6 +32,7 @@ class ActiveGroup {
 
   final String? invitationId;
   final DateTime? invitationSentAt;
+  final bool hasResponded;
 
   const ActiveGroup({
     required this.id,
@@ -51,6 +52,7 @@ class ActiveGroup {
     this.progressTotal,
     this.invitationId,
     this.invitationSentAt,
+    this.hasResponded = false,
   });
 
   ActiveGroup copyWith({
@@ -80,6 +82,7 @@ class ActiveGroup {
         secondaryAction: secondaryAction,
         invitationId: invitationId ?? this.invitationId,
         invitationSentAt: invitationSentAt ?? this.invitationSentAt,
+        hasResponded: hasResponded,
       );
 
   bool get hasInvitation => invitationId != null && invitationSentAt != null;

@@ -4,13 +4,18 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import '../../firebase_options.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../core/data/mobile_api.dart';
+import '../../core/data/offline_mobile_api.dart';
 
 /// Uses the checked-in live configuration or the shared demo-parchapp emulators.
 class FirebaseDependencies {
   final FirebaseAuth auth;
   final FirebaseFirestore firestore;
   final FirebaseFunctions functions;
-  FirebaseDependencies._(this.auth, this.firestore, this.functions);
+  final OfflineMobileApi mobile;
+  FirebaseDependencies._(
+      this.auth, this.firestore, this.functions, this.mobile);
 
   static Future<FirebaseDependencies> initialize() async {
     const emulators =
@@ -59,6 +64,12 @@ class FirebaseDependencies {
     }
     // Wait for any persisted account before constructing routes/catalog queries.
     await auth.authStateChanges().first;
-    return FirebaseDependencies._(auth, firestore, functions);
+    final mobile = OfflineMobileApi(
+        remote: FirebaseMobileApi(functions),
+        store: PreferencesOfflineStore(await SharedPreferences.getInstance()),
+        project: app.options.projectId,
+        currentUserId: () => auth.currentUser?.uid);
+    auth.authStateChanges().listen((_) => mobile.refreshSession());
+    return FirebaseDependencies._(auth, firestore, functions, mobile);
   }
 }

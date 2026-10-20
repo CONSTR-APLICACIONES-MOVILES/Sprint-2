@@ -72,6 +72,18 @@ class AlertCard extends StatelessWidget {
     };
     final accented =
         alert.kind == AlertKind.overlap || alert.kind == AlertKind.reminder;
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      if (alert.pendingSync)
+        const Padding(
+            padding: EdgeInsets.only(bottom: 4),
+            child: Text('Response saved on this device · Pending sync',
+                style: TextStyle(fontSize: 12))),
+      _buildCard(context, label, icon, color, tint, accented),
+    ]);
+  }
+
+  Widget _buildCard(BuildContext context, String label, IconData icon,
+      Color color, Color tint, bool accented) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,

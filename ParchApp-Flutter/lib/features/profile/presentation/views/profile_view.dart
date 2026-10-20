@@ -112,8 +112,8 @@ class _ProfileViewState extends State<ProfileView> {
                 ProfileMenuGroup(children: [
                   ProfileMenuTile(
                       icon: Icons.calendar_month_outlined,
-                      title: 'Edit Availability',
-                      subtitle: 'Fixed class hours & free time blocks',
+                      title: 'Calendar & availability',
+                      subtitle: 'Import your calendar and compare free time',
                       onTap: () => context.push(AppRoutes.schedule)),
                 ]),
                 const ProfileSectionLabel('Community & groups'),
@@ -196,7 +196,7 @@ class _ProfileViewState extends State<ProfileView> {
     }
   }
 
-    Future<void> _changePhoto(PhotoSource source) async {
+  Future<void> _changePhoto(PhotoSource source) async {
     if (await widget.viewModel.changePhoto(source)) {
       _message('Profile photo updated');
     }

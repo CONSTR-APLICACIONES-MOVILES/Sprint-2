@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/entities/profile_user.dart';
@@ -34,8 +34,15 @@ class ProfileIdentityCard extends StatelessWidget {
                       color: Colors.white,
                       fontSize: 32,
                       fontWeight: FontWeight.w800))
-              : Image.file(File(user.photoPath!),
-                  width: 96, height: 96, fit: BoxFit.cover),
+              : Image(
+                  image: user.photoPath!.startsWith('data:')
+                      ? MemoryImage(
+                          base64Decode(user.photoPath!.split(',').last))
+                      : NetworkImage(user.photoPath!) as ImageProvider,
+                  width: 96,
+                  height: 96,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Text(user.initials)),
         ),
         if (user.verified)
           Positioned(
@@ -59,7 +66,7 @@ class ProfileIdentityCard extends StatelessWidget {
               fontWeight: FontWeight.w800,
               color: AppColors.textPrimary)),
       const SizedBox(height: 4),
-      Text(user.program,
+      Text(user.program.isEmpty ? 'Add your academic profile' : user.program,
           textAlign: TextAlign.center,
           style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
       const SizedBox(height: 14),
@@ -116,19 +123,25 @@ class ProfileAcademicCard extends StatelessWidget {
         child: Column(children: [
           _row(
             icon: Icons.school_outlined,
-            text: '${user.semester}th Semester • ${user.year}',
+            text: user.semester == 0
+                ? 'Semester not set'
+                : '${user.semester}th Semester${user.year == 0 ? '' : ' • ${user.year}'}',
             trailing: ProfileBadge(user.academicLevelLabel,
                 color: AppColors.primary, background: const Color(0xFFE6EEFF)),
           ),
           const SizedBox(height: 12),
           _row(
             icon: Icons.location_on_outlined,
-            text: '${user.campus} • ${user.university}',
+            text: [user.campus, user.university]
+                .where((s) => s.isNotEmpty)
+                .join(' • '),
           ),
           const SizedBox(height: 12),
           _row(
             icon: Icons.badge_outlined,
-            text: 'ID: ${user.studentId}',
+            text: user.studentId.isEmpty
+                ? 'Student ID not set'
+                : 'ID: ${user.studentId}',
             trailing: Row(children: [
               Icon(Icons.circle,
                   size: 8,
@@ -174,7 +187,10 @@ class ProfileStatsRow extends StatelessWidget {
         const SizedBox(width: 10),
         _stat(Icons.groups_outlined, '${user.activeGroups}', 'Active groups'),
         const SizedBox(width: 10),
-        _stat(Icons.timer_outlined, '${user.onTimeRate}%', 'On-time rate'),
+        _stat(
+            Icons.timer_outlined,
+            user.onTimeRate == null ? '—' : '${user.onTimeRate}%',
+            'On-time rate'),
       ]);
 
   Widget _stat(IconData icon, String value, String label) => Expanded(

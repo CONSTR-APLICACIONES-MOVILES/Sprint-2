@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../core/data/mobile_api.dart';
 import '../../features/auth/data/data_sources/firebase_auth_data_source.dart';
 
 import '../../features/auth/data/data_sources/mock_auth_data_source.dart';
@@ -18,8 +19,10 @@ class AuthDependencies {
 
   factory AuthDependencies.mock() =>
       AuthDependencies(repository: AuthRepositoryImpl(MockAuthDataSource()));
-  factory AuthDependencies.firebase(FirebaseAuth auth) => AuthDependencies(
-      repository: AuthRepositoryImpl(FirebaseAuthDataSource(auth)));
+  factory AuthDependencies.firebase(FirebaseAuth auth, {MobileApi? profiles}) =>
+      AuthDependencies(
+          repository: AuthRepositoryImpl(
+              FirebaseAuthDataSource(auth, profiles: profiles)));
 
   SignInViewModel createSignInViewModel() =>
       SignInViewModel(SignIn(repository));
