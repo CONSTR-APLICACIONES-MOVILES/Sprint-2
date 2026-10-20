@@ -1,16 +1,44 @@
+import 'package:cloud_functions/cloud_functions.dart';
+import '../../../activities/domain/entities/study_session.dart'
+    show SessionFailure;
 import '../../../../core/data/mobile_api.dart';
+import '../../../activities/domain/entities/planning_context.dart';
 import '../../domain/entities/schedule_block.dart';
 import '../../domain/entities/schedule_friend.dart';
 import '../../domain/repositories/schedule_repository.dart';
 
-class FirebaseScheduleRepository implements ScheduleRepository {
+class FirebaseScheduleRepository
+    implements ScheduleRepository, PlanningSlotValidator {
   final MobileApi _api;
   final String? Function() _userId;
-  FirebaseScheduleRepository(this._api, this._userId);
+  final String? groupId;
+  FirebaseScheduleRepository(this._api, this._userId, {this.groupId});
+  FirebaseScheduleRepository forGroup(String id) =>
+      FirebaseScheduleRepository(_api, _userId, groupId: id);
+
+  @override
+  Future<PlanningContext> validatePlanningSlot(PlanningContext context) async {
+    try {
+      return PlanningContext.fromMap(
+          await _api.call('validatePlanningSlot', context.toMap()));
+    } on FirebaseFunctionsException catch (error) {
+      throw SessionFailure([
+        'failed-precondition',
+        'permission-denied',
+        'invalid-argument'
+      ].contains(error.code)
+          ? error.message ?? 'Compare this slot again.'
+          : 'Unable to validate this slot. Check your connection and compare again.');
+    } on StateError {
+      throw const SessionFailure(
+          'Validating a slot requires a connection. Reconnect and compare again.');
+    }
+  }
 
   @override
   Future<List<ScheduleFriend>> getFriends() async {
-    final response = await _api.call('getScheduleFriends', {});
+    final response = await _api
+        .call('getScheduleFriends', {if (groupId != null) 'groupId': groupId});
     return [
       for (final raw in response['friends'] as List)
         ScheduleFriend(

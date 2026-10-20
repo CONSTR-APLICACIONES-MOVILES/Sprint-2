@@ -1,14 +1,19 @@
 import 'study_session.dart';
+import 'planning_context.dart';
 
 class ActivityGroup {
   final String id;
   final String name;
-  const ActivityGroup(this.id, this.name);
+  final Map<String, String> members;
+  const ActivityGroup(this.id, this.name, {this.members = const {}});
 }
 
 /// Editable fields from the shared Firestore activity contract. Canonical
 /// start/end times are changed only through recommendation decisions.
 class ActivityDraft {
+  final DateTime? startsAt, endsAt;
+  final PlanningContext? planning;
+  final String? requestId;
   final String groupId,
       title,
       description,
@@ -25,9 +30,45 @@ class ActivityDraft {
       this.location = '',
       this.status = 'PROPOSED',
       this.date = '',
-      this.time = ''});
+      this.time = '',
+      this.startsAt,
+      this.endsAt,
+      this.planning,
+      this.requestId});
+
+  Map<String, dynamic> publication(String key) => {
+        'requestId': key,
+        'groupId': groupId,
+        'fields': {
+          'title': title,
+          'description': description,
+          'category': category,
+          'location': location,
+          'status': status,
+          'date': date,
+          'time': time
+        },
+        if (startsAt != null) 'startTime': startsAt!.toUtc().toIso8601String(),
+        if (endsAt != null) 'endTime': endsAt!.toUtc().toIso8601String(),
+        'timeZone': 'America/Bogota',
+        if (planning != null) ...{
+          'participantIds': planning!.participantIds,
+          'comparisonId': planning!.comparisonId,
+        },
+      };
 
   ActivityDraft validated() {
+    if ((startsAt == null) != (endsAt == null) ||
+        startsAt != null &&
+            (!endsAt!.isAfter(startsAt!) ||
+                endsAt!.difference(startsAt!).inMinutes < 15 ||
+                endsAt!.difference(startsAt!).inMinutes > 720)) {
+      throw const SessionFailure(
+          'Choose a start and end, lasting 15–720 minutes.');
+    }
+    if (location.trim().length > 500) {
+      throw const SessionFailure('Location must be at most 500 characters.');
+    }
     if (groupId.isEmpty) throw const SessionFailure('Choose a group.');
     if (title.trim().isEmpty || title.trim().length > 120) {
       throw const SessionFailure(
@@ -49,6 +90,10 @@ class ActivityDraft {
         location: location.trim(),
         status: status,
         date: date.trim(),
-        time: time.trim());
+        time: time.trim(),
+        startsAt: startsAt,
+        endsAt: endsAt,
+        planning: planning,
+        requestId: requestId);
   }
 }

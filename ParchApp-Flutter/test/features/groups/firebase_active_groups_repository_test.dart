@@ -81,6 +81,42 @@ void main() {
     expect(group.progressTotal, 2);
     expect(group.primaryAction, GroupAction.voteRsvp);
   });
+  test(
+      'activity attendance ignores the legacy group arrays and opens the exact invitation',
+      () async {
+    source.record.addAll({
+      'activityAttendance': true,
+      'activityParticipantIds': ['me', 'other'],
+      'activityGoingIds': <String>[],
+      'activityMaybeCount': 1,
+      'activityDeclinedCount': 0,
+      'activityResponse': 'maybe',
+      'activityInvited': true,
+      'activityOrganizedByMe': false
+    });
+    final group = (await repository.getActiveGroups()).single;
+    expect(group.invitationId, 'real-activity');
+    expect(group.progressCurrent, 0);
+    expect(group.statusText, contains('0/2 accepted'));
+    expect(group.statusText, contains('1 maybe'));
+    expect(group.statusTag, 'Maybe');
+    expect(group.primaryAction, GroupAction.voteRsvp);
+    await expectLater(repository.confirmRsvp(group.id), throwsStateError);
+    expect(source.writes, 0);
+  });
+  test('cancelled group activity has no RSVP progress or vote action',
+      () async {
+    source.record.addAll({
+      'activityAttendance': true,
+      'activityParticipantIds': ['me', 'other'],
+      'activityGoingIds': ['other'],
+      'activityCancelled': true
+    });
+    final group = (await repository.getActiveGroups()).single;
+    expect(group.statusText, 'Activity cancelled');
+    expect(group.hasProgress, isFalse);
+    expect(group.primaryAction, GroupAction.viewSchedule);
+  });
   test('BQ5 sets current identity before recording a successful RSVP',
       () async {
     final analytics = _Analytics();

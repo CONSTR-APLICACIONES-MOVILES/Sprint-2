@@ -66,23 +66,33 @@ class FirebaseAuthDataSource implements AuthDataSource {
       String name, String email, String password) async {
     final model = await _authenticate(() =>
         _auth.createUserWithEmailAndPassword(email: email, password: password));
+    if (model == null || _auth.currentUser?.uid != model.id) {
+      throw const AuthenticationException(
+          'Account created. Sign in again to continue.');
+    }
+    final createdUser = _auth.currentUser!;
     // Account creation has already succeeded. A profile-update failure must not
     // misleadingly encourage creating the same account again.
     try {
-      await _auth.currentUser?.updateDisplayName(name);
+      await createdUser.updateDisplayName(name);
     } on FirebaseAuthException {/* Retryable profile update. */}
     try {
       await profiles?.call('updateProfile', {
+        'clientUserId': model.id,
         'fields': {'name': name.trim()}
       });
     } catch (_) {
       /* Account exists; never request creating it again after a profile failure. */
     }
+    if (_auth.currentUser?.uid != model.id) {
+      throw const AuthenticationException(
+          'Account created. Sign in again to continue.');
+    }
     return AuthenticatedUserModel(
-        id: _auth.currentUser?.uid ?? model!.id,
+        id: model.id,
         name: name.trim(),
         email: email,
-        verified: _auth.currentUser?.emailVerified ?? false);
+        verified: createdUser.emailVerified);
   }
 
   @override

@@ -1,3 +1,4 @@
+import '../../../activities/domain/entities/planning_context.dart';
 import 'package:flutter/foundation.dart';
 import '../../domain/use_cases/authorize_google_calendar.dart';
 import '../../domain/entities/common_slot.dart';
@@ -27,7 +28,7 @@ class ScheduleViewModel extends ValueNotifier<ScheduleState> {
   })  : _authorizeGoogleCalendar = authorizeGoogleCalendar,
         super(
           ScheduleState(
-          selectedDay: initialDay ?? _todayInBogota(),
+            selectedDay: initialDay ?? _todayInBogota(),
           ),
         );
 
@@ -35,6 +36,30 @@ class ScheduleViewModel extends ValueNotifier<ScheduleState> {
     if (!_disposed) {
       value = state;
     }
+  }
+
+  Future<PlanningContext> preparePlan({String? groupId}) async {
+    final selected = value;
+    final slot = selected.selectedSlot;
+    if (slot == null || selected.status != ScheduleLoadStatus.ready) {
+      throw StateError('Select a current common slot first.');
+    }
+    final version = _requestVersion;
+    DateTime instant(DateTime wall) =>
+        DateTime.utc(wall.year, wall.month, wall.day, wall.hour, wall.minute)
+            .add(const Duration(hours: 5));
+    final result = await _schedule.validatePlanningSlot(PlanningContext(
+        start: instant(slot.start),
+        end: instant(slot.end),
+        participantIds: selected.selectedFriendIds.toList()..sort(),
+        sourceSlotId: slot.id,
+        groupId: groupId));
+    if (_disposed ||
+        version != _requestVersion ||
+        value.selectedSlot?.id != slot.id) {
+      throw StateError('The comparison changed. Select a slot again.');
+    }
+    return result;
   }
 
   Future<void> load() async {

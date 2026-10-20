@@ -1,3 +1,5 @@
+import '../../../activities/domain/entities/study_session.dart' show SessionFailure;
+import '../../../../shared/widgets/parch_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -12,10 +14,12 @@ import '../view_models/schedule_view_model.dart';
 
 class ScheduleView extends StatefulWidget {
   final ScheduleViewModel viewModel;
+  final String? groupId;
+  final Widget? activityHeader;
 
   const ScheduleView({
     super.key,
-    required this.viewModel,
+    required this.viewModel, this.groupId, this.activityHeader,
   });
 
   @override
@@ -58,6 +62,9 @@ class _ScheduleViewState extends State<ScheduleView> {
             bottom: false,
             child: Column(
               children: [
+                if (widget.activityHeader != null) ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 180),
+                  child: SingleChildScrollView(child: widget.activityHeader!)),
                 _buildFriendBar(context, state),
                 _buildCalendarImportBar(state),
                 _buildDurationBar(state),
@@ -87,11 +94,11 @@ class _ScheduleViewState extends State<ScheduleView> {
                   tooltip: 'Plan activity',
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
-                  onPressed: () => _planActivity(
+                  onPressed: _planning ? null : () => _planActivity(
                     context,
                     state,
                   ),
-                  child: const Icon(Icons.add),
+                  child: _planning ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.add),
                 )
               : null,
           bottomNavigationBar: const ParchNavigationBar(
@@ -102,76 +109,7 @@ class _ScheduleViewState extends State<ScheduleView> {
     );
   }
 
-  PreferredSizeWidget _buildAppBar(BuildContext context) {
-    return AppBar(
-      automaticallyImplyLeading: false,
-      backgroundColor: Colors.white,
-      surfaceTintColor: Colors.transparent,
-      elevation: 0,
-      scrolledUnderElevation: 0,
-      titleSpacing: 16,
-      title: Row(
-        children: [
-          Image.asset(
-            'assets/images/parchapp_logo.png',
-            width: 32,
-            height: 32,
-            excludeFromSemantics: true,
-            errorBuilder: (_, __, ___) {
-              return const Icon(
-                Icons.people_alt_rounded,
-                color: AppColors.primary,
-                size: 30,
-              );
-            },
-          ),
-          const SizedBox(width: 8),
-          const Text(
-            'ParchApp',
-            style: TextStyle(
-              color: AppColors.primary,
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
-      ),
-      actions: [
-        IconButton(
-          tooltip: 'Find friends',
-          onPressed: () => _showFriendPicker(context),
-          icon: const Icon(
-            Icons.search_rounded,
-            color: AppColors.primary,
-          ),
-        ),
-        IconButton(
-          tooltip: 'Alerts',
-          onPressed: () => context.push(
-            AppRoutes.alerts,
-          ),
-          icon: const Icon(
-              Icons.notifications_none_rounded,
-              color: AppColors.primary,
-            ),
-        ),
-        IconButton(
-          tooltip: 'Profile',
-          onPressed: () => context.push(AppRoutes.profile),
-          icon: const CircleAvatar(
-            radius: 17,
-            backgroundColor: AppColors.primary,
-            child: Icon(
-              Icons.person,
-              color: Colors.white,
-              size: 20,
-            ),
-          ),
-        ),
-        const SizedBox(width: 4),
-      ],
-    );
-  }
+  PreferredSizeWidget _buildAppBar(BuildContext context) => const ParchAppBar();
 
   Widget _buildFriendBar(
     BuildContext context,
@@ -2234,27 +2172,19 @@ void _updateCustomDuration({
     );
   }
 
-  void _planActivity(
-    BuildContext context,
-    ScheduleState state,
-  ) {
-    final slot = state.selectedSlot;
-
-    if (slot == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Select a common slot first.',
-          ),
-        ),
-      );
-      return;
-    }
-
-    context.push(Uri(path: AppRoutes.createActivity, queryParameters: {
-      'date': '${slot.start.year}-${slot.start.month.toString().padLeft(2, '0')}-${slot.start.day.toString().padLeft(2, '0')}',
-      'time': _slotLabel(slot),
-    }).toString());
+  bool _planning = false;
+  Future<void> _planActivity(BuildContext context, ScheduleState state) async {
+    if (_planning) return;
+    setState(() => _planning = true);
+    try {
+      final planning = await widget.viewModel.preparePlan(groupId: widget.groupId);
+      if (context.mounted) { await context.push(AppRoutes.createActivity, extra: planning); }
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error is SessionFailure ? error.message : 'Unable to validate this slot. Check your connection and compare again.')));
+      }
+    } finally { if (mounted) setState(() => _planning = false); }
   }
 
   double _topFor(

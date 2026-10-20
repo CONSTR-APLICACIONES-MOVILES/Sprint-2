@@ -202,8 +202,10 @@ class OfflineMobileApi extends ValueNotifier<OfflineStatus>
         final result = await remote
             .call(
                 name,
-                (_queued.contains(name) || name == 'updateProfile')
-                    ? {...input, 'clientUserId': uid}
+                (_queued.contains(name) ||
+                        {'updateProfile', 'updatePresence', 'updatePreferences'}
+                            .contains(name))
+                    ? {...input, 'clientUserId': input['clientUserId'] ?? uid}
                     : input)
             .timeout(const Duration(seconds: 10));
         _check(uid);
@@ -222,7 +224,8 @@ class OfflineMobileApi extends ValueNotifier<OfflineStatus>
               while (cache.length > 64) {
                 cache.remove(cache.keys.first);
               }
-            } else if (name == 'updateProfile') {
+            } else if ({'updateProfile', 'updatePresence', 'updatePreferences'}
+                .contains(name)) {
               (saved['cache'] as Map)[_requestKey('getProfile', {})] = {
                 'name': 'getProfile',
                 'data': result,

@@ -15,8 +15,9 @@ class StudyParticipant {
   final String program;
   final String status;
   final bool leader;
+  final String? id, response;
   const StudyParticipant(this.name, this.initials, this.program, this.status,
-      {this.leader = false});
+      {this.leader = false, this.id, this.response});
 }
 
 class StudyResource {
@@ -27,6 +28,8 @@ class StudyResource {
 
 class StudySession {
   final String id;
+  final String version;
+  final bool supportsCancellation;
   final String title;
   final String description;
   final DateTime? startsAt;
@@ -64,6 +67,8 @@ class StudySession {
       required List<StudyParticipant> participants,
       required List<StudyResource> resources,
       this.cancelled = false,
+      this.version = '',
+      this.supportsCancellation = true,
       this.durationMinutes,
       this.timeZone = '',
       this.legacyDate = '',
@@ -84,6 +89,7 @@ class StudySession {
 
   StudySession copyWith(
           {String? title,
+          String? version,
           String? description,
           String? location,
           String? category,
@@ -97,6 +103,8 @@ class StudySession {
           List<StudyTopic>? topics}) =>
       StudySession(
           id: id,
+          version: version ?? this.version,
+          supportsCancellation: supportsCancellation,
           title: title ?? this.title,
           description: description ?? this.description,
           startsAt: startsAt ?? this.startsAt,

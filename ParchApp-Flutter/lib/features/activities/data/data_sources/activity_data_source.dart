@@ -8,3 +8,7 @@ abstract interface class ActivityDataSource {
   Future<String> createActivity(Map<String, dynamic> fields);
   Future<void> updateActivity(String id, Map<String, dynamic> fields);
 }
+
+abstract interface class PublicationRecoveryDataSource {
+  Future<Map<String, dynamic>?> pendingPublication();
+}

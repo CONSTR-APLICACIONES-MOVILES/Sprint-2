@@ -50,7 +50,10 @@ class FirebaseAlertsRepository implements AlertsRepository {
         date.day == today.day;
     return AppAlert(
         id: data['id'] as String,
-        kind: AlertKind.invitation,
+        kind: AlertKind.values.firstWhere((k) => k.name == data['kind'],
+            orElse: () => AlertKind.invitation),
+        authoritative: true,
+        groupId: data['groupId'] as String?,
         period: isToday ? AlertPeriod.today : AlertPeriod.earlier,
         title: data['title'] as String,
         description: data['description'] as String,
@@ -61,7 +64,7 @@ class FirebaseAlertsRepository implements AlertsRepository {
         response: data['response'] == null
             ? null
             : AlertResponse.values.byName(data['response'] as String),
-        studySessionId: data['studySessionId'] as String,
+        studySessionId: data['studySessionId'] as String?,
         invitationSentAt: DateTime.parse(data['createdAt'] as String),
         groupSize: (data['groupSize'] as num?)?.toInt(),
         pendingSync: data['pendingSync'] == true);
@@ -70,9 +73,19 @@ class FirebaseAlertsRepository implements AlertsRepository {
   @override
   Future<List<AppAlert>> markAllRead() async {
     final uid = _session();
-    final ids =
-        _items.where((item) => !item.isRead).map((item) => item.id).toList();
+    final ids = _items
+        .where((item) => !item.isRead && item.kind == AlertKind.invitation)
+        .map((item) => item.id)
+        .toList();
+    final events = _items
+        .where((item) => !item.isRead && item.kind != AlertKind.invitation)
+        .map((item) => item.id)
+        .toList();
     if (ids.isNotEmpty) await _api.call('markAlertsRead', {'ids': ids});
+    if (events.isNotEmpty) {
+      await _api.call('markNotificationEventsRead',
+          {'ids': events, if (uid != null) 'clientUserId': uid});
+    }
     _checkSession(uid);
     _items = [for (final item in _items) item.copyWith(isRead: true)];
     return List.unmodifiable(_items);
@@ -83,6 +96,9 @@ class FirebaseAlertsRepository implements AlertsRepository {
     final uid = _session();
     final prior = _items.where((a) => a.id == id).firstOrNull;
     if (prior == null) throw StateError('Reload this invitation first.');
+    if (prior.kind != AlertKind.invitation) {
+      throw StateError('Open the alert details to act on this event.');
+    }
     final respondedAt = DateTime.now();
     final acknowledgement = await _api.call(
         'respondToActivityInvitation', {'id': id, 'response': response.name});

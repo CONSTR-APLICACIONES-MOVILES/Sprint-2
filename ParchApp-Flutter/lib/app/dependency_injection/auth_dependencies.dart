@@ -15,12 +15,25 @@ import '../../features/auth/presentation/views/create_account_view.dart';
 
 class AuthDependencies {
   final AuthRepository repository;
-  const AuthDependencies({required this.repository});
+  final Future<void> Function(String)? passwordReset;
+  final bool googleEnabled;
+  const AuthDependencies(
+      {required this.repository,
+      this.passwordReset,
+      this.googleEnabled = true});
 
   factory AuthDependencies.mock() =>
       AuthDependencies(repository: AuthRepositoryImpl(MockAuthDataSource()));
   factory AuthDependencies.firebase(FirebaseAuth auth, {MobileApi? profiles}) =>
       AuthDependencies(
+          passwordReset: (email) async {
+            try {
+              await auth.sendPasswordResetEmail(email: email);
+            } on FirebaseAuthException catch (error) {
+              if (error.code != 'user-not-found') rethrow;
+            }
+          },
+          googleEnabled: false,
           repository: AuthRepositoryImpl(
               FirebaseAuthDataSource(auth, profiles: profiles)));
 
@@ -44,7 +57,10 @@ class _SignInEntryState extends State<_SignInEntry> {
   late final SignInViewModel _viewModel =
       widget.dependencies.createSignInViewModel();
   @override
-  Widget build(BuildContext context) => SignInView(viewModel: _viewModel);
+  Widget build(BuildContext context) => SignInView(
+      viewModel: _viewModel,
+      passwordReset: widget.dependencies.passwordReset,
+      googleEnabled: widget.dependencies.googleEnabled);
   @override
   void dispose() {
     _viewModel.dispose();
@@ -63,8 +79,8 @@ class _CreateAccountEntryState extends State<_CreateAccountEntry> {
   late final CreateAccountViewModel _viewModel =
       widget.dependencies.createAccountViewModel();
   @override
-  Widget build(BuildContext context) =>
-      CreateAccountView(viewModel: _viewModel);
+  Widget build(BuildContext context) => CreateAccountView(
+      viewModel: _viewModel, googleEnabled: widget.dependencies.googleEnabled);
   @override
   void dispose() {
     _viewModel.dispose();

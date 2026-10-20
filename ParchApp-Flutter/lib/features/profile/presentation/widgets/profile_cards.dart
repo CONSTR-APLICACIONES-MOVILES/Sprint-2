@@ -18,7 +18,7 @@ class ProfileIdentityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isActive = user.status == AvailabilityStatus.active;
+    final isActive = user.effectiveStatus == AvailabilityStatus.active;
     return Column(children: [
       Stack(children: [
         Container(
@@ -145,11 +145,14 @@ class ProfileAcademicCard extends StatelessWidget {
             trailing: Row(children: [
               Icon(Icons.circle,
                   size: 8,
-                  color: user.status == AvailabilityStatus.active
+                  color: user.effectiveStatus == AvailabilityStatus.active
                       ? AppColors.success
                       : AppColors.friendBusy),
               const SizedBox(width: 5),
-              Text(user.status == AvailabilityStatus.active ? 'Active' : 'Busy',
+              Text(
+                  user.effectiveStatus == AvailabilityStatus.active
+                      ? 'Active'
+                      : 'Busy',
                   style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,

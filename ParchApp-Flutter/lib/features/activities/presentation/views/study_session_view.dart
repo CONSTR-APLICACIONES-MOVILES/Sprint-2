@@ -1,3 +1,4 @@
+import '../../../../shared/widgets/parch_visuals.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/router/app_routes.dart';
@@ -110,8 +111,9 @@ class _StudySessionViewState extends State<StudySessionView> {
           builder: (sheetContext) => ActivityForm(
               viewModel: editor,
               onSaved: (id) => Navigator.of(sheetContext).pop(id)));
-      if (saved != null && mounted) {
-        await widget.viewModel.refreshDetails(savedMessage: 'Changes saved.');
+      if (mounted) {
+        await widget.viewModel.refreshDetails(
+            savedMessage: saved == null ? '' : 'Changes saved.');
       }
     } finally {
       editor.dispose();
@@ -147,10 +149,16 @@ class _StudySessionViewState extends State<StudySessionView> {
                 tooltip: 'Back',
                 onPressed: _back,
                 icon: const Icon(Icons.arrow_back)),
-            title: const Text('ParchApp',
-                style: TextStyle(
-                    color: AppColors.primary, fontWeight: FontWeight.w800)),
+            title: const ParchBrand(),
             actions: [
+              IconButton(
+                  tooltip: 'Refresh activity',
+                  onPressed: state.saving || state.refreshing
+                      ? null
+                      : () => state.session == null
+                          ? widget.viewModel.load()
+                          : widget.viewModel.refreshDetails(savedMessage: ''),
+                  icon: const Icon(Icons.refresh)),
               IconButton(
                   tooltip: 'Alerts',
                   onPressed: () => context.push(AppRoutes.alerts),
@@ -170,7 +178,7 @@ class _StudySessionViewState extends State<StudySessionView> {
                     color: Colors.white,
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
                     child: Row(children: [
-                      if (state.session!.supportsDetailsEditing)
+                      if (state.session!.supportsCancellation)
                         Expanded(
                             child: OutlinedButton(
                                 onPressed: state.saving ||
@@ -182,7 +190,7 @@ class _StudySessionViewState extends State<StudySessionView> {
                                     foregroundColor: AppColors.error,
                                     minimumSize: const Size(0, 48)),
                                 child: const Text('Cancel'))),
-                      if (state.session!.supportsDetailsEditing)
+                      if (state.session!.supportsCancellation)
                         const SizedBox(width: 12),
                       Expanded(
                           flex: 2,
@@ -201,6 +209,19 @@ class _StudySessionViewState extends State<StudySessionView> {
                                   textAlign: TextAlign.center))),
                     ]),
                   )),
+            if (state.session != null &&
+                !state.session!.canOrganize &&
+                !state.session!.cancelled)
+              TextButton(
+                  onPressed: () async {
+                    await context
+                        .push(AppRoutes.activityInvitation(state.session!.id));
+                    if (mounted) {
+                      await widget.viewModel
+                          .refreshDetails(savedMessage: 'Response saved.');
+                    }
+                  },
+                  child: const Text('View invitation & RSVP')),
             const ParchNavigationBar(selectedIndex: 2),
           ]),
         ),
@@ -264,6 +285,8 @@ class _StudySessionViewState extends State<StudySessionView> {
                         padding: const EdgeInsets.only(bottom: 12),
                         child: Text(state.error!,
                             style: const TextStyle(color: AppColors.error))),
+                  ActivityCover(category: session.category),
+                  const SizedBox(height: 16),
                   Wrap(spacing: 8, runSpacing: 8, children: [
                     Chip(
                         avatar: Icon(
@@ -292,22 +315,47 @@ class _StudySessionViewState extends State<StudySessionView> {
                         Text(session.title,
                             style: const TextStyle(
                                 fontSize: 26,
+                                color: AppColors.textPrimary,
                                 fontWeight: FontWeight.w800,
                                 height: 1.15)),
-                        const SizedBox(height: 12),
-                        Text(session.description,
-                            style: const TextStyle(
-                                color: AppColors.textSecondary)),
+                        if (session.description.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          Text(session.description,
+                              style: const TextStyle(
+                                  color: AppColors.textSecondary)),
+                        ],
                         const SizedBox(height: 20),
                         _info(Icons.calendar_month_outlined, date),
                         const SizedBox(height: 12),
                         _info(Icons.schedule, time),
+                        if (session.location.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          _info(Icons.location_on_outlined, session.location),
+                        ],
                         if (session.startsAt == null &&
                             (session.legacyDate.isNotEmpty ||
                                 session.legacyTime.isNotEmpty))
                           Text(
                               'Original plan: ${session.legacyDate} ${session.legacyTime}'),
                       ])),
+                  if (!widget.isDemo)
+                    Wrap(spacing: 8, runSpacing: 8, children: [
+                      OutlinedButton(
+                          onPressed: () => context.push(
+                              '/activities/${Uri.encodeComponent(session.id)}/materials'),
+                          child: const Text('Checklist, resources & calendar')),
+                      if (session.canOrganize)
+                        OutlinedButton(
+                            onPressed: () async {
+                              await context.push(
+                                  '/activities/${Uri.encodeComponent(session.id)}/suggested-times');
+                              if (mounted) {
+                                await widget.viewModel
+                                    .refreshDetails(savedMessage: '');
+                              }
+                            },
+                            child: const Text('Suggested Times')),
+                    ]),
                   if (session.canOrganize)
                     RecommendedSlotsCard(
                       state: state,

@@ -1,8 +1,11 @@
+import '../../domain/repositories/presence_repository.dart';
+import '../../domain/entities/profile_preferences.dart';
 import '../../../../core/data/mobile_api.dart';
 import '../../domain/entities/profile_user.dart';
 import '../../domain/repositories/profile_repository.dart';
 
-class FirebaseProfileRepository implements ProfileRepository {
+class FirebaseProfileRepository
+    implements ProfileRepository, PresenceRepository {
   final MobileApi _api;
   const FirebaseProfileRepository(this._api);
 
@@ -20,15 +23,44 @@ class FirebaseProfileRepository implements ProfileRepository {
         campus: data['campus'] as String? ?? '',
         university: data['university'] as String? ?? '',
         studentId: data['studentId'] as String? ?? '',
-        status: data['status'] == 'busy'
-            ? AvailabilityStatus.busy
-            : AvailabilityStatus.active,
+        status: AvailabilityStatus.values.firstWhere(
+            (s) => s.name == data['status'],
+            orElse: () => AvailabilityStatus.offline),
+        statusExpiresAt: DateTime.tryParse(data['statusExpiresAt'] ?? ''),
+        preferences: ProfilePreferences.fromMap(
+            Map<String, dynamic>.from(data['preferences'] ?? {})),
         plansCompleted: (data['plansCompleted'] as num).toInt(),
         activeGroups: (data['activeGroups'] as num).toInt(),
         onTimeRate: (data['onTimeRate'] as num?)?.toInt(),
         photoPath: data['photoData'] as String?,
       );
 
+  @override
+  Future<ProfileUser> updatePresence(
+      AvailabilityStatus status, DateTime expiresAt, String visibility,
+      {String? ownerId}) async {
+    return _user(await _api.call('updatePresence', {
+      if (ownerId != null) 'clientUserId': ownerId,
+      'status': status.name,
+      'expiresAt': expiresAt.toUtc().toIso8601String(),
+      'visibility': visibility
+    }));
+  }
+
+  @override
+  Future<ProfileUser> updatePreferences(ProfilePreferences preferences,
+      {String? ownerId}) async {
+    return _user(await _api.call('updatePreferences', {
+      'preferences': preferences.toMap(),
+      if (ownerId != null) 'clientUserId': ownerId
+    }));
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getPeers() async =>
+      ((await _api.call('getCommunityPeers', {}))['peers'] as List)
+          .map((p) => Map<String, dynamic>.from(p))
+          .toList();
   @override
   Future<ProfileUser> getProfile() async =>
       _user(await _api.call('getProfile', {}));
@@ -42,6 +74,7 @@ class FirebaseProfileRepository implements ProfileRepository {
   @override
   Future<ProfileUser> updateProfile(ProfileUser user) async =>
       _user(await _api.call('updateProfile', {
+        'clientUserId': user.id,
         'fields': {
           'name': user.name.trim(),
           'program': user.program.trim(),
@@ -51,7 +84,6 @@ class FirebaseProfileRepository implements ProfileRepository {
           'campus': user.campus.trim(),
           'university': user.university.trim(),
           'studentId': user.studentId,
-          'status': user.status.name,
           if (user.photoPath != null) 'photoData': user.photoPath,
         }
       }));

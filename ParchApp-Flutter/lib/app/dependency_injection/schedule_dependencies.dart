@@ -60,33 +60,46 @@ class ScheduleDependencies {
     );
   }
 
-  ScheduleViewModel createViewModel() {
+  ScheduleViewModel createViewModel({DateTime? initialDay, String? groupId}) {
     return ScheduleViewModel(
       ManageSchedule(
-        repository,
+        groupId != null && repository is FirebaseScheduleRepository
+            ? (repository as FirebaseScheduleRepository).forGroup(groupId)
+            : repository,
         const AvailabilityService(),
       ),
       ImportGoogleCalendar(
         calendarImportRepository,
         repository,
       ),
+      initialDay: initialDay,
       authorizeGoogleCalendar:
           AuthorizeGoogleCalendar(calendarImportRepository),
     );
   }
 
-  Widget route() {
+  Widget route(
+      {String? groupId, DateTime? initialDay, Widget? activityHeader}) {
     return _ScheduleEntry(
       dependencies: this,
+      groupId: groupId,
+      initialDay: initialDay,
+      activityHeader: activityHeader,
     );
   }
 }
 
 class _ScheduleEntry extends StatefulWidget {
   final ScheduleDependencies dependencies;
+  final String? groupId;
+  final DateTime? initialDay;
+  final Widget? activityHeader;
 
   const _ScheduleEntry({
     required this.dependencies,
+    this.groupId,
+    this.initialDay,
+    this.activityHeader,
   });
 
   @override
@@ -100,7 +113,8 @@ class _ScheduleEntryState extends State<_ScheduleEntry> {
   void initState() {
     super.initState();
 
-    _viewModel = widget.dependencies.createViewModel();
+    _viewModel = widget.dependencies.createViewModel(
+        initialDay: widget.initialDay, groupId: widget.groupId);
   }
 
   @override
@@ -113,6 +127,8 @@ class _ScheduleEntryState extends State<_ScheduleEntry> {
   Widget build(BuildContext context) {
     return ScheduleView(
       viewModel: _viewModel,
+      groupId: widget.groupId,
+      activityHeader: widget.activityHeader,
     );
   }
 }

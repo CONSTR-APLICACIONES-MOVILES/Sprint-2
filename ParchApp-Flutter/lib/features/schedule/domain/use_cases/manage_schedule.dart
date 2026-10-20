@@ -1,3 +1,4 @@
+import '../../../activities/domain/entities/planning_context.dart';
 import '../entities/common_slot.dart';
 import '../entities/schedule_block.dart';
 import '../entities/schedule_friend.dart';
@@ -24,6 +25,14 @@ class ManageSchedule {
     this._repository,
     this._availabilityService,
   );
+
+  Future<PlanningContext> validatePlanningSlot(PlanningContext context) async {
+    final source = _repository;
+    if (source is PlanningSlotValidator) {
+      return (source as PlanningSlotValidator).validatePlanningSlot(context);
+    }
+    return context; // Explicit demo repositories have no server evidence.
+  }
 
   Future<List<ScheduleFriend>> loadFriends() => _repository.getFriends();
 

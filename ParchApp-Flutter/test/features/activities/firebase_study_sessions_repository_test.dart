@@ -24,6 +24,7 @@ final start = DateTime.utc(2030, 10, 2, 16);
 final end = start.add(const Duration(hours: 1));
 Map<String, dynamic> activity() => {
       'id': 'firestore-document',
+      'version': 'v1',
       'groupId': 'group',
       'createdBy': 'organizer',
       'title': 'Real activity',
@@ -72,7 +73,14 @@ class FakeActivitySource implements ActivityDataSource {
           code: 'permission-denied', message: 'test denied');
     }
     writes.add(fields);
-    details = {...activity(), ...fields, 'id': 'created-document'};
+    details = {
+      ...activity(),
+      ...Map<String, dynamic>.from(fields['fields'] as Map),
+      'groupId': fields['groupId'],
+      'startTime': fields['startTime'],
+      'endTime': fields['endTime'],
+      'id': 'created-document'
+    };
     return 'created-document';
   }
 
@@ -94,6 +102,18 @@ class FakeActivitySource implements ActivityDataSource {
       String name, Map<String, dynamic> input) async {
     calls.add((name, input));
     switch (name) {
+      case 'updateActivityDetails':
+        await updateActivity(input['activityId'] as String,
+            Map<String, dynamic>.from(input['fields'] as Map));
+        return {'activityId': input['activityId'], 'saved': true};
+      case 'cancelActivity':
+        await updateActivity(
+            input['activityId'] as String, {'cancelled': true});
+        return {
+          'activityId': input['activityId'],
+          'saved': true,
+          'cancelled': true
+        };
       case 'getActivity':
         if (failRefresh && decisions > 0) {
           throw FirebaseFunctionsException(
@@ -185,7 +205,9 @@ void main() {
     expect(session.supportsDetailsEditing, isFalse);
     expect(session.room, isEmpty);
     expect(session.topics, isEmpty);
-    expect(session.participants.single.program, 'Group RSVP: NO_RESPONSE');
+    expect(session.participants.single.program, isEmpty);
+    expect(session.participants.single.status, 'No response');
+    expect(session.participants.single.response, isNull);
     source.currentUserId = 'someone-else';
     expect(
         (await repository.getById('firestore-document'))!.canOrganize, isFalse);
@@ -330,8 +352,7 @@ void main() {
     expect(model.value.selectionSaved, isFalse);
   });
 
-  test('unsupported edits and cancellation never reach backend writes',
-      () async {
+  test('unsupported edits stay blocked while cancellation persists', () async {
     await search();
     expect(
         await model.update(
@@ -341,13 +362,16 @@ void main() {
             endsAt: end,
             sourceSlotId: 'candidate-not-batch'),
         isFalse);
-    expect(await model.cancel(), isFalse);
+    expect(await model.cancel(), isTrue);
+    expect(model.value.session!.cancelled, isTrue);
     expect(await model.toggleTopic('invented'), isFalse);
     await expectLater(
         repository
             .save(model.value.session!.copyWith(room: 'Unsupported room')),
         throwsA(isA<SessionFailure>()));
-    expect(source.writes, isEmpty);
+    expect(source.writes, [
+      {'cancelled': true}
+    ]);
     expect(source.decisions, 0);
   });
 
@@ -366,7 +390,7 @@ void main() {
         .pumpWidget(MaterialApp(home: StudySessionView(viewModel: model)));
     await tester.pumpAndSettle();
     expect(find.text('Not scheduled'), findsOneWidget);
-    expect(find.text('Cancel'), findsNothing);
+    expect(find.text('Cancel'), findsOneWidget);
     expect(find.text('Modify Session'), findsOneWidget);
     expect(find.text('Topics & Objectives'), findsNothing);
     expect(

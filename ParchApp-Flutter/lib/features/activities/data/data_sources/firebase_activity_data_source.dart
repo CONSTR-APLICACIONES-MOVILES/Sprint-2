@@ -1,3 +1,5 @@
+import 'publication_journal.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -5,7 +7,8 @@ import '../../../../core/data/mobile_api.dart';
 import '../models/activity_model.dart';
 import 'activity_data_source.dart';
 
-class FirebaseActivityDataSource implements ActivityDataSource {
+class FirebaseActivityDataSource
+    implements ActivityDataSource, PublicationRecoveryDataSource {
   final FirebaseFunctions functions;
   final FirebaseAuth auth;
   final FirebaseFirestore firestore;
@@ -19,7 +22,9 @@ class FirebaseActivityDataSource implements ActivityDataSource {
       this.offline});
   void _requireOnline() {
     if (offline?.call() == true) {
-      throw StateError('This action requires a connection.');
+      throw FirebaseFunctionsException(
+          code: 'failed-precondition',
+          message: 'This action requires a connection.');
     }
   }
 
@@ -40,18 +45,46 @@ class FirebaseActivityDataSource implements ActivityDataSource {
     ];
   }
 
+  Future<PublicationJournal> _journal(String uid) async =>
+      PublicationJournal(await SharedPreferences.getInstance(),
+          project: firestore.app.options.projectId, uid: uid);
+  @override
+  Future<Map<String, dynamic>?> pendingPublication() async {
+    final uid = currentUserId;
+    if (uid == null) return null;
+    final journal = await _journal(uid);
+    if (currentUserId != uid) throw StateError('Session changed.');
+    return journal.read();
+  }
+
   @override
   Future<String> createActivity(Map<String, dynamic> fields) async {
     _requireOnline();
     final uid = currentUserId;
     if (uid == null) throw FirebaseAuthException(code: 'unauthenticated');
-    final ref = firestore.collection('activities').doc();
-    await ref.set({
-      ...fields,
-      'createdBy': uid,
-      'createdAt': FieldValue.serverTimestamp()
-    });
-    return ref.id;
+    final journal = await _journal(uid);
+    if (currentUserId != uid) throw StateError('Session changed.');
+    await journal.write(fields);
+    if (currentUserId != uid) throw StateError('Session changed.');
+    try {
+      final receipt = await call('publishActivity', fields);
+      try {
+        await journal.clear();
+      } catch (_) {/* Server acknowledgement remains authoritative. */}
+      return receipt['activityId'] as String;
+    } on FirebaseException catch (error) {
+      if (![
+        'unavailable',
+        'deadline-exceeded',
+        'network-request-failed',
+        'internal',
+        'unknown',
+        'cancelled'
+      ].contains(error.code)) {
+        await journal.clear();
+      }
+      rethrow;
+    }
   }
 
   @override
@@ -91,7 +124,20 @@ class FirebaseActivityDataSource implements ActivityDataSource {
     return [
       for (final page in pages)
         for (final doc in page.docs)
-          ActivityModel({...doc.data(), 'id': doc.id})
+          ActivityModel({
+            ...doc.data(),
+            'id': doc.id,
+            if (doc.data()['startTime'] is Timestamp)
+              'startTime': (doc.data()['startTime'] as Timestamp)
+                  .toDate()
+                  .toUtc()
+                  .toIso8601String(),
+            if (doc.data()['endTime'] is Timestamp)
+              'endTime': (doc.data()['endTime'] as Timestamp)
+                  .toDate()
+                  .toUtc()
+                  .toIso8601String(),
+          })
     ];
   }
 }

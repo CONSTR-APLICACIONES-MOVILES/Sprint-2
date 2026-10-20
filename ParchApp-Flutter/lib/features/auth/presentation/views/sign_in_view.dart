@@ -1,3 +1,4 @@
+import '../widgets/password_recovery_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -16,7 +17,13 @@ import '../widgets/recognized_user_card.dart';
 
 class SignInView extends StatefulWidget {
   final SignInViewModel viewModel;
-  const SignInView({super.key, required this.viewModel});
+  final Future<void> Function(String)? passwordReset;
+  final bool googleEnabled;
+  const SignInView(
+      {super.key,
+      required this.viewModel,
+      this.passwordReset,
+      this.googleEnabled = true});
 
   @override
   State<SignInView> createState() => _SignInViewState();
@@ -61,7 +68,10 @@ class _SignInViewState extends State<SignInView> {
     if (state.status == AuthStatus.authenticated &&
         previous.status != AuthStatus.authenticated) {
       final destination = GoRouterState.of(context).uri.queryParameters['from'];
-      context.go(destination != null && destination.startsWith('/activities/')
+      context.go(destination != null &&
+              (destination.startsWith('/activities/') ||
+                  destination.startsWith('/join/') ||
+                  destination.startsWith('/groups/'))
           ? destination
           : AppRoutes.home);
     } else if (state.message != null &&
@@ -122,8 +132,13 @@ class _SignInViewState extends State<SignInView> {
               const AuthDivider(),
               const SizedBox(height: 18),
               GoogleAuthButton(
-                onPressed: isLoading ? null : widget.viewModel.signInWithGoogle,
+                onPressed: isLoading || !widget.googleEnabled
+                    ? null
+                    : widget.viewModel.signInWithGoogle,
               ),
+              if (!widget.googleEnabled)
+                const Text(
+                    'Google sign-in requires provider configuration. Use email and password.'),
               const SizedBox(height: 20),
               AuthTextField(
                 hintText: 'University email',
@@ -145,8 +160,16 @@ class _SignInViewState extends State<SignInView> {
                 child: TextButton(
                   onPressed: isLoading
                       ? null
-                      : () => _showMessage(
-                          'Password recovery will be implemented next.'),
+                      : widget.passwordReset == null
+                          ? () => _showMessage(
+                              'Password recovery is unavailable in this demo.')
+                          : () => showModalBottomSheet<void>(
+                              context: context,
+                              isScrollControlled: true,
+                              useSafeArea: true,
+                              builder: (_) => PasswordRecoverySheet(
+                                  email: emailController.text,
+                                  request: widget.passwordReset!)),
                   child: const Text(
                     'Forgot password?',
                   ),
@@ -172,7 +195,17 @@ class _SignInViewState extends State<SignInView> {
                   TextButton(
                     onPressed: isLoading
                         ? null
-                        : () => context.push(AppRoutes.createAccount),
+                        : () => context.push(Uri(
+                                path: AppRoutes.createAccount,
+                                queryParameters: {
+                                  if (GoRouterState.of(context)
+                                          .uri
+                                          .queryParameters['from'] !=
+                                      null)
+                                    'from': GoRouterState.of(context)
+                                        .uri
+                                        .queryParameters['from']!
+                                }).toString()),
                     child: const Text(
                       'Create one',
                     ),

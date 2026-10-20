@@ -1,3 +1,4 @@
+import '../../domain/entities/profile_preferences.dart';
 import 'package:flutter/foundation.dart';
 import '../../domain/entities/photo_source.dart';
 import '../../domain/entities/profile_user.dart';
@@ -49,6 +50,16 @@ class ProfileViewModel extends ValueNotifier<ProfileState> {
     }
   }
 
+  Future<bool> setPresence(
+          AvailabilityStatus status, DateTime expiresAt, String visibility,
+          {String? ownerId}) =>
+      _update(() => _profile.presence(
+          status, expiresAt, visibility, ownerId ?? value.user!.id));
+  Future<bool> setPreferences(ProfilePreferences preferences,
+          {String? ownerId}) =>
+      _update(
+          () => _profile.preferences(preferences, ownerId ?? value.user!.id));
+  Future<List<Map<String, dynamic>>> getPeers() => _profile.peers();
   Future<bool> changeStatus(AvailabilityStatus status) {
     final user = value.user;
     if (user == null) return Future.value(false);

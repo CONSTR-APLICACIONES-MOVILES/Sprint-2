@@ -34,6 +34,9 @@ class FirebaseActiveGroupsRepository implements ActiveGroupsRepository {
     if (index < 0 || _records[index]['invitationId'] == null) {
       throw StateError('Refresh the group before responding.');
     }
+    if (_records[index]['activityAttendance'] == true) {
+      throw StateError('Open the activity invitation to respond.');
+    }
     final updated = await _source.confirmGoing(id);
     if (_source.currentUserId != uid) throw StateError('Session changed.');
     // A committed write is success even when a later refresh is unavailable.
@@ -48,10 +51,17 @@ class FirebaseActiveGroupsRepository implements ActiveGroupsRepository {
   List<ActiveGroup> _entities(String uid) =>
       List.unmodifiable(_records.map((r) {
         final ids = Set<String>.from(r['memberIds'] as List);
-        final going = Set<String>.from(r['goingIds'] as List)..retainAll(ids);
-        final responded = going.contains(uid);
+        final perActivity = r['activityAttendance'] == true;
+        final participants = perActivity
+            ? Set<String>.from(r['activityParticipantIds'] as List)
+            : ids;
+        final going = Set<String>.from(
+            (perActivity ? r['activityGoingIds'] : r['goingIds']) as List)
+          ..retainAll(participants);
+        final responded =
+            perActivity ? r['activityResponse'] != null : going.contains(uid);
         final invitation = r['invitationId'] as String?;
-        final category = switch (r['activityCategory']) {
+        final category = switch (r['category'] ?? r['activityCategory']) {
           'study' => GroupCategory.study,
           'sports' => GroupCategory.sports,
           _ => GroupCategory.socialLiving,
@@ -62,17 +72,42 @@ class FirebaseActiveGroupsRepository implements ActiveGroupsRepository {
           category: category,
           memberCount: ids.length,
           subtitle: 'Shared group',
-          statusText: invitation == null
-              ? 'No activity yet'
-              : '${going.length}/${ids.length} going',
-          statusTag: responded ? 'Going' : null,
+          activityAttendance: perActivity,
+          statusText: r['activityCancelled'] == true
+              ? 'Activity cancelled'
+              : invitation == null
+                  ? 'No activity yet'
+                  : '${going.length}/${participants.length} ${perActivity ? 'accepted · ${r['activityMaybeCount'] ?? 0} maybe · ${r['activityDeclinedCount'] ?? 0} declined' : 'going'}',
+          statusTag: responded
+              ? (perActivity
+                  ? switch (r['activityResponse']) {
+                      'accepted' => 'Accepted',
+                      'maybe' => 'Maybe',
+                      'declined' => 'Declined',
+                      _ => 'No response'
+                    }
+                  : 'Going')
+              : null,
           tone: responded ? GroupTone.success : GroupTone.info,
           detail:
               r['activityTitle'] as String? ?? r['planTitle'] as String? ?? '',
-          progressLabel: invitation == null ? null : 'Group RSVP',
-          progressCurrent: invitation == null ? null : going.length,
-          progressTotal: invitation == null ? null : ids.length,
-          primaryAction: invitation != null && !responded
+          progressLabel: invitation == null || r['activityCancelled'] == true
+              ? null
+              : perActivity
+                  ? 'Activity RSVP'
+                  : 'Group RSVP',
+          progressCurrent: invitation == null || r['activityCancelled'] == true
+              ? null
+              : going.length,
+          progressTotal: invitation == null || r['activityCancelled'] == true
+              ? null
+              : participants.length,
+          primaryAction: invitation != null &&
+                  (perActivity
+                      ? r['activityCancelled'] != true &&
+                          r['activityOrganizedByMe'] != true &&
+                          r['activityInvited'] == true
+                      : !responded)
               ? GroupAction.voteRsvp
               : GroupAction.viewSchedule,
           secondaryAction: GroupAction.viewSchedule,

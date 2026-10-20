@@ -29,7 +29,8 @@ class AppAlert {
   final String timeLabel;
   final bool isRead;
   final AlertResponse? response;
-  final String? studySessionId;
+  final String? studySessionId, groupId;
+  final bool authoritative;
   final DateTime? invitationSentAt;
   final int? groupSize;
   final bool pendingSync;
@@ -44,6 +45,8 @@ class AppAlert {
       this.isRead = false,
       this.response,
       this.studySessionId,
+      this.groupId,
+      this.authoritative = false,
       this.invitationSentAt,
       this.groupSize,
       this.pendingSync = false});
@@ -64,6 +67,8 @@ class AppAlert {
           isRead: isRead ?? this.isRead,
           response: response ?? this.response,
           studySessionId: studySessionId,
+          groupId: groupId,
+          authoritative: authoritative,
           invitationSentAt: invitationSentAt,
           groupSize: groupSize,
           pendingSync: pendingSync ?? this.pendingSync);

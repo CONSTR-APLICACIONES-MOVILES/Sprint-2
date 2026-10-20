@@ -7,6 +7,8 @@ Future<T?> showProfileSheet<T>(BuildContext context, {required Widget child}) =>
     showModalBottomSheet<T>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
@@ -16,41 +18,6 @@ Future<T?> showProfileSheet<T>(BuildContext context, {required Widget child}) =>
         child: SingleChildScrollView(child: child),
       ),
     );
-
-class AvailabilitySheet extends StatelessWidget {
-  final AvailabilityStatus current;
-  const AvailabilitySheet({super.key, required this.current});
-
-  @override
-  Widget build(BuildContext context) => Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Text('Change availability',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 8),
-          for (final status in AvailabilityStatus.values)
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              onTap: () => Navigator.of(context).pop(status),
-              leading: Icon(Icons.circle,
-                  size: 14,
-                  color: status == AvailabilityStatus.active
-                      ? AppColors.success
-                      : AppColors.friendBusy),
-              title: Text(
-                  status == AvailabilityStatus.active ? 'Active' : 'Busy',
-                  style: const TextStyle(fontWeight: FontWeight.w700)),
-              subtitle: Text(status == AvailabilityStatus.active
-                  ? 'Friends can invite you to plans'
-                  : 'You will not show up as available'),
-              trailing: status == current
-                  ? const Icon(Icons.check, color: AppColors.primary)
-                  : null,
-            ),
-        ],
-      );
-}
 
 class EditProfileSheet extends StatefulWidget {
   final ProfileUser user;

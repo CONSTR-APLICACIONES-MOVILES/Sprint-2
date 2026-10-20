@@ -1,3 +1,4 @@
+import '../../../../core/data/mobile_api.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'groups_data_source.dart';
@@ -5,7 +6,8 @@ import 'groups_data_source.dart';
 class FirestoreGroupsDataSource implements GroupsDataSource {
   final FirebaseFirestore firestore;
   final FirebaseAuth auth;
-  const FirestoreGroupsDataSource(this.firestore, this.auth);
+  final MobileApi? api;
+  const FirestoreGroupsDataSource(this.firestore, this.auth, {this.api});
 
   @override
   String? get currentUserId => auth.currentUser?.uid;
@@ -32,9 +34,36 @@ class FirestoreGroupsDataSource implements GroupsDataSource {
           .get();
       final activity = latest.docs.firstOrNull;
       final createdAt = activity?.data()['createdAt'];
+      final details = activity == null || api == null
+          ? null
+          : await api!.call('getActivity', {'activityId': activity.id});
+      final participants = details?['participants'] as List? ?? [];
+      if (currentUserId != uid) throw StateError('Session changed.');
       return <String, dynamic>{
         ...group.data(),
         'id': group.id,
+        if (details != null) ...{
+          'activityAttendance': true,
+          'activityCancelled': details['cancelled'] == true,
+          'activityOrganizedByMe': details['createdBy'] == uid,
+          'activityInvited': participants.any((p) => p['id'] == uid),
+          'activityResponse': participants
+              .where((p) => p['id'] == uid)
+              .firstOrNull?['activityRsvpStatus'],
+          'activityGoingIds': [
+            for (final person in participants)
+              if (person['activityRsvpStatus'] == 'accepted') person['id']
+          ],
+          'activityMaybeCount': participants
+              .where((p) => p['activityRsvpStatus'] == 'maybe')
+              .length,
+          'activityDeclinedCount': participants
+              .where((p) => p['activityRsvpStatus'] == 'declined')
+              .length,
+          'activityParticipantIds': [
+            for (final person in participants) person['id']
+          ],
+        },
         if (activity != null && createdAt is Timestamp) ...{
           'invitationId': activity.id,
           'invitationSentAt': createdAt.toDate(),
@@ -46,29 +75,6 @@ class FirestoreGroupsDataSource implements GroupsDataSource {
   }
 
   @override
-  Future<Map<String, dynamic>> confirmGoing(String groupId) async {
-    final uid = _requireUser();
-    final ref = firestore.collection('groups').doc(groupId);
-    return firestore.runTransaction((transaction) async {
-      final data = (await transaction.get(ref)).data();
-      if (data == null) throw StateError('This group no longer exists.');
-      final members = List<String>.from(data['memberIds'] as List);
-      if (!members.contains(uid)) {
-        throw StateError('Group membership required.');
-      }
-      final going = List<String>.from(data['goingIds'] as List);
-      final maybe = List<String>.from(data['maybeIds'] as List);
-      // Atomic transforms preserve the Java client's simultaneous responses.
-      transaction.update(ref, {
-        'goingIds': FieldValue.arrayUnion([uid]),
-        'maybeIds': FieldValue.arrayRemove([uid]),
-      });
-      return <String, dynamic>{
-        ...data,
-        'id': groupId,
-        'goingIds': {...going, uid}.toList(),
-        'maybeIds': maybe.where((id) => id != uid).toList(),
-      };
-    });
-  }
+  Future<Map<String, dynamic>> confirmGoing(String groupId) => Future.error(
+      StateError('Respond to the activity invitation instead of the group.'));
 }

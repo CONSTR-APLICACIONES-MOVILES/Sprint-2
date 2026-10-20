@@ -26,6 +26,9 @@ dependencies:
   path_provider: ^2.1.6
   shared_preferences: ^2.5.6
   connectivity_plus: ^7.3.2
+  share_plus: ^13.3.1
+  qr_flutter: ^4.1.0
+  url_launcher: ^6.3.3
 
 dev_dependencies:
   flutter_test:
@@ -37,3 +40,17 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
+
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter.ttf
+          weight: 400
+        - asset: assets/fonts/Inter.ttf
+          weight: 500
+        - asset: assets/fonts/Inter.ttf
+          weight: 600
+        - asset: assets/fonts/Inter.ttf
+          weight: 700
+        - asset: assets/fonts/Inter.ttf
+          weight: 800

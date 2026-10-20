@@ -102,6 +102,68 @@ void main() {
     expect(find.text('Mutual Free Window with Sarah Jenkins'), findsOneWidget);
   });
 
+  testWidgets('three tabs keep profile accessible through the shared avatar',
+      (tester) async {
+    final router =
+        await mountApp(tester, FakeAuthRepository(), location: AppRoutes.home);
+    expect(find.byType(NavigationDestination), findsNWidgets(3));
+    for (final route in [
+      AppRoutes.groups,
+      AppRoutes.schedule,
+      AppRoutes.home
+    ]) {
+      router.go(route);
+      await tester.pumpAndSettle();
+      expect(find.byType(NavigationDestination), findsNWidgets(3));
+      expect(find.byTooltip('Profile'), findsOneWidget);
+      expect(find.byTooltip('Search'), findsOneWidget);
+      expect(find.byTooltip('Notifications'), findsOneWidget);
+    }
+    await tester.tap(find.byTooltip('Profile'));
+    await tester.pumpAndSettle();
+    expect(router.state.uri.path, AppRoutes.profile);
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    expect(router.state.uri.path, AppRoutes.home);
+  });
+
+  testWidgets(
+      'Alerts avatar opens the injected profile and Back restores Alerts',
+      (tester) async {
+    final router = await mountApp(tester, FakeAuthRepository(),
+        location: AppRoutes.alerts);
+    await tester.tap(find.byTooltip('Profile'));
+    await tester.pumpAndSettle();
+    expect(router.state.uri.path, AppRoutes.profile);
+    expect(find.text('Alex Valenzuela'), findsOneWidget);
+    expect(find.text('Alex Kuprev'), findsNothing);
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    expect(router.state.uri.path, AppRoutes.alerts);
+  });
+
+  testWidgets('direct Profile link has a recoverable Back destination',
+      (tester) async {
+    final router = await mountApp(tester, FakeAuthRepository(),
+        location: AppRoutes.profile);
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    expect(router.state.uri.path, AppRoutes.home);
+  });
+
+  testWidgets('Search opens an explicit unavailable destination and returns',
+      (tester) async {
+    final router =
+        await mountApp(tester, FakeAuthRepository(), location: AppRoutes.home);
+    await tester.tap(find.byTooltip('Search'));
+    await tester.pumpAndSettle();
+    expect(router.state.uri.path, AppRoutes.discover);
+    expect(find.text('Discover is coming soon.'), findsOneWidget);
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    expect(router.state.uri.path, AppRoutes.home);
+  });
+
   testWidgets('rejected credentials keep the form and display the failure',
       (tester) async {
     final repository = FakeAuthRepository()..rejectCredentials = true;

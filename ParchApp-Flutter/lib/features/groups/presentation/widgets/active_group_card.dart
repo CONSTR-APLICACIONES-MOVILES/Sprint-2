@@ -104,7 +104,10 @@ class ActiveGroupCard extends StatelessWidget {
                       style: const TextStyle(
                           fontSize: 11, color: AppColors.textSecondary)),
                 ),
-                Text('${group.progressCurrent} of ${group.progressTotal} needed',
+                Text(
+                    group.activityAttendance
+                        ? '${group.progressCurrent} of ${group.progressTotal} accepted'
+                        : '${group.progressCurrent} of ${group.progressTotal} needed',
                     style: const TextStyle(
                         fontSize: 11, color: AppColors.textSecondary)),
               ]),
@@ -115,11 +118,11 @@ class ActiveGroupCard extends StatelessWidget {
                   value: group.progressValue,
                   minHeight: 7,
                   backgroundColor: const Color(0xFFE8EDF6),
-                  valueColor:
-                      const AlwaysStoppedAnimation(AppColors.warning),
+                  valueColor: const AlwaysStoppedAnimation(AppColors.warning),
                 ),
               ),
-              if (estimate != null) _ResponseTimeHint(group, estimate!),
+              if (estimate != null && !group.activityAttendance)
+                _ResponseTimeHint(group, estimate!),
             ],
             const SizedBox(height: 14),
             Row(children: [
@@ -132,7 +135,9 @@ class ActiveGroupCard extends StatelessWidget {
       );
 
   Widget _actionButton(GroupAction action, bool primary) {
-    final label = _actionLabel(action);
+    final label = action == GroupAction.voteRsvp && group.activityAttendance
+        ? 'View invitation'
+        : _actionLabel(action);
     final icon = _actionIcon(action);
     if (primary) {
       return FilledButton.icon(
@@ -235,6 +240,7 @@ IconData _actionIcon(GroupAction action) => switch (action) {
       GroupAction.dropIn => Icons.location_on_outlined,
       GroupAction.chat => Icons.chat_bubble_outline,
     };
+
 class _ResponseTimeHint extends StatelessWidget {
   final ActiveGroup group;
   final ResponseTimeEstimate estimate;

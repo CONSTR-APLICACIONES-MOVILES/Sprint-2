@@ -5,6 +5,7 @@ import 'session_card.dart';
 
 class RecommendedSlotsCard extends StatefulWidget {
   final StudySessionState state;
+  final bool showTimeFilters;
   final ScrollController scrollController;
   final VoidCallback onRetry;
   final void Function(int) onSearch;
@@ -17,6 +18,7 @@ class RecommendedSlotsCard extends StatefulWidget {
   const RecommendedSlotsCard(
       {super.key,
       required this.state,
+      this.showTimeFilters = false,
       required this.scrollController,
       required this.onRetry,
       required this.onSearch,
@@ -36,6 +38,11 @@ class _RecommendedSlotsCardState extends State<RecommendedSlotsCard> {
   late final _duration = TextEditingController(
       text: widget.state.session?.durationMinutes?.toString() ?? '');
   String? _durationError;
+  int _period = 0;
+  bool _matches(RecommendedSlot slot) {
+    final hour = widget.state.session!.displayTime(slot.startsAt).hour;
+    return _period == 0 || (_period == 1 ? hour < 12 : hour >= 12);
+  }
 
   @override
   void initState() {
@@ -146,10 +153,27 @@ class _RecommendedSlotsCardState extends State<RecommendedSlotsCard> {
               if (state.selectionSaved) const Text('Selected time saved.'),
               if (state.recommendations!.date != null)
                 Text('${state.recommendations!.date} · Bogotá (UTC−05:00)'),
+              if (widget.showTimeFilters)
+                Wrap(spacing: 8, children: [
+                  for (var period = 0; period < 3; period++)
+                    ChoiceChip(
+                        label: Text([
+                          'All times',
+                          'Before noon',
+                          'Afternoon/evening'
+                        ][period]),
+                        selected: _period == period,
+                        onSelected: (_) => setState(() => _period = period))
+                ]),
+              if (widget.showTimeFilters &&
+                  !state.recommendations!.slots.any(_matches))
+                const Text('No slots match this time filter.'),
               for (var index = 0;
                   index < state.recommendations!.slots.length;
                   index++)
-                _slot(context, state.recommendations!.slots[index], index),
+                if (!widget.showTimeFilters ||
+                    _matches(state.recommendations!.slots[index]))
+                  _slot(context, state.recommendations!.slots[index], index),
               if (state.analyticsError != null) ...[
                 Text(state.analyticsError!),
                 TextButton(

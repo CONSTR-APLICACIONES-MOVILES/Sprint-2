@@ -8,6 +8,8 @@ class ParchNavigationBar extends StatelessWidget {
   const ParchNavigationBar({super.key, this.selectedIndex = 0});
   @override
   Widget build(BuildContext context) => NavigationBar(
+        elevation: 0,
+        height: 72,
         selectedIndex: selectedIndex,
         backgroundColor: Colors.white,
         indicatorColor: AppColors.availabilityLight,
@@ -15,7 +17,6 @@ class ParchNavigationBar extends StatelessWidget {
           AppRoutes.home,
           AppRoutes.groups,
           AppRoutes.schedule,
-          AppRoutes.profile
         ][index]),
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Home'),
@@ -23,8 +24,6 @@ class ParchNavigationBar extends StatelessWidget {
               icon: Icon(Icons.groups_outlined), label: 'Groups'),
           NavigationDestination(
               icon: Icon(Icons.calendar_month_outlined), label: 'Schedule'),
-          NavigationDestination(
-              icon: Icon(Icons.person_outline), label: 'Profile'),
         ],
       );
 }

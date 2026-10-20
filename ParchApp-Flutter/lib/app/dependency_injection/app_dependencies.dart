@@ -1,3 +1,4 @@
+import 'expansion_dependencies.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/analytics/firebase_analytics_service.dart';
 import '../router/app_router.dart';
@@ -15,6 +16,7 @@ GoRouter createAppRouter(FirebaseDependencies firebase) {
       AuthDependencies.firebase(firebase.auth, profiles: firebase.mobile);
   return AppRouter.create(
     auth,
+    expansions: ExpansionDependencies.firebase(firebase),
     alertsDependencies: AlertsDependencies.firebase(firebase),
     activitiesDependencies: ActivitiesDependencies.firebase(firebase),
     scheduleDependencies: ScheduleDependencies.firebase(firebase),

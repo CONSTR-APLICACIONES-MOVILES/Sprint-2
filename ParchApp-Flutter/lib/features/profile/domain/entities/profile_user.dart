@@ -1,4 +1,17 @@
-enum AvailabilityStatus { active, busy }
+import 'profile_preferences.dart';
+
+enum AvailabilityStatus { active, busy, inClass, focused, inTransit, offline }
+
+extension AvailabilityStatusLabel on AvailabilityStatus {
+  String get label => switch (this) {
+        AvailabilityStatus.active => 'Active',
+        AvailabilityStatus.busy => 'Busy',
+        AvailabilityStatus.inClass => 'In class',
+        AvailabilityStatus.focused => 'Focused',
+        AvailabilityStatus.inTransit => 'In transit',
+        AvailabilityStatus.offline => 'Offline',
+      };
+}
 
 enum AcademicLevel { undergraduate, graduate, master, phd }
 
@@ -19,6 +32,12 @@ class ProfileUser {
   final String studentId;
 
   final AvailabilityStatus status;
+  final DateTime? statusExpiresAt;
+  final ProfilePreferences preferences;
+  AvailabilityStatus get effectiveStatus =>
+      statusExpiresAt != null && !statusExpiresAt!.isAfter(DateTime.now())
+          ? AvailabilityStatus.offline
+          : status;
 
   final int plansCompleted;
   final int activeGroups;
@@ -40,6 +59,8 @@ class ProfileUser {
     required this.university,
     required this.studentId,
     required this.status,
+    this.statusExpiresAt,
+    this.preferences = const ProfilePreferences(),
     required this.plansCompleted,
     required this.activeGroups,
     required this.onTimeRate,
@@ -55,6 +76,8 @@ class ProfileUser {
           String? campus,
           String? university,
           AvailabilityStatus? status,
+          DateTime? statusExpiresAt,
+          ProfilePreferences? preferences,
           String? photoPath}) =>
       ProfileUser(
           id: id,
@@ -69,6 +92,8 @@ class ProfileUser {
           university: university ?? this.university,
           studentId: studentId,
           status: status ?? this.status,
+          statusExpiresAt: statusExpiresAt ?? this.statusExpiresAt,
+          preferences: preferences ?? this.preferences,
           plansCompleted: plansCompleted,
           activeGroups: activeGroups,
           onTimeRate: onTimeRate,
@@ -88,9 +113,13 @@ class ProfileUser {
     return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
   }
 
-  String get statusLabel => switch (status) {
+  String get statusLabel => switch (effectiveStatus) {
         AvailabilityStatus.active => 'Available now • Ready to hang out',
         AvailabilityStatus.busy => 'Busy • Not available right now',
+        AvailabilityStatus.inClass => 'In class',
+        AvailabilityStatus.focused => 'Focused',
+        AvailabilityStatus.inTransit => 'In transit',
+        AvailabilityStatus.offline => 'Offline',
       };
 
   String get academicLevelLabel => !academicLevelKnown
