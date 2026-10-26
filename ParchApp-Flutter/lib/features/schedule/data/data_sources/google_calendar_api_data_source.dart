@@ -1,6 +1,6 @@
 import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sign_in_as_googleapis_auth.dart';
-import 'package:googleapis/calendar/v3.dart'
-    as google_calendar;
+import 'package:flutter/foundation.dart';
+import 'package:googleapis/calendar/v3.dart' as google_calendar;
 
 import '../models/google_calendar_event_model.dart';
 import 'google_calendar_auth_data_source.dart';
@@ -8,32 +8,24 @@ import 'google_calendar_data_source.dart';
 
 class GoogleCalendarApiDataSource
     implements GoogleCalendarDataSource {
-  final GoogleCalendarAuthDataSource
-      authDataSource;
+  final GoogleCalendarAuthDataSource authDataSource;
 
   const GoogleCalendarApiDataSource({
     required this.authDataSource,
   });
 
   @override
-  Future<List<GoogleCalendarEventModel>>
-      importEvents() async {
+  Future<List<GoogleCalendarEventModel>> importEvents() async {
     final authorization =
-        await authDataSource
-            .getCalendarAuthorization();
+        await authDataSource.getCalendarAuthorization();
 
-    final client =
-        authorization.authClient(
-      scopes:
-          GoogleCalendarAuthDataSource
-              .calendarScopes,
+    final client = authorization.authClient(
+      scopes: GoogleCalendarAuthDataSource.calendarScopes,
     );
 
     try {
       final calendarApi =
-          google_calendar.CalendarApi(
-        client,
-      );
+          google_calendar.CalendarApi(client);
 
       final importedEvents =
           <GoogleCalendarEventModel>[];
@@ -41,18 +33,10 @@ class GoogleCalendarApiDataSource
       String? pageToken;
 
       final timeMin =
-          DateTime(
-            2026,
-            1,
-            1,
-          ).toUtc();
+          DateTime(2026, 1, 1).toUtc();
 
       final timeMax =
-          DateTime(
-            2027,
-            1,
-            1,
-          ).toUtc();
+          DateTime(2027, 1, 1).toUtc();
 
       do {
         final response =
@@ -69,8 +53,20 @@ class GoogleCalendarApiDataSource
 
         final events =
             response.items ??
-                const <
-                    google_calendar.Event>[];
+                const <google_calendar.Event>[];
+
+        debugPrint(
+          'GOOGLE API REAL: ${events.length} events received',
+        );
+
+        for (final event in events.take(10)) {
+          debugPrint(
+            'GOOGLE EVENT -> '
+            'id=${event.id} | '
+            'title=${event.summary} | '
+            'start=${event.start?.dateTime ?? event.start?.date}',
+          );
+        }
 
         for (final event in events) {
           final converted =
@@ -94,6 +90,11 @@ class GoogleCalendarApiDataSource
             first.start.compareTo(
           second.start,
         ),
+      );
+
+      debugPrint(
+        'GOOGLE API REAL TOTAL: '
+        '${importedEvents.length} valid events imported',
       );
 
       return importedEvents;
@@ -153,8 +154,10 @@ class GoogleCalendarApiDataSource
           _cleanOptionalText(
         event.location,
       ),
-      start: start.toLocal(),
-      end: end.toLocal(),
+      start:
+          start.toLocal(),
+      end:
+          end.toLocal(),
     );
   }
 

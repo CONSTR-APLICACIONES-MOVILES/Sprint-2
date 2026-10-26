@@ -85,5 +85,9 @@
 
 	<key>NSCameraUsageDescription</key>
 	<string>ParchApp uses the camera to take your profile photo.</string>
+
+	<key>NSLocationWhenInUseUsageDescription</key>
+<string>ParchApp uses your location to identify friends who are nearby.</string>
+
 </dict>
 </plist>
