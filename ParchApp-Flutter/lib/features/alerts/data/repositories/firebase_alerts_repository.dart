@@ -1,9 +1,13 @@
+import '../../../../core/domain/data_freshness.dart';
 import '../../../../core/data/mobile_api.dart';
 import '../../../../core/analytics/analytics_service.dart';
 import '../../domain/entities/app_alert.dart';
 import '../../domain/repositories/alerts_repository.dart';
 
-class FirebaseAlertsRepository implements AlertsRepository {
+class FirebaseAlertsRepository
+    implements AlertsRepository, CacheAwareRepository {
+  @override
+  DataFreshness freshness = const DataFreshness();
   final MobileApi _api;
   final AnalyticsService? analytics;
   final String? Function()? currentUserId;
@@ -14,7 +18,10 @@ class FirebaseAlertsRepository implements AlertsRepository {
   String? _session() {
     final uid = currentUserId?.call();
     if (currentUserId != null) {
-      if (_owner != uid) _items = [];
+      if (_owner != uid) {
+        _items = [];
+        freshness = const DataFreshness();
+      }
       _owner = uid;
       if (uid == null) throw StateError('Sign in to view alerts.');
     }
@@ -33,6 +40,7 @@ class FirebaseAlertsRepository implements AlertsRepository {
     final uid = _session();
     final response = await _api.call('getAlerts', {});
     _checkSession(uid);
+    freshness = DataFreshness.fromMap(response);
     final today = DateTime.now().toUtc().subtract(const Duration(hours: 5));
     _items = [
       for (final raw in response['alerts'] as List)

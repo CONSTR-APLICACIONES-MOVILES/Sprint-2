@@ -2,7 +2,7 @@
 class PlanningContext {
   final DateTime start, end;
   final List<String> participantIds;
-  final String? groupId, comparisonId;
+  final String? groupId, comparisonId, comparisonEvidenceId;
   final String sourceSlotId, timeZone;
   final DateTime? expiresAt;
   const PlanningContext(
@@ -12,6 +12,7 @@ class PlanningContext {
       required this.sourceSlotId,
       this.groupId,
       this.comparisonId,
+      this.comparisonEvidenceId,
       this.expiresAt,
       this.timeZone = 'America/Bogota'});
   int get durationMinutes => end.difference(start).inMinutes;
@@ -30,6 +31,7 @@ class PlanningContext {
       sourceSlotId: data['sourceSlotId'] as String? ?? '',
       groupId: data['groupId'] as String?,
       comparisonId: data['comparisonId'] as String?,
+      comparisonEvidenceId: data['comparisonEvidenceId'] as String?,
       expiresAt: data['expiresAt'] == null
           ? null
           : DateTime.parse(data['expiresAt'] as String),
@@ -38,4 +40,30 @@ class PlanningContext {
 
 abstract interface class PlanningSlotValidator {
   Future<PlanningContext> validatePlanningSlot(PlanningContext context);
+}
+
+/// Successful comparison without an accepted slot can still precede a proposal.
+class CreationComparison {
+  final String comparisonEvidenceId;
+  final List<String> participantIds;
+  final String? date;
+  const CreationComparison(
+      {required this.comparisonEvidenceId,
+      required this.participantIds,
+      this.date});
+  Map<String, dynamic> toMap() => {
+        'comparisonEvidenceId': comparisonEvidenceId,
+        'participantIds': participantIds,
+        'date': date
+      };
+  factory CreationComparison.fromMap(Map<String, dynamic> data) =>
+      CreationComparison(
+          comparisonEvidenceId: data['comparisonEvidenceId'] as String,
+          participantIds: List<String>.from(data['participantIds'] as List),
+          date: data['date'] as String?);
+}
+
+abstract interface class ProposalComparisonProvider {
+  Future<CreationComparison> prepareProposalComparison(
+      DateTime day, List<String> friendIds);
 }

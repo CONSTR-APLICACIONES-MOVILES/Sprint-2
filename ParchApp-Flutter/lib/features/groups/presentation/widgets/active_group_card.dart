@@ -222,6 +222,7 @@ class ActiveGroupCard extends StatelessWidget {
 String _actionLabel(GroupAction action) => switch (action) {
       GroupAction.openChat => 'Open Chat',
       GroupAction.viewSchedule => 'View Schedule',
+      GroupAction.viewDetails => 'View group',
       GroupAction.roommateSync => 'Roommate Sync',
       GroupAction.viewNotes => 'View Notes',
       GroupAction.voteRsvp => 'Vote RSVP',
@@ -233,6 +234,7 @@ String _actionLabel(GroupAction action) => switch (action) {
 IconData _actionIcon(GroupAction action) => switch (action) {
       GroupAction.openChat => Icons.chat_bubble_outline,
       GroupAction.viewSchedule => Icons.schedule,
+      GroupAction.viewDetails => Icons.groups_outlined,
       GroupAction.roommateSync => Icons.sync_alt,
       GroupAction.viewNotes => Icons.description_outlined,
       GroupAction.voteRsvp => Icons.check,

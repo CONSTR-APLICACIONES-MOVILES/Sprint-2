@@ -34,6 +34,16 @@ class ManageSchedule {
     return context; // Explicit demo repositories have no server evidence.
   }
 
+  Future<CreationComparison?> prepareProposalComparison(
+      DateTime day, List<String> friendIds) async {
+    if (friendIds.isEmpty) return null;
+    final source = _repository;
+    return source is ProposalComparisonProvider
+        ? (source as ProposalComparisonProvider)
+            .prepareProposalComparison(day, friendIds)
+        : null;
+  }
+
   Future<List<ScheduleFriend>> loadFriends() => _repository.getFriends();
 
   Future<ScheduleDayResult> loadDay({

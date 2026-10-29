@@ -94,8 +94,15 @@ void main() {
     expect(editor.value.error, contains('activity name'));
     expect(await editor.save(draft), 'created-document');
     final written = source.writes.single;
-    expect(written.keys,
-        unorderedEquals(['requestId', 'groupId', 'fields', 'timeZone']));
+    expect(
+        written.keys,
+        unorderedEquals([
+          'requestId',
+          'groupId',
+          'fields',
+          'timeZone',
+          'measurementVersion'
+        ]));
     expect(written['requestId'], editor.publicationKey);
     expect((written['fields'] as Map)['title'], draft.title);
     expect(written.containsKey('startTime'), isFalse);

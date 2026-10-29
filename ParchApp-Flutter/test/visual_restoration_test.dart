@@ -1,3 +1,18 @@
+import 'package:parchapp/features/activities/presentation/widgets/activity_form.dart';
+import 'package:parchapp/features/activities/presentation/view_models/activity_editor_view_model.dart';
+import 'package:parchapp/features/activities/presentation/views/activity_result_view.dart';
+import 'package:parchapp/features/schedule/presentation/views/schedule_view.dart';
+import 'package:parchapp/features/schedule/presentation/view_models/schedule_view_model.dart';
+import 'package:parchapp/features/schedule/domain/use_cases/manage_schedule.dart';
+import 'package:parchapp/features/schedule/domain/use_cases/import_google_calendar.dart';
+import 'package:parchapp/features/schedule/domain/use_cases/authorize_google_calendar.dart';
+import 'package:parchapp/features/schedule/domain/services/availability_service.dart';
+import 'package:parchapp/features/profile/data/repositories/firebase_profile_repository.dart';
+import 'package:parchapp/features/profile/domain/use_cases/manage_profile.dart';
+import 'package:parchapp/features/profile/presentation/view_models/profile_view_model.dart';
+import 'package:parchapp/features/profile/presentation/views/profile_view.dart';
+import 'package:parchapp/features/expansions/presentation/views/coordination_insights_view.dart';
+import 'features/schedule/planning_handoff_test.dart' show Schedule, Calendar;
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
@@ -129,7 +144,8 @@ void main() {
     bool decoded = false;
     debugDisableShadows = false;
     addTearDown(() => debugDisableShadows = true);
-    Future<void> capture(String name, Widget child) async {
+    Future<void> capture(String name, Widget child,
+        {Future<void> Function()? arrange}) async {
       final key = GlobalKey();
       await tester.pumpWidget(RepaintBoundary(
           key: key,
@@ -148,6 +164,10 @@ void main() {
               key.currentContext!);
         });
         decoded = true;
+        await tester.pumpAndSettle();
+      }
+      if (arrange != null) {
+        await arrange();
         await tester.pumpAndSettle();
       }
       expect(tester.takeException(), isNull, reason: name);
@@ -211,6 +231,78 @@ void main() {
                 activityId: 'firestore-document',
                 sessions: sessions,
                 alerts: Inbox())));
+    final editor = ActivityEditorViewModel(ManageStudySession(sessions));
+    await capture(
+        'create-activity',
+        Scaffold(
+            appBar: AppBar(title: const ParchBrand()),
+            body: ActivityForm(viewModel: editor, onSaved: (_) {})),
+        arrange: () async {
+      await tester.enterText(find.widgetWithText(TextField, 'Activity name'),
+          'Coffee at the Student Union');
+      FocusManager.instance.primaryFocus?.unfocus();
+    });
+    final reviewer = ActivityEditorViewModel(ManageStudySession(sessions));
+    await capture(
+        'review-activity',
+        Scaffold(
+            appBar: AppBar(title: const ParchBrand()),
+            body: ActivityForm(viewModel: reviewer, onSaved: (_) {})),
+        arrange: () async {
+      await tester.enterText(find.widgetWithText(TextField, 'Activity name'),
+          'Coffee at the Student Union');
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Review Activity'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Review Activity'));
+    });
+    editor.dispose();
+    await capture(
+        'activity-created',
+        ActivityResultView(
+            activityId: 'firestore-document',
+            repository: sessions,
+            acknowledged: true));
+    reviewer.dispose();
+    final scheduleRepo = Schedule(), calendar = Calendar();
+    final scheduleModel = ScheduleViewModel(
+        ManageSchedule(scheduleRepo, const AvailabilityService()),
+        ImportGoogleCalendar(calendar, scheduleRepo),
+        authorizeGoogleCalendar: AuthorizeGoogleCalendar(calendar),
+        initialDay: DateTime(2030, 10, 2));
+    await capture('schedule', ScheduleView(viewModel: scheduleModel));
+    await tester.pumpWidget(const SizedBox());
+    scheduleModel.dispose();
+    final profileModel = ProfileViewModel(
+        ManageProfile(FirebaseProfileRepository(CommunityApi())));
+    await capture('profile', ProfileView(viewModel: profileModel));
+    await tester.pumpWidget(const SizedBox());
+    profileModel.dispose();
+    await capture(
+        'planning-insights',
+        CoordinationInsightsView(
+            loadInsight: () async => {
+                  'compared': {
+                    'activities': 2,
+                    'confirmed': 2,
+                    'confirmationRate': 1
+                  },
+                  'direct': {
+                    'activities': 2,
+                    'confirmed': 1,
+                    'confirmationRate': .5
+                  },
+                  'known': 4,
+                  'unknown': 1,
+                  'coverage': .8,
+                  'comparisonUsage': .5,
+                  'differencePp': 50,
+                  'windowStart': '2026-09-19',
+                  'windowEnd': '2026-10-19',
+                  'updatedAt': '2026-10-26',
+                  'environment': 'test'
+                }));
     final model = StudySessionViewModel(
         ManageStudySession(sessions), 'firestore-document',
         autoLoadRecommendations: false);

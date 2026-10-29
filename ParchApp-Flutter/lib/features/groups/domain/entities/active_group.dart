@@ -5,6 +5,7 @@ enum GroupTone { info, success, warning, casual }
 enum GroupAction {
   openChat,
   viewSchedule,
+  viewDetails,
   roommateSync,
   viewNotes,
   voteRsvp,

@@ -1,3 +1,4 @@
+import '../../../../shared/widgets/data_freshness_banner.dart';
 import '../../../../shared/widgets/parch_app_bar.dart';
 import '../../../../shared/widgets/parch_navigation_bar.dart';
 import 'package:flutter/material.dart';
@@ -72,6 +73,7 @@ class _AlertsViewState extends State<AlertsView> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
+                                DataFreshnessBanner(freshness: state.freshness),
                                 Wrap(
                                     alignment: WrapAlignment.spaceBetween,
                                     crossAxisAlignment:

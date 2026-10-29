@@ -30,6 +30,7 @@ class ActivityEditorViewModel extends ValueNotifier<ActivityEditorState> {
   ActivityDraft? recoveredDraft;
   bool publicationUncertain = false;
   final PlanningContext? planning;
+  final CreationComparison? comparison;
 
   bool review(ActivityDraft draft) {
     try {
@@ -52,6 +53,7 @@ class ActivityEditorViewModel extends ValueNotifier<ActivityEditorState> {
       this.requestedDate = '',
       this.requestedTime = '',
       this.planning,
+      this.comparison,
       this.requestedGroupId})
       : super(const ActivityEditorState());
 
@@ -103,6 +105,8 @@ class ActivityEditorViewModel extends ValueNotifier<ActivityEditorState> {
             startsAt: reviewed.startsAt,
             endsAt: reviewed.endsAt,
             planning: reviewed.planning,
+            comparison: reviewed.comparison,
+            measurementVersion: reviewed.measurementVersion,
             requestId: publicationKey);
         _savedId = await _sessions.createActivity(input);
         publicationUncertain = false;

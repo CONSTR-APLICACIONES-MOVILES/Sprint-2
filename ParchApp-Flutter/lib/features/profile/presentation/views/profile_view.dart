@@ -112,6 +112,14 @@ class _ProfileViewState extends State<ProfileView> {
                 ProfileAcademicCard(user: user),
                 const SizedBox(height: 12),
                 ProfileStatsRow(user: user),
+                const ProfileSectionLabel('Planning insights'),
+                ProfileMenuGroup(children: [
+                  ProfileMenuTile(
+                      icon: Icons.insights_outlined,
+                      title: 'Comparison & confirmation',
+                      subtitle: 'Measured coordination outcomes',
+                      onTap: () => context.push('/insights/coordination'))
+                ]),
                 const ProfileSectionLabel('Availability & schedule'),
                 ProfileMenuGroup(children: [
                   ProfileMenuTile(

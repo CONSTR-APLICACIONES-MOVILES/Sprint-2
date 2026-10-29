@@ -109,7 +109,7 @@ class FirebaseActiveGroupsRepository implements ActiveGroupsRepository {
                           r['activityInvited'] == true
                       : !responded)
               ? GroupAction.voteRsvp
-              : GroupAction.viewSchedule,
+              : GroupAction.viewDetails,
           secondaryAction: GroupAction.viewSchedule,
           invitationId: invitation,
           invitationSentAt: r['invitationSentAt'] as DateTime?,
