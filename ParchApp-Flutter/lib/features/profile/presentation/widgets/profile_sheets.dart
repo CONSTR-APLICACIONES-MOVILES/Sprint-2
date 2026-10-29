@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/entities/profile_user.dart';
-import '../../domain/entities/photo_source.dart';
 
 Future<T?> showProfileSheet<T>(BuildContext context, {required Widget child}) =>
     showModalBottomSheet<T>(
@@ -21,7 +20,7 @@ Future<T?> showProfileSheet<T>(BuildContext context, {required Widget child}) =>
 
 class EditProfileSheet extends StatefulWidget {
   final ProfileUser user;
-  final ValueChanged<PhotoSource> onPhoto;
+  final VoidCallback onPhoto;
 
   const EditProfileSheet(
       {super.key, required this.user, required this.onPhoto});
@@ -61,9 +60,9 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
     ));
   }
 
-  void _photo(PhotoSource source) {
+  void _photo() {
     Navigator.of(context).pop();
-    widget.onPhoto(source);
+    widget.onPhoto();
   }
 
   @override
@@ -74,23 +73,11 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
           const Text('Edit profile',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
           const SizedBox(height: 16),
-          Row(children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () => _photo(PhotoSource.frontCamera),
-                icon: const Icon(Icons.camera_front_outlined, size: 18),
-                label: const Text('Take a selfie'),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () => _photo(PhotoSource.rearCamera),
-                icon: const Icon(Icons.photo_camera_outlined, size: 18),
-                label: const Text('Rear camera'),
-              ),
-            ),
-          ]),
+          OutlinedButton.icon(
+            onPressed: _photo,
+            icon: const Icon(Icons.photo_camera_outlined, size: 18),
+            label: const Text('Take a picture'),
+          ),
           const SizedBox(height: 16),
           _field(_name, 'Full name'),
           const SizedBox(height: 12),

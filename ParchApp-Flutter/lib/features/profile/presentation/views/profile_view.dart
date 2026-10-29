@@ -12,7 +12,6 @@ import '../view_models/profile_view_model.dart';
 import '../widgets/profile_cards.dart';
 import '../widgets/profile_menu_tile.dart';
 import '../widgets/profile_sheets.dart';
-import '../../domain/entities/photo_source.dart';
 
 const _surface = Color(0xFFF8FAFE);
 
@@ -217,8 +216,8 @@ class _ProfileViewState extends State<ProfileView> {
     }
   }
 
-  Future<void> _changePhoto(PhotoSource source) async {
-    if (await widget.viewModel.changePhoto(source)) {
+  Future<void> _changePhoto() async {
+    if (await widget.viewModel.changePhoto()) {
       _message('Profile photo updated');
     }
   }
