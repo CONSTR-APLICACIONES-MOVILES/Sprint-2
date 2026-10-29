@@ -37,6 +37,11 @@ class FirebaseStudySessionsRepository
         date: fields['date'] as String? ?? '',
         time: fields['time'] as String? ?? '',
         requestId: data['requestId'] as String,
+        measurementVersion: data['measurementVersion'] as int?,
+        comparison:
+            data['comparisonId'] == null && data['comparisonEvidenceId'] != null
+                ? CreationComparison.fromMap(data)
+                : null,
         startsAt: data['startTime'] == null
             ? null
             : DateTime.parse(data['startTime'] as String),

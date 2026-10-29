@@ -1,3 +1,4 @@
+import '../../../../core/domain/data_freshness.dart';
 import '../entities/app_alert.dart';
 import '../repositories/alerts_repository.dart';
 
@@ -5,6 +6,9 @@ class ManageAlerts {
   final AlertsRepository _repository;
   const ManageAlerts(this._repository);
 
+  DataFreshness get freshness => _repository is CacheAwareRepository
+      ? (_repository as CacheAwareRepository).freshness
+      : const DataFreshness();
   Future<List<AppAlert>> load() => _repository.getAlerts();
   Future<List<AppAlert>> markAllRead() => _repository.markAllRead();
 

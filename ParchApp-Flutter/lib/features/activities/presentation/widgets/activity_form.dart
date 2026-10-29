@@ -1,3 +1,5 @@
+import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/widgets/parch_visuals.dart';
 import 'package:flutter/material.dart';
 import '../../domain/entities/activity_draft.dart';
 import '../view_models/activity_editor_view_model.dart';
@@ -30,6 +32,7 @@ class _ActivityFormState extends State<ActivityForm> {
       widget.viewModel.planning?.groupId ?? widget.viewModel.requestedGroupId;
   late DateTime? _start = widget.viewModel.planning?.start;
   late DateTime? _end = widget.viewModel.planning?.end;
+  final _scroll = ScrollController();
   ActivityDraft? _review;
   String? _localError;
   bool _recovered = false;
@@ -42,6 +45,7 @@ class _ActivityFormState extends State<ActivityForm> {
 
   @override
   void dispose() {
+    _scroll.dispose();
     for (final controller in [_title, _description, _location, _date, _time]) {
       controller.dispose();
     }
@@ -63,7 +67,8 @@ class _ActivityFormState extends State<ActivityForm> {
       time: _time.text,
       startsAt: _start,
       endsAt: _end,
-      planning: widget.viewModel.planning);
+      planning: widget.viewModel.planning,
+      comparison: widget.viewModel.comparison);
 
   Future<void> _save() async {
     final id = await widget.viewModel.save(_review ?? _draft());
@@ -145,6 +150,7 @@ class _ActivityFormState extends State<ActivityForm> {
               }
             },
             child: SingleChildScrollView(
+                controller: _scroll,
                 padding: EdgeInsets.fromLTRB(
                     20, 12, 20, 24 + MediaQuery.viewInsetsOf(context).bottom),
                 child: Column(
@@ -156,8 +162,54 @@ class _ActivityFormState extends State<ActivityForm> {
                               : review == null
                                   ? 'Create New Activity'
                                   : 'Review Activity',
-                          style: Theme.of(context).textTheme.titleLarge),
+                          style: const TextStyle(
+                              fontSize: 25,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textPrimary)),
                       const SizedBox(height: 20),
+                      if (!editing) ...[
+                        Row(children: [
+                          Expanded(
+                              child: Row(children: [
+                            CircleAvatar(
+                                radius: 17,
+                                backgroundColor: review == null
+                                    ? AppColors.primary
+                                    : AppColors.success,
+                                child: review == null
+                                    ? const Text('1',
+                                        style: TextStyle(color: Colors.white))
+                                    : const Icon(Icons.check,
+                                        color: Colors.white, size: 18)),
+                            const SizedBox(width: 8),
+                            const Flexible(
+                                child: Text('Details',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.w700))),
+                          ])),
+                          const SizedBox(width: 24, child: Divider()),
+                          const SizedBox(width: 8),
+                          Expanded(
+                              child: Row(children: [
+                            CircleAvatar(
+                                radius: 17,
+                                backgroundColor: review == null
+                                    ? AppColors.blueTint
+                                    : AppColors.primary,
+                                child: Text('2',
+                                    style: TextStyle(
+                                        color: review == null
+                                            ? AppColors.textSecondary
+                                            : Colors.white))),
+                            const SizedBox(width: 8),
+                            const Flexible(
+                                child: Text('Review',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.w700))),
+                          ])),
+                        ]),
+                        const SizedBox(height: 24),
+                      ],
                       if (state.loading) const LinearProgressIndicator(),
                       if (!editing &&
                           !state.loading &&
@@ -200,13 +252,23 @@ class _ActivityFormState extends State<ActivityForm> {
                             Text(entry.value),
                         const SizedBox(height: 12),
                         const Text(
-                            'Invitations will be available in the app inbox. External calendar export and push delivery are not included.'),
+                            'Your group will receive invitations in ParchApp.'),
                         TextButton(
                             onPressed: blocked
                                 ? null
-                                : () => setState(() => _review = null),
+                                : () {
+                                    setState(() => _review = null);
+                                    _scroll.jumpTo(0);
+                                  },
                             child: const Text('Back to Details')),
                       ] else ...[
+                        TextField(
+                            controller: _title,
+                            enabled: !blocked,
+                            maxLength: 120,
+                            decoration: const InputDecoration(
+                                labelText: 'Activity name')),
+                        const SizedBox(height: 16),
                         if (!editing && state.groups.isNotEmpty) ...[
                           DropdownButtonFormField<String>(
                               initialValue: state.groups
@@ -229,29 +291,6 @@ class _ActivityFormState extends State<ActivityForm> {
                                   : (v) => setState(() => _groupId = v)),
                           const SizedBox(height: 16),
                         ],
-                        TextField(
-                            controller: _title,
-                            enabled: !blocked,
-                            maxLength: 120,
-                            decoration: const InputDecoration(
-                                labelText: 'Activity name')),
-                        const SizedBox(height: 16),
-                        TextField(
-                            controller: _description,
-                            enabled: !blocked,
-                            minLines: 2,
-                            maxLines: 4,
-                            maxLength: 5000,
-                            decoration: const InputDecoration(
-                                labelText: 'Description')),
-                        const SizedBox(height: 16),
-                        TextField(
-                            controller: _location,
-                            enabled: !blocked,
-                            maxLength: 500,
-                            decoration:
-                                const InputDecoration(labelText: 'Location')),
-                        const SizedBox(height: 16),
                         Wrap(spacing: 8, runSpacing: 8, children: [
                           for (final category in [
                             'study',
@@ -262,6 +301,13 @@ class _ActivityFormState extends State<ActivityForm> {
                             ChoiceChip(
                                 label: Text(category),
                                 selected: category == _category,
+                                showCheckmark: false,
+                                selectedColor: AppColors.primary,
+                                shape: const StadiumBorder(),
+                                labelStyle: TextStyle(
+                                    color: category == _category
+                                        ? Colors.white
+                                        : AppColors.textPrimary),
                                 onSelected: blocked
                                     ? null
                                     : (_) =>
@@ -284,17 +330,35 @@ class _ActivityFormState extends State<ActivityForm> {
                                 : (v) => setState(() => _status = v!)),
                         const SizedBox(height: 16),
                         if (!editing) ...[
-                          const Text('Schedule · America/Bogota'),
+                          if (widget.viewModel.comparison != null)
+                            Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: ParchPill(
+                                    'Compared ${widget.viewModel.comparison!.participantIds.length} people · ${widget.viewModel.comparison!.date ?? ''}')),
+                          const Text('Date & Time · Bogotá',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.textPrimary)),
                           Text(_start == null
                               ? 'Not scheduled. You may publish a proposal without a scheduled interval.'
                               : '${_label(_start!)} → ${_end == null ? 'Choose end' : _label(_end!)}'),
                           if (widget.viewModel.planning == null) ...[
-                            TextButton(
+                            const SizedBox(height: 10),
+                            OutlinedButton.icon(
                                 onPressed: blocked ? null : () => _pick(true),
-                                child: const Text('Choose start')),
-                            TextButton(
+                                icon: const Icon(Icons.calendar_month_outlined,
+                                    color: AppColors.primary),
+                                label: Text(_start == null
+                                    ? 'Choose start'
+                                    : _label(_start!))),
+                            const SizedBox(height: 8),
+                            OutlinedButton.icon(
                                 onPressed: blocked ? null : () => _pick(false),
-                                child: const Text('Choose end')),
+                                icon: const Icon(Icons.schedule,
+                                    color: AppColors.primary),
+                                label: Text(_end == null
+                                    ? 'Choose end'
+                                    : _label(_end!))),
                             if (_start != null)
                               TextButton(
                                   onPressed: blocked
@@ -321,6 +385,23 @@ class _ActivityFormState extends State<ActivityForm> {
                         ] else
                           const Text(
                               'Change the scheduled interval using recommendations in Activity Details.'),
+                        const SizedBox(height: 20),
+                        TextField(
+                            controller: _description,
+                            enabled: !blocked,
+                            minLines: 2,
+                            maxLines: 4,
+                            maxLength: 5000,
+                            decoration: const InputDecoration(
+                                labelText: 'Description')),
+                        const SizedBox(height: 16),
+                        TextField(
+                            controller: _location,
+                            enabled: !blocked,
+                            maxLength: 500,
+                            decoration:
+                                const InputDecoration(labelText: 'Location')),
+                        const SizedBox(height: 16),
                       ],
                       if (state.error != null)
                         Text(state.error!,
@@ -348,10 +429,12 @@ class _ActivityFormState extends State<ActivityForm> {
                               : editing || review != null
                                   ? _save
                                   : () {
+                                      FocusScope.of(context).unfocus();
                                       final draft = _draft();
                                       if (widget.viewModel.review(draft)) {
                                         setState(
                                             () => _review = draft.validated());
+                                        _scroll.jumpTo(0);
                                       }
                                     },
                           child: Text(state.saving

@@ -1,3 +1,5 @@
+import '../../../../core/domain/data_freshness.dart';
+
 class StudyTopic {
   final String id;
   final String title;
@@ -28,6 +30,7 @@ class StudyResource {
 
 class StudySession {
   final String id;
+  final DataFreshness freshness;
   final String version;
   final bool supportsCancellation;
   final String title;
@@ -68,6 +71,7 @@ class StudySession {
       required List<StudyResource> resources,
       this.cancelled = false,
       this.version = '',
+      this.freshness = const DataFreshness(),
       this.supportsCancellation = true,
       this.durationMinutes,
       this.timeZone = '',
@@ -103,6 +107,7 @@ class StudySession {
           List<StudyTopic>? topics}) =>
       StudySession(
           id: id,
+          freshness: freshness,
           version: version ?? this.version,
           supportsCancellation: supportsCancellation,
           title: title ?? this.title,

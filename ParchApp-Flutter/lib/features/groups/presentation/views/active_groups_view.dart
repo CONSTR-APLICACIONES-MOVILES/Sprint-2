@@ -175,10 +175,6 @@ class _ActiveGroupsViewState extends State<ActiveGroupsView> {
                         child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              TextButton(
-                                  onPressed: () =>
-                                      _open(AppRoutes.groupDetails(group.id)),
-                                  child: Text('Open ${group.name}')),
                               ActiveGroupCard(
                                 key: ValueKey(group.id),
                                 group: group,
@@ -200,6 +196,8 @@ class _ActiveGroupsViewState extends State<ActiveGroupsView> {
 
   Future<void> _handleAction(ActiveGroup group, GroupAction action) async {
     switch (action) {
+      case GroupAction.viewDetails:
+        await _open(AppRoutes.groupDetails(group.id));
       case GroupAction.viewSchedule:
         context.push(Uri(
             path: AppRoutes.schedule,

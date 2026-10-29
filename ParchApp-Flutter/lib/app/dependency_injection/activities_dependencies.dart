@@ -1,3 +1,4 @@
+import '../../shared/widgets/parch_visuals.dart';
 import '../../features/activities/presentation/views/suggested_times_view.dart';
 import 'dart:async';
 import '../../features/profile/presentation/widgets/presence_settings_sheets.dart';
@@ -110,12 +111,14 @@ class ActivitiesDependencies {
           {String date = '',
           String time = '',
           String? groupId,
+          CreationComparison? comparison,
           PlanningContext? planning}) =>
       _CreateActivityEntry(
           repository: repository,
           date: date,
           time: time,
           planning: planning,
+          comparison: comparison,
           groupId: groupId);
 }
 
@@ -124,11 +127,13 @@ class _CreateActivityEntry extends StatefulWidget {
   final String date, time;
   final String? groupId;
   final PlanningContext? planning;
+  final CreationComparison? comparison;
   const _CreateActivityEntry(
       {required this.repository,
       required this.date,
       required this.time,
       this.planning,
+      this.comparison,
       this.groupId});
   @override
   State<_CreateActivityEntry> createState() => _CreateActivityEntryState();
@@ -140,11 +145,12 @@ class _CreateActivityEntryState extends State<_CreateActivityEntry> {
       requestedDate: widget.date,
       requestedTime: widget.time,
       planning: widget.planning,
+      comparison: widget.comparison,
       requestedGroupId: widget.groupId);
   @override
   Widget build(BuildContext context) => Scaffold(
       appBar: AppBar(
-          title: const Text('ParchApp'),
+          title: const ParchBrand(),
           leading: IconButton(
               tooltip: 'Back',
               icon: const Icon(Icons.arrow_back),

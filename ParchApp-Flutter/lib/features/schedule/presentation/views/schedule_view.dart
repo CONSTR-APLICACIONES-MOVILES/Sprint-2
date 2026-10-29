@@ -1,4 +1,5 @@
-import '../../../activities/domain/entities/study_session.dart' show SessionFailure;
+import '../../../activities/domain/entities/study_session.dart'
+    show SessionFailure;
 import '../../../../shared/widgets/parch_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -19,7 +20,9 @@ class ScheduleView extends StatefulWidget {
 
   const ScheduleView({
     super.key,
-    required this.viewModel, this.groupId, this.activityHeader,
+    required this.viewModel,
+    this.groupId,
+    this.activityHeader,
   });
 
   @override
@@ -62,19 +65,19 @@ class _ScheduleViewState extends State<ScheduleView> {
             bottom: false,
             child: Column(
               children: [
-                if (widget.activityHeader != null) ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 180),
-                  child: SingleChildScrollView(child: widget.activityHeader!)),
+                if (widget.activityHeader != null)
+                  ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 180),
+                      child:
+                          SingleChildScrollView(child: widget.activityHeader!)),
                 _buildFriendBar(context, state),
                 _buildCalendarImportBar(state),
                 _buildDurationBar(state),
                 _buildWeekSelector(state),
-
                 if (state.status == ScheduleLoadStatus.loading)
                   const LinearProgressIndicator(
                     minHeight: 2,
                   ),
-
                 if (state.status == ScheduleLoadStatus.error)
                   Expanded(
                     child: _buildErrorState(state),
@@ -94,11 +97,19 @@ class _ScheduleViewState extends State<ScheduleView> {
                   tooltip: 'Plan activity',
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
-                  onPressed: _planning ? null : () => _planActivity(
-                    context,
-                    state,
-                  ),
-                  child: _planning ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.add),
+                  onPressed: _planning
+                      ? null
+                      : () => _planActivity(
+                            context,
+                            state,
+                          ),
+                  child: _planning
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white))
+                      : const Icon(Icons.add),
                 )
               : null,
           bottomNavigationBar: const ParchNavigationBar(
@@ -137,7 +148,6 @@ class _ScheduleViewState extends State<ScheduleView> {
               child: Row(
                 children: [
                   const _MeChip(),
-
                   for (final friend in selectedFriends) ...[
                     const SizedBox(width: 6),
                     _FriendChip(
@@ -149,9 +159,7 @@ class _ScheduleViewState extends State<ScheduleView> {
                       },
                     ),
                   ],
-
                   const SizedBox(width: 6),
-
                   ActionChip(
                     avatar: const Icon(
                       Icons.person_add_alt_1,
@@ -166,8 +174,7 @@ class _ScheduleViewState extends State<ScheduleView> {
                     side: const BorderSide(
                       color: Color(0xFF9CB8E9),
                     ),
-                    backgroundColor:
-                        const Color(0xFFF2F6FF),
+                    backgroundColor: const Color(0xFFF2F6FF),
                     labelStyle: const TextStyle(
                       color: AppColors.primary,
                       fontSize: 12,
@@ -178,9 +185,7 @@ class _ScheduleViewState extends State<ScheduleView> {
               ),
             ),
           ),
-
           const SizedBox(width: 8),
-
           Container(
             padding: const EdgeInsets.symmetric(
               horizontal: 10,
@@ -222,205 +227,176 @@ class _ScheduleViewState extends State<ScheduleView> {
   }
 
   Widget _buildCalendarImportBar(
-  ScheduleState state,
-) {
-  final importing =
-      state.calendarImportStatus ==
-          CalendarImportStatus.importing;
+    ScheduleState state,
+  ) {
+    final importing =
+        state.calendarImportStatus == CalendarImportStatus.importing;
 
-  final imported =
-      state.calendarImportStatus ==
-          CalendarImportStatus.imported;
+    final imported =
+        state.calendarImportStatus == CalendarImportStatus.imported;
 
-  final hasError =
-      state.calendarImportStatus ==
-          CalendarImportStatus.error;
+    final hasError = state.calendarImportStatus == CalendarImportStatus.error;
 
-  return Container(
-    width: double.infinity,
-    color: Colors.white,
-    padding: const EdgeInsets.fromLTRB(
-      14,
-      4,
-      12,
-      8,
-    ),
-    child: Container(
+    return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 12,
-        vertical: 10,
+      color: Colors.white,
+      padding: const EdgeInsets.fromLTRB(
+        14,
+        4,
+        12,
+        8,
       ),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF7F9FD),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: const Color(0xFFDCE3EF),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 10,
+        ),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF7F9FD),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: const Color(0xFFDCE3EF),
+          ),
+        ),
+        child: Row(
+          children: [
+            // Google Calendar icon
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: const Color(0xFFEAF1FF),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.calendar_month_outlined,
+                size: 20,
+                color: AppColors.primary,
+              ),
+            ),
+
+            const SizedBox(width: 10),
+
+            // Text
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Google Calendar · Bogotá',
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    _calendarImportSubtitle(state),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: hasError
+                          ? AppColors.error
+                          : imported
+                              ? AppColors.success
+                              : AppColors.textSecondary,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(width: 8),
+
+            // Import button
+            SizedBox(
+              width: 105,
+              height: 34,
+              child: FilledButton.icon(
+                onPressed: importing || !widget.viewModel.calendarImportEnabled
+                    ? null
+                    : widget.viewModel.importGoogleCalendar,
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: imported
+                      ? const Color(0xFFE8F8F0)
+                      : const Color(0xFFE9EEF7),
+                  disabledForegroundColor:
+                      imported ? AppColors.success : AppColors.textSecondary,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                  ),
+                  minimumSize: const Size(
+                    105,
+                    34,
+                  ),
+                  maximumSize: const Size(
+                    105,
+                    34,
+                  ),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(9),
+                  ),
+                ),
+                icon: importing
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.primary,
+                        ),
+                      )
+                    : Icon(
+                        imported
+                            ? Icons.check_rounded
+                            : Icons.file_download_outlined,
+                        size: 17,
+                      ),
+                label: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    importing
+                        ? 'Importing'
+                        : imported
+                            ? 'Import again'
+                            : hasError
+                                ? 'Try again'
+                                : 'Import',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
-      child: Row(
-        children: [
-          // Google Calendar icon
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: const Color(0xFFEAF1FF),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(
-              Icons.calendar_month_outlined,
-              size: 20,
-              color: AppColors.primary,
-            ),
-          ),
+    );
+  }
 
-          const SizedBox(width: 10),
-
-          // Text
-          Expanded(
-            child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Google Calendar · Bogotá',
-                  style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-
-                const SizedBox(height: 2),
-
-                Text(
-                  _calendarImportSubtitle(state),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: hasError
-                        ? AppColors.error
-                        : imported
-                            ? AppColors.success
-                            : AppColors.textSecondary,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(width: 8),
-
-          // Import button
-          SizedBox(
-            width: 105,
-            height: 34,
-            child: FilledButton.icon(
-              onPressed: importing
-                  ? null
-                  : widget
-                      .viewModel
-                      .importGoogleCalendar,
-
-              style: FilledButton.styleFrom(
-                backgroundColor:
-                    AppColors.primary,
-
-                foregroundColor:
-                    Colors.white,
-
-                disabledBackgroundColor:
-                    imported
-                        ? const Color(0xFFE8F8F0)
-                        : const Color(0xFFE9EEF7),
-
-                disabledForegroundColor:
-                    imported
-                        ? AppColors.success
-                        : AppColors.textSecondary,
-
-                padding:
-                    const EdgeInsets.symmetric(
-                  horizontal: 8,
-                ),
-
-                minimumSize: const Size(
-                  105,
-                  34,
-                ),
-
-                maximumSize: const Size(
-                  105,
-                  34,
-                ),
-
-                tapTargetSize:
-                    MaterialTapTargetSize.shrinkWrap,
-
-                shape: RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius.circular(9),
-                ),
-              ),
-
-              icon: importing
-                  ? const SizedBox(
-                      width: 14,
-                      height: 14,
-                      child:
-                          CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: AppColors.primary,
-                      ),
-                    )
-                  : Icon(
-                      imported
-                          ? Icons.check_rounded
-                          : Icons
-                              .file_download_outlined,
-                      size: 17,
-                    ),
-
-              label: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  importing
-                      ? 'Importing'
-                      : imported
-                          ? 'Sync again'
-                          : hasError
-                              ? 'Try again'
-                              : 'Import',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight:
-                        FontWeight.w700,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
-}
   String _calendarImportSubtitle(
     ScheduleState state,
   ) {
+    if (!widget.viewModel.calendarImportEnabled) {
+      return 'Google Calendar import is not configured.';
+    }
     switch (state.calendarImportStatus) {
       case CalendarImportStatus.importing:
-        return 'Syncing your busy periods...';
+        return 'Importing your busy periods...';
       case CalendarImportStatus.imported:
-        return state.calendarImportMessage ??
-            'Calendar availability synced.';
+        return state.calendarImportMessage ?? 'Calendar availability imported.';
       case CalendarImportStatus.error:
-        return state.calendarImportMessage ??
-            'Could not import calendar.';
+        return state.calendarImportMessage ?? 'Could not import calendar.';
       case CalendarImportStatus.idle:
         return 'Sync busy periods without sharing event details.';
     }
@@ -436,11 +412,9 @@ class _ScheduleViewState extends State<ScheduleView> {
       const Duration(hours: 2),
     ];
 
-    final currentHours =
-        state.meetingDuration.inHours;
+    final currentHours = state.meetingDuration.inHours;
 
-    final currentMinutes =
-        state.meetingDuration.inMinutes % 60;
+    final currentMinutes = state.meetingDuration.inMinutes % 60;
 
     return Container(
       width: double.infinity,
@@ -458,9 +432,7 @@ class _ScheduleViewState extends State<ScheduleView> {
             size: 18,
             color: AppColors.primary,
           ),
-
           const SizedBox(width: 5),
-
           const Text(
             'Duration:',
             style: TextStyle(
@@ -469,9 +441,7 @@ class _ScheduleViewState extends State<ScheduleView> {
               fontSize: 12,
             ),
           ),
-
           const SizedBox(width: 8),
-
           Expanded(
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -479,22 +449,17 @@ class _ScheduleViewState extends State<ScheduleView> {
                 children: [
                   ...quickDurations.map(
                     (duration) {
-                      final selected =
-                          state.meetingDuration ==
-                              duration;
+                      final selected = state.meetingDuration == duration;
 
                       return Padding(
-                        padding:
-                            const EdgeInsets.only(
+                        padding: const EdgeInsets.only(
                           right: 6,
                         ),
                         child: ChoiceChip(
                           showCheckmark: false,
                           selected: selected,
-                          selectedColor:
-                              AppColors.primary,
-                          backgroundColor:
-                              const Color(
+                          selectedColor: AppColors.primary,
+                          backgroundColor: const Color(
                             0xFFE9EEF7,
                           ),
                           side: BorderSide.none,
@@ -505,16 +470,13 @@ class _ScheduleViewState extends State<ScheduleView> {
                             style: TextStyle(
                               color: selected
                                   ? Colors.white
-                                  : AppColors
-                                      .textSecondary,
+                                  : AppColors.textSecondary,
                               fontSize: 11,
-                              fontWeight:
-                                  FontWeight.w700,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                           onSelected: (_) {
-                            widget.viewModel
-                                .setDuration(
+                            widget.viewModel.setDuration(
                               duration,
                             );
                           },
@@ -522,9 +484,7 @@ class _ScheduleViewState extends State<ScheduleView> {
                       );
                     },
                   ),
-
                   const SizedBox(width: 4),
-
                   _buildDurationStepper(
                     hours: currentHours,
                     minutes: currentMinutes,
@@ -538,270 +498,250 @@ class _ScheduleViewState extends State<ScheduleView> {
     );
   }
 
- Widget _buildDurationStepper({
-  required int hours,
-  required int minutes,
-}) {
-  return Container(
-    padding: const EdgeInsets.symmetric(
-      horizontal: 8,
-      vertical: 5,
-    ),
-    decoration: BoxDecoration(
-      color: const Color(0xFFF7F9FD),
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(
-        color: const Color(0xFFD8E1EF),
+  Widget _buildDurationStepper({
+    required int hours,
+    required int minutes,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 8,
+        vertical: 5,
       ),
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // HOURS
-        _buildHorizontalStepper(
-          value: hours,
-
-          onDecrease: () {
-            if (hours == 0) {
-              return;
-            }
-
-            _updateCustomDuration(
-              hours: hours - 1,
-              minutes: minutes,
-            );
-          },
-
-          onIncrease: () {
-            _updateCustomDuration(
-              hours: hours + 1,
-              minutes: minutes,
-            );
-          },
-
-          onSubmitted: (newHours) {
-            var safeHours = newHours;
-
-            if (safeHours < 0) {
-              safeHours = 0;
-            }
-
-            if (safeHours > 12) {
-              safeHours = 12;
-            }
-
-            _updateCustomDuration(
-              hours: safeHours,
-              minutes: minutes,
-            );
-          },
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7F9FD),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFFD8E1EF),
         ),
-
-        const Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: 5,
-          ),
-          child: Text(
-            ':',
-            style: TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ),
-
-        // MINUTES
-        _buildHorizontalStepper(
-          value: minutes,
-          twoDigits: true,
-
-          onDecrease: () {
-            if (minutes == 0) {
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // HOURS
+          _buildHorizontalStepper(
+            value: hours,
+            onDecrease: () {
               if (hours == 0) {
                 return;
               }
 
               _updateCustomDuration(
                 hours: hours - 1,
-                minutes: 59,
+                minutes: minutes,
               );
-
-              return;
-            }
-
-            _updateCustomDuration(
-              hours: hours,
-              minutes: minutes - 1,
-            );
-          },
-
-          onIncrease: () {
-            if (minutes == 59) {
+            },
+            onIncrease: () {
               _updateCustomDuration(
                 hours: hours + 1,
-                minutes: 0,
+                minutes: minutes,
               );
+            },
+            onSubmitted: (newHours) {
+              var safeHours = newHours;
 
-              return;
-            }
+              if (safeHours < 0) {
+                safeHours = 0;
+              }
 
-            _updateCustomDuration(
-              hours: hours,
-              minutes: minutes + 1,
-            );
-          },
+              if (safeHours > 12) {
+                safeHours = 12;
+              }
 
-          onSubmitted: (newMinutes) {
-            var safeMinutes = newMinutes;
+              _updateCustomDuration(
+                hours: safeHours,
+                minutes: minutes,
+              );
+            },
+          ),
 
-            if (safeMinutes < 0) {
-              safeMinutes = 0;
-            }
+          const Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: 5,
+            ),
+            child: Text(
+              ':',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
 
-            if (safeMinutes > 59) {
-              safeMinutes = 59;
-            }
+          // MINUTES
+          _buildHorizontalStepper(
+            value: minutes,
+            twoDigits: true,
+            onDecrease: () {
+              if (minutes == 0) {
+                if (hours == 0) {
+                  return;
+                }
 
-            _updateCustomDuration(
-              hours: hours,
-              minutes: safeMinutes,
-            );
-          },
+                _updateCustomDuration(
+                  hours: hours - 1,
+                  minutes: 59,
+                );
+
+                return;
+              }
+
+              _updateCustomDuration(
+                hours: hours,
+                minutes: minutes - 1,
+              );
+            },
+            onIncrease: () {
+              if (minutes == 59) {
+                _updateCustomDuration(
+                  hours: hours + 1,
+                  minutes: 0,
+                );
+
+                return;
+              }
+
+              _updateCustomDuration(
+                hours: hours,
+                minutes: minutes + 1,
+              );
+            },
+            onSubmitted: (newMinutes) {
+              var safeMinutes = newMinutes;
+
+              if (safeMinutes < 0) {
+                safeMinutes = 0;
+              }
+
+              if (safeMinutes > 59) {
+                safeMinutes = 59;
+              }
+
+              _updateCustomDuration(
+                hours: hours,
+                minutes: safeMinutes,
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHorizontalStepper({
+    required int value,
+    required VoidCallback onDecrease,
+    required VoidCallback onIncrease,
+    required ValueChanged<int> onSubmitted,
+    bool twoDigits = false,
+  }) {
+    final controller = TextEditingController(
+      text: twoDigits ? value.toString().padLeft(2, '0') : value.toString(),
+    );
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: onDecrease,
+          child: const Padding(
+            padding: EdgeInsets.all(3),
+            child: Icon(
+              Icons.chevron_left_rounded,
+              size: 18,
+              color: AppColors.primary,
+            ),
+          ),
+        ),
+        SizedBox(
+          width: 32,
+          height: 30,
+          child: TextField(
+            controller: controller,
+            textAlign: TextAlign.center,
+            keyboardType: TextInputType.number,
+            textInputAction: TextInputAction.done,
+            style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+            ),
+            decoration: const InputDecoration(
+              isDense: true,
+              contentPadding: EdgeInsets.symmetric(
+                vertical: 5,
+                horizontal: 2,
+              ),
+              border: InputBorder.none,
+            ),
+            onSubmitted: (text) {
+              final parsed = int.tryParse(text);
+
+              if (parsed == null) {
+                return;
+              }
+
+              onSubmitted(parsed);
+            },
+            onTapOutside: (_) {
+              FocusScope.of(context).unfocus();
+
+              final parsed = int.tryParse(controller.text);
+
+              if (parsed != null) {
+                onSubmitted(parsed);
+              }
+            },
+          ),
+        ),
+        InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: onIncrease,
+          child: const Padding(
+            padding: EdgeInsets.all(3),
+            child: Icon(
+              Icons.chevron_right_rounded,
+              size: 18,
+              color: AppColors.primary,
+            ),
+          ),
         ),
       ],
-    ),
-  );
-}
+    );
+  }
 
-Widget _buildHorizontalStepper({
-  required int value,
-  required VoidCallback onDecrease,
-  required VoidCallback onIncrease,
-  required ValueChanged<int> onSubmitted,
-  bool twoDigits = false,
-}) {
-  final controller = TextEditingController(
-    text: twoDigits
-        ? value.toString().padLeft(2, '0')
-        : value.toString(),
-  );
+  void _updateCustomDuration({
+    required int hours,
+    required int minutes,
+  }) {
+    if (hours < 0) {
+      hours = 0;
+    }
 
-  return Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      InkWell(
-        borderRadius: BorderRadius.circular(8),
-        onTap: onDecrease,
-        child: const Padding(
-          padding: EdgeInsets.all(3),
-          child: Icon(
-            Icons.chevron_left_rounded,
-            size: 18,
-            color: AppColors.primary,
-          ),
-        ),
+    if (hours > 12) {
+      hours = 12;
+    }
+
+    if (minutes < 0) {
+      minutes = 0;
+    }
+
+    if (minutes > 59) {
+      minutes = 59;
+    }
+
+    if (hours == 0 && minutes == 0) {
+      return;
+    }
+
+    widget.viewModel.setDuration(
+      Duration(
+        hours: hours,
+        minutes: minutes,
       ),
-
-      SizedBox(
-        width: 32,
-        height: 30,
-        child: TextField(
-          controller: controller,
-
-          textAlign: TextAlign.center,
-
-          keyboardType: TextInputType.number,
-
-          textInputAction: TextInputAction.done,
-
-          style: const TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 13,
-            fontWeight: FontWeight.w800,
-          ),
-
-          decoration: const InputDecoration(
-            isDense: true,
-            contentPadding: EdgeInsets.symmetric(
-              vertical: 5,
-              horizontal: 2,
-            ),
-            border: InputBorder.none,
-          ),
-
-          onSubmitted: (text) {
-            final parsed = int.tryParse(text);
-
-            if (parsed == null) {
-              return;
-            }
-
-            onSubmitted(parsed);
-          },
-
-          onTapOutside: (_) {
-            FocusScope.of(context).unfocus();
-
-            final parsed =
-                int.tryParse(controller.text);
-
-            if (parsed != null) {
-              onSubmitted(parsed);
-            }
-          },
-        ),
-      ),
-
-      InkWell(
-        borderRadius: BorderRadius.circular(8),
-        onTap: onIncrease,
-        child: const Padding(
-          padding: EdgeInsets.all(3),
-          child: Icon(
-            Icons.chevron_right_rounded,
-            size: 18,
-            color: AppColors.primary,
-          ),
-        ),
-      ),
-    ],
-  );
-}
-
-
-void _updateCustomDuration({
-  required int hours,
-  required int minutes,
-}) {
-  if (hours < 0) {
-    hours = 0;
+    );
   }
-
-  if (hours > 12) {
-    hours = 12;
-  }
-
-  if (minutes < 0) {
-    minutes = 0;
-  }
-
-  if (minutes > 59) {
-    minutes = 59;
-  }
-
-  if (hours == 0 &&
-      minutes == 0) {
-    return;
-  }
-
-  widget.viewModel.setDuration(
-    Duration(
-      hours: hours,
-      minutes: minutes,
-    ),
-  );
-}
 
   Widget _buildWeekSelector(
     ScheduleState state,
@@ -823,21 +763,17 @@ void _updateCustomDuration({
     );
 
     // We only allow navigation inside 2026.
-    final previousWeekDay =
-        state.selectedDay.subtract(
+    final previousWeekDay = state.selectedDay.subtract(
       const Duration(days: 7),
     );
 
-    final nextWeekDay =
-        state.selectedDay.add(
+    final nextWeekDay = state.selectedDay.add(
       const Duration(days: 7),
     );
 
-    final canGoPrevious =
-        previousWeekDay.year == 2026;
+    final canGoPrevious = previousWeekDay.year == 2026;
 
-    final canGoNext =
-        nextWeekDay.year == 2026;
+    final canGoNext = nextWeekDay.year == 2026;
 
     return Container(
       width: double.infinity,
@@ -849,8 +785,7 @@ void _updateCustomDuration({
         9,
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
@@ -865,16 +800,13 @@ void _updateCustomDuration({
                         );
                       }
                     : null,
-                visualDensity:
-                    VisualDensity.compact,
+                visualDensity: VisualDensity.compact,
                 icon: const Icon(
                   Icons.chevron_left_rounded,
                   size: 24,
                 ),
                 color: AppColors.textPrimary,
-                disabledColor:
-                    AppColors.textSecondary
-                        .withValues(
+                disabledColor: AppColors.textSecondary.withValues(
                   alpha: 0.35,
                 ),
               ),
@@ -883,16 +815,14 @@ void _updateCustomDuration({
               // Tapping it also opens the calendar.
               Expanded(
                 child: InkWell(
-                  borderRadius:
-                      BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(10),
                   onTap: () {
                     _openCalendarPicker(
                       state,
                     );
                   },
                   child: Padding(
-                    padding:
-                        const EdgeInsets.symmetric(
+                    padding: const EdgeInsets.symmetric(
                       vertical: 5,
                       horizontal: 4,
                     ),
@@ -901,12 +831,10 @@ void _updateCustomDuration({
                         const Text(
                           'SELECTED WEEK',
                           style: TextStyle(
-                            color: AppColors
-                                .textSecondary,
+                            color: AppColors.textSecondary,
                             fontSize: 8,
                             letterSpacing: 0.8,
-                            fontWeight:
-                                FontWeight.w800,
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -915,15 +843,11 @@ void _updateCustomDuration({
                             monday,
                             sunday,
                           ),
-                          textAlign:
-                              TextAlign.center,
-                          style:
-                              const TextStyle(
-                            color: AppColors
-                                .textPrimary,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: AppColors.textPrimary,
                             fontSize: 12,
-                            fontWeight:
-                                FontWeight.w800,
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
                       ],
@@ -943,16 +867,13 @@ void _updateCustomDuration({
                         );
                       }
                     : null,
-                visualDensity:
-                    VisualDensity.compact,
+                visualDensity: VisualDensity.compact,
                 icon: const Icon(
                   Icons.chevron_right_rounded,
                   size: 24,
                 ),
                 color: AppColors.textPrimary,
-                disabledColor:
-                    AppColors.textSecondary
-                        .withValues(
+                disabledColor: AppColors.textSecondary.withValues(
                   alpha: 0.35,
                 ),
               ),
@@ -964,10 +885,8 @@ void _updateCustomDuration({
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color:
-                      const Color(0xFFEAF1FF),
-                  borderRadius:
-                      BorderRadius.circular(10),
+                  color: const Color(0xFFEAF1FF),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: IconButton(
                   tooltip: 'Choose date',
@@ -978,8 +897,7 @@ void _updateCustomDuration({
                     );
                   },
                   icon: const Icon(
-                    Icons
-                        .calendar_month_outlined,
+                    Icons.calendar_month_outlined,
                     size: 19,
                     color: AppColors.primary,
                   ),
@@ -1001,32 +919,25 @@ void _updateCustomDuration({
 
                 return Expanded(
                   child: Padding(
-                    padding:
-                        const EdgeInsets.symmetric(
+                    padding: const EdgeInsets.symmetric(
                       horizontal: 2,
                     ),
                     child: InkWell(
-                      borderRadius:
-                          BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(12),
                       onTap: () {
-                        widget.viewModel
-                            .selectDay(day);
+                        widget.viewModel.selectDay(day);
                       },
                       child: AnimatedContainer(
-                        duration:
-                            const Duration(
+                        duration: const Duration(
                           milliseconds: 180,
                         ),
-                        padding:
-                            const EdgeInsets.symmetric(
+                        padding: const EdgeInsets.symmetric(
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: selected
-                              ? AppColors.primary
-                              : Colors.transparent,
-                          borderRadius:
-                              BorderRadius.circular(
+                          color:
+                              selected ? AppColors.primary : Colors.transparent,
+                          borderRadius: BorderRadius.circular(
                             12,
                           ),
                         ),
@@ -1041,12 +952,10 @@ void _updateCustomDuration({
                                     ? const Color(
                                         0xFFC8D6FF,
                                       )
-                                    : AppColors
-                                        .textSecondary,
+                                    : AppColors.textSecondary,
                                 fontSize: 9,
                                 letterSpacing: 0.5,
-                                fontWeight:
-                                    FontWeight.w800,
+                                fontWeight: FontWeight.w800,
                               ),
                             ),
                             const SizedBox(
@@ -1057,8 +966,7 @@ void _updateCustomDuration({
                               style: TextStyle(
                                 color: selected
                                     ? Colors.white
-                                    : AppColors
-                                        .textPrimary,
+                                    : AppColors.textPrimary,
                                 fontSize: 12,
                                 fontWeight: selected
                                     ? FontWeight.w800
@@ -1078,11 +986,11 @@ void _updateCustomDuration({
       ),
     );
   }
+
   Future<void> _openCalendarPicker(
     ScheduleState state,
   ) async {
-    final pickedDate =
-        await showDatePicker(
+    final pickedDate = await showDatePicker(
       context: context,
 
       // Date currently selected in Schedule.
@@ -1110,8 +1018,7 @@ void _updateCustomDuration({
       confirmText: 'SELECT',
 
       // Forces the visual monthly calendar.
-      initialEntryMode:
-          DatePickerEntryMode.calendarOnly,
+      initialEntryMode: DatePickerEntryMode.calendarOnly,
 
       builder: (
         BuildContext context,
@@ -1119,18 +1026,12 @@ void _updateCustomDuration({
       ) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme:
-                Theme.of(context)
-                    .colorScheme
-                    .copyWith(
-              primary:
-                  AppColors.primary,
-              surface: Colors.white,
-            ),
-            datePickerTheme:
-                const DatePickerThemeData(
-              backgroundColor:
-                  Colors.white,
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+                  primary: AppColors.primary,
+                  surface: Colors.white,
+                ),
+            datePickerTheme: const DatePickerThemeData(
+              backgroundColor: Colors.white,
             ),
           ),
           child: child!,
@@ -1154,8 +1055,7 @@ void _updateCustomDuration({
     ScheduleState state,
     int weekOffset,
   ) async {
-    final targetDate =
-        state.selectedDay.add(
+    final targetDate = state.selectedDay.add(
       Duration(
         days: weekOffset * 7,
       ),
@@ -1174,11 +1074,9 @@ void _updateCustomDuration({
   DateTime _clampDateTo2026(
     DateTime date,
   ) {
-    final firstDate =
-        DateTime(2026, 1, 1);
+    final firstDate = DateTime(2026, 1, 1);
 
-    final lastDate =
-        DateTime(2026, 12, 31);
+    final lastDate = DateTime(2026, 12, 31);
 
     if (date.isBefore(firstDate)) {
       return firstDate;
@@ -1202,8 +1100,7 @@ void _updateCustomDuration({
           '${sunday.day}, ${sunday.year}';
     }
 
-    if (monday.month ==
-        sunday.month) {
+    if (monday.month == sunday.month) {
       return '${_monthShort(monday.month)} '
           '${monday.day}–${sunday.day}, '
           '${monday.year}';
@@ -1215,6 +1112,7 @@ void _updateCustomDuration({
         '${sunday.day}, '
         '${monday.year}';
   }
+
   Widget _buildScheduleContent(
     BuildContext context,
     ScheduleState state,
@@ -1224,17 +1122,14 @@ void _updateCustomDuration({
         Column(
           children: [
             _buildLaneHeader(state),
-
             Expanded(
               child: SingleChildScrollView(
                 child: SizedBox(
                   height: _timelineHeight,
                   child: Row(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildTimeColumn(),
-
                       Expanded(
                         child: Row(
                           children: [
@@ -1258,7 +1153,6 @@ void _updateCustomDuration({
             ),
           ],
         ),
-
         Positioned(
           left: 12,
           right: 12,
@@ -1277,8 +1171,7 @@ void _updateCustomDuration({
   ) {
     final selected = state.friends
         .where(
-          (friend) =>
-              state.selectedFriendIds.contains(
+          (friend) => state.selectedFriendIds.contains(
             friend.id,
           ),
         )
@@ -1353,9 +1246,7 @@ void _updateCustomDuration({
                   const SizedBox(width: 5),
                   Expanded(
                     child: Text(
-                      selected.isEmpty
-                          ? 'Friends'
-                          : selected,
+                      selected.isEmpty ? 'Friends' : selected,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -1381,9 +1272,7 @@ void _updateCustomDuration({
       color: Colors.white,
       child: Stack(
         children: [
-          for (int hour = _startHour;
-              hour <= _endHour;
-              hour++)
+          for (int hour = _startHour; hour <= _endHour; hour++)
             Positioned(
               top: (hour - _startHour) * 60.0,
               left: 0,
@@ -1395,18 +1284,14 @@ void _updateCustomDuration({
                     Expanded(
                       child: Container(
                         height: 1,
-                        color:
-                            const Color(0xFFE2E8F0),
+                        color: const Color(0xFFE2E8F0),
                       ),
                     ),
                   ],
                 ),
               ),
             ),
-
-          for (int hour = _startHour;
-              hour < _endHour;
-              hour++)
+          for (int hour = _startHour; hour < _endHour; hour++)
             Positioned(
               top: (hour - _startHour) * 60.0 + 4,
               right: 6,
@@ -1443,10 +1328,7 @@ void _updateCustomDuration({
       child: Stack(
         children: [
           ..._hourLines(),
-
-          for (final block in state.myBlocks)
-            _buildPersonalBlock(block),
-
+          for (final block in state.myBlocks) _buildPersonalBlock(block),
           if (state.selectedSlot != null)
             _buildSelectedCommonSlot(
               state.selectedSlot!,
@@ -1466,13 +1348,11 @@ void _updateCustomDuration({
       child: Stack(
         children: [
           ..._hourLines(),
-
           for (final block in state.friendBlocks)
             _buildFriendBusyBlock(
               block,
               state,
             ),
-
           if (state.selectedSlot != null)
             _buildSelectedCommonSlot(
               state.selectedSlot!,
@@ -1526,12 +1406,10 @@ void _updateCustomDuration({
         ),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final showDetails =
-                constraints.maxHeight >= 48;
+            final showDetails = constraints.maxHeight >= 48;
 
             return Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   block.title ?? 'Busy',
@@ -1549,25 +1427,20 @@ void _updateCustomDuration({
                     Text(
                       block.subtitle!,
                       maxLines: 1,
-                      overflow:
-                          TextOverflow.ellipsis,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        color:
-                            AppColors.textSecondary,
+                        color: AppColors.textSecondary,
                         fontSize: 8.5,
-                        fontWeight:
-                            FontWeight.w600,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   if (block.location != null)
                     Text(
                       block.location!,
                       maxLines: 1,
-                      overflow:
-                          TextOverflow.ellipsis,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        color:
-                            AppColors.textSecondary,
+                        color: AppColors.textSecondary,
                         fontSize: 8,
                       ),
                     ),
@@ -1659,8 +1532,7 @@ void _updateCustomDuration({
       child: IgnorePointer(
         child: Container(
           decoration: BoxDecoration(
-            color: AppColors.availabilityLight
-                .withValues(alpha: 0.72),
+            color: AppColors.availabilityLight.withValues(alpha: 0.72),
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: AppColors.success,
@@ -1710,8 +1582,7 @@ void _updateCustomDuration({
             border: Border.all(
               color: slots.isEmpty
                   ? const Color(0xFFDDE4EE)
-                  : AppColors.success
-                      .withValues(alpha: 0.55),
+                  : AppColors.success.withValues(alpha: 0.55),
             ),
             boxShadow: const [
               BoxShadow(
@@ -1730,8 +1601,7 @@ void _updateCustomDuration({
                   color: slots.isEmpty
                       ? const Color(0xFFF1F5F9)
                       : const Color(0xFFDDF8EA),
-                  borderRadius:
-                      BorderRadius.circular(11),
+                  borderRadius: BorderRadius.circular(11),
                 ),
                 child: Icon(
                   slots.isEmpty
@@ -1742,13 +1612,10 @@ void _updateCustomDuration({
                       : AppColors.success,
                 ),
               ),
-
               const SizedBox(width: 10),
-
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       slots.isEmpty
@@ -1768,15 +1635,13 @@ void _updateCustomDuration({
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        color:
-                            AppColors.textSecondary,
+                        color: AppColors.textSecondary,
                         fontSize: 10.5,
                       ),
                     ),
                   ],
                 ),
               ),
-
               if (slots.isNotEmpty)
                 const Icon(
                   Icons.expand_less_rounded,
@@ -1805,8 +1670,7 @@ void _updateCustomDuration({
             ),
             const SizedBox(height: 12),
             Text(
-              state.error ??
-                  'Unable to load schedule.',
+              state.error ?? 'Unable to load schedule.',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: AppColors.textSecondary,
@@ -1845,8 +1709,7 @@ void _updateCustomDuration({
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
                       'Select Friends to Compare',
@@ -1860,26 +1723,21 @@ void _updateCustomDuration({
                     const Text(
                       'Choose who to include in the mutual availability comparison.',
                       style: TextStyle(
-                        color:
-                            AppColors.textSecondary,
+                        color: AppColors.textSecondary,
                         fontSize: 12,
                       ),
                     ),
                     const SizedBox(height: 14),
-
                     Flexible(
                       child: ListView.separated(
                         shrinkWrap: true,
                         itemCount: state.friends.length,
-                        separatorBuilder: (_, __) =>
-                            const SizedBox(height: 6),
+                        separatorBuilder: (_, __) => const SizedBox(height: 6),
                         itemBuilder: (context, index) {
-                          final friend =
-                              state.friends[index];
+                          final friend = state.friends[index];
 
-                          final selected = state
-                              .selectedFriendIds
-                              .contains(friend.id);
+                          final selected =
+                              state.selectedFriendIds.contains(friend.id);
 
                           return Material(
                             color: selected
@@ -1889,36 +1747,28 @@ void _updateCustomDuration({
                                 : const Color(
                                     0xFFF8FAFC,
                                   ),
-                            borderRadius:
-                                BorderRadius.circular(14),
+                            borderRadius: BorderRadius.circular(14),
                             child: CheckboxListTile(
                               value: selected,
-                              activeColor:
-                                  AppColors.primary,
+                              activeColor: AppColors.primary,
                               onChanged: (_) {
-                                widget.viewModel
-                                    .toggleFriend(
+                                widget.viewModel.toggleFriend(
                                   friend.id,
                                 );
                               },
-                              shape:
-                                  RoundedRectangleBorder(
-                                borderRadius:
-                                    BorderRadius.circular(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
                                   14,
                                 ),
                               ),
                               secondary: CircleAvatar(
-                                backgroundColor:
-                                    AppColors.primary,
+                                backgroundColor: AppColors.primary,
                                 child: Text(
                                   friend.initials,
-                                  style:
-                                      const TextStyle(
+                                  style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 11,
-                                    fontWeight:
-                                        FontWeight.w700,
+                                    fontWeight: FontWeight.w700,
                                   ),
                                 ),
                               ),
@@ -1926,8 +1776,7 @@ void _updateCustomDuration({
                                 friend.fullName,
                                 style: const TextStyle(
                                   fontSize: 13,
-                                  fontWeight:
-                                      FontWeight.w700,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                               subtitle: const Text(
@@ -1941,9 +1790,7 @@ void _updateCustomDuration({
                         },
                       ),
                     ),
-
                     const SizedBox(height: 14),
-
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton.icon(
@@ -1990,8 +1837,7 @@ void _updateCustomDuration({
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Row(
                       children: [
@@ -2016,41 +1862,31 @@ void _updateCustomDuration({
                       '${_monthShort(state.selectedDay.month)} '
                       '${state.selectedDay.day}',
                       style: const TextStyle(
-                        color:
-                            AppColors.textSecondary,
+                        color: AppColors.textSecondary,
                         fontSize: 12,
                       ),
                     ),
                     const SizedBox(height: 14),
-
                     Flexible(
                       child: ListView.separated(
                         shrinkWrap: true,
-                        itemCount:
-                            state.commonSlots.length,
-                        separatorBuilder: (_, __) =>
-                            const SizedBox(height: 8),
+                        itemCount: state.commonSlots.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 8),
                         itemBuilder: (context, index) {
-                          final slot =
-                              state.commonSlots[index];
+                          final slot = state.commonSlots[index];
 
-                          final selected =
-                              state.selectedSlot?.id ==
-                                  slot.id;
+                          final selected = state.selectedSlot?.id == slot.id;
 
                           return InkWell(
-                            borderRadius:
-                                BorderRadius.circular(14),
+                            borderRadius: BorderRadius.circular(14),
                             onTap: () {
-                              widget.viewModel
-                                  .selectSlot(slot);
+                              widget.viewModel.selectSlot(slot);
                             },
                             child: AnimatedContainer(
                               duration: const Duration(
                                 milliseconds: 160,
                               ),
-                              padding:
-                                  const EdgeInsets.all(12),
+                              padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
                                 color: selected
                                     ? const Color(
@@ -2059,8 +1895,7 @@ void _updateCustomDuration({
                                     : const Color(
                                         0xFFF8FAFC,
                                       ),
-                                borderRadius:
-                                    BorderRadius.circular(
+                                borderRadius: BorderRadius.circular(
                                   14,
                                 ),
                                 border: Border.all(
@@ -2074,12 +1909,9 @@ void _updateCustomDuration({
                               child: Row(
                                 children: [
                                   RadioGroup<String>(
-                                    groupValue: state
-                                        .selectedSlot
-                                        ?.id,
+                                    groupValue: state.selectedSlot?.id,
                                     onChanged: (_) {
-                                      widget.viewModel
-                                          .selectSlot(
+                                      widget.viewModel.selectSlot(
                                         slot,
                                       );
                                     },
@@ -2091,19 +1923,14 @@ void _updateCustomDuration({
                                   Expanded(
                                     child: Column(
                                       crossAxisAlignment:
-                                          CrossAxisAlignment
-                                              .start,
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           _slotLabel(slot),
-                                          style:
-                                              const TextStyle(
-                                            color: AppColors
-                                                .textPrimary,
+                                          style: const TextStyle(
+                                            color: AppColors.textPrimary,
                                             fontSize: 13,
-                                            fontWeight:
-                                                FontWeight
-                                                    .w800,
+                                            fontWeight: FontWeight.w800,
                                           ),
                                         ),
                                         const SizedBox(
@@ -2111,10 +1938,8 @@ void _updateCustomDuration({
                                         ),
                                         Text(
                                           '${slot.duration.inMinutes} minutes available for everyone',
-                                          style:
-                                              const TextStyle(
-                                            color: AppColors
-                                                .textSecondary,
+                                          style: const TextStyle(
+                                            color: AppColors.textSecondary,
                                             fontSize: 10,
                                           ),
                                         ),
@@ -2128,32 +1953,26 @@ void _updateCustomDuration({
                         },
                       ),
                     ),
-
                     const SizedBox(height: 14),
-
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton.icon(
-                        style:
-                            FilledButton.styleFrom(
-                          backgroundColor:
-                              AppColors.success,
-                          foregroundColor:
-                              Colors.white,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.success,
+                          foregroundColor: Colors.white,
                         ),
-                        onPressed:
-                            state.selectedSlot == null
-                                ? null
-                                : () {
-                                    Navigator.of(
-                                      sheetContext,
-                                    ).pop();
+                        onPressed: state.selectedSlot == null
+                            ? null
+                            : () {
+                                Navigator.of(
+                                  sheetContext,
+                                ).pop();
 
-                                    _planActivity(
-                                      context,
-                                      state,
-                                    );
-                                  },
+                                _planActivity(
+                                  context,
+                                  state,
+                                );
+                              },
                         icon: const Icon(
                           Icons.arrow_forward,
                         ),
@@ -2177,14 +1996,26 @@ void _updateCustomDuration({
     if (_planning) return;
     setState(() => _planning = true);
     try {
-      final planning = await widget.viewModel.preparePlan(groupId: widget.groupId);
-      if (context.mounted) { await context.push(AppRoutes.createActivity, extra: planning); }
+      final Object? planning = state.selectedSlot == null
+          ? await widget.viewModel.prepareProposal()
+          : await widget.viewModel.preparePlan(groupId: widget.groupId);
+      if (context.mounted) {
+        await context.push(
+            Uri(path: AppRoutes.createActivity, queryParameters: {
+              if (widget.groupId != null) 'groupId': widget.groupId!
+            }).toString(),
+            extra: planning);
+      }
     } catch (error) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error is SessionFailure ? error.message : 'Unable to validate this slot. Check your connection and compare again.')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(error is SessionFailure
+                ? error.message
+                : 'Unable to validate this slot. Check your connection and compare again.')));
       }
-    } finally { if (mounted) setState(() => _planning = false); }
+    } finally {
+      if (mounted) setState(() => _planning = false);
+    }
   }
 
   double _topFor(
@@ -2192,8 +2023,7 @@ void _updateCustomDuration({
   ) {
     final startMinutes = _startHour * 60;
 
-    final minutes =
-        time.hour * 60 + time.minute - startMinutes;
+    final minutes = time.hour * 60 + time.minute - startMinutes;
 
     return minutes * _pixelsPerMinute;
   }
@@ -2202,11 +2032,9 @@ void _updateCustomDuration({
     DateTime start,
     DateTime end,
   ) {
-    final minutes =
-        end.difference(start).inMinutes;
+    final minutes = end.difference(start).inMinutes;
 
-    return (minutes * _pixelsPerMinute)
-        .clamp(24, _timelineHeight);
+    return (minutes * _pixelsPerMinute).clamp(24, _timelineHeight);
   }
 
   ScheduleFriend? _friendFor(
@@ -2291,8 +2119,7 @@ void _updateCustomDuration({
       hour -= 12;
     }
 
-    final minutes =
-        time.minute.toString().padLeft(2, '0');
+    final minutes = time.minute.toString().padLeft(2, '0');
 
     return '$hour:$minutes $period';
   }
@@ -2434,8 +2261,7 @@ class _FriendChip extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 10,
-            backgroundColor:
-                AppColors.availabilityLight,
+            backgroundColor: AppColors.availabilityLight,
             child: Text(
               friend.initials,
               style: const TextStyle(

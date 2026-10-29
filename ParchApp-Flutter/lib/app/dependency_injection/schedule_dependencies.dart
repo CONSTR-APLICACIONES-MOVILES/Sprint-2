@@ -23,10 +23,12 @@ import '../../features/schedule/presentation/views/schedule_view.dart';
 class ScheduleDependencies {
   final ScheduleRepository repository;
   final CalendarImportRepository calendarImportRepository;
+  final bool calendarImportEnabled;
 
   const ScheduleDependencies({
     required this.repository,
     required this.calendarImportRepository,
+    this.calendarImportEnabled = true,
   });
 
   factory ScheduleDependencies.mock() {
@@ -50,6 +52,8 @@ class ScheduleDependencies {
   factory ScheduleDependencies.firebase(FirebaseDependencies firebase) {
     final auth = GoogleCalendarAuthDataSource();
     return ScheduleDependencies(
+      calendarImportEnabled:
+          const bool.fromEnvironment('ENABLE_GOOGLE_CALENDAR_IMPORT'),
       repository: FirebaseScheduleRepository(
           firebase.mobile, () => firebase.auth.currentUser?.uid),
       calendarImportRepository: CalendarImportRepositoryImpl(
@@ -73,6 +77,7 @@ class ScheduleDependencies {
         repository,
       ),
       initialDay: initialDay,
+      calendarImportEnabled: calendarImportEnabled,
       authorizeGoogleCalendar:
           AuthorizeGoogleCalendar(calendarImportRepository),
     );

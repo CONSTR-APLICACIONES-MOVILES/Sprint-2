@@ -18,10 +18,13 @@ class _Encode extends Converter<Object?, Object?> {
           'data': {
             ...input.toMap(),
             'comparisonId': input.comparisonId,
+            'comparisonEvidenceId': input.comparisonEvidenceId,
             'expiresAt': input.expiresAt?.toUtc().toIso8601String()
           }
         }
-      : input;
+      : input is CreationComparison
+          ? {'kind': 'creation-comparison', 'data': input.toMap()}
+          : input;
 }
 
 class _Decode extends Converter<Object?, Object?> {
@@ -29,5 +32,8 @@ class _Decode extends Converter<Object?, Object?> {
   @override
   Object? convert(Object? input) => input is Map && input['kind'] == 'planning'
       ? PlanningContext.fromMap(Map<String, dynamic>.from(input['data'] as Map))
-      : input;
+      : input is Map && input['kind'] == 'creation-comparison'
+          ? CreationComparison.fromMap(
+              Map<String, dynamic>.from(input['data'] as Map))
+          : input;
 }

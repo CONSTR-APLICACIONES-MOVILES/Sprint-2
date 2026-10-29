@@ -1,3 +1,4 @@
+import 'offline_document_codec.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
@@ -55,6 +56,7 @@ class OfflineMobileApi extends ValueNotifier<OfflineStatus>
   final String project;
   final String? Function() currentUserId;
   final DateTime Function() clock;
+  final OfflineDocumentCodec codec;
   Future<void> _tail = Future.value();
   bool _flushing = false;
   bool _networkAvailable = true;
@@ -64,7 +66,8 @@ class OfflineMobileApi extends ValueNotifier<OfflineStatus>
       required this.store,
       required this.project,
       required this.currentUserId,
-      DateTime Function()? clock})
+      DateTime Function()? clock,
+      this.codec = const OfflineDocumentCodec()})
       : clock = clock ?? DateTime.now,
         super(const OfflineStatus());
   static const _reads = {
@@ -86,7 +89,7 @@ class OfflineMobileApi extends ValueNotifier<OfflineStatus>
     final raw = await store.read(_key(uid));
     return raw == null
         ? {'cache': <String, dynamic>{}, 'pending': <dynamic>[]}
-        : Map<String, dynamic>.from(jsonDecode(raw) as Map);
+        : await codec.decode(raw);
   }
 
   Future<T> _locked<T>(Future<T> Function() action) {
@@ -219,7 +222,7 @@ class OfflineMobileApi extends ValueNotifier<OfflineStatus>
               cache[_requestKey(name, input)] = {
                 'name': name,
                 'data': result,
-                'savedAt': DateTime.now().toUtc().toIso8601String()
+                'savedAt': clock().toUtc().toIso8601String()
               };
               while (cache.length > 64) {
                 cache.remove(cache.keys.first);
@@ -229,14 +232,14 @@ class OfflineMobileApi extends ValueNotifier<OfflineStatus>
               (saved['cache'] as Map)[_requestKey('getProfile', {})] = {
                 'name': 'getProfile',
                 'data': result,
-                'savedAt': DateTime.now().toUtc().toIso8601String(),
+                'savedAt': clock().toUtc().toIso8601String(),
               };
             } else if (_queued.contains(name)) {
               _apply(saved, name, input, false);
             }
             // A cache failure must not report that a successful server write failed.
             try {
-              await store.write(_key(uid), jsonEncode(saved));
+              await store.write(_key(uid), await codec.encode(saved));
             } catch (_) {
               _status(uid, error: 'Unable to persist the offline copy.');
             }
@@ -293,7 +296,7 @@ class OfflineMobileApi extends ValueNotifier<OfflineStatus>
         });
       }
       _apply(saved, name, input, true);
-      await store.write(_key(uid), jsonEncode(saved));
+      await store.write(_key(uid), await codec.encode(saved));
       _check(uid);
       _status(uid, offline: true, pending: pending.length);
       return {'pending': true, ...input};
@@ -349,7 +352,7 @@ class OfflineMobileApi extends ValueNotifier<OfflineStatus>
             final position = pending.indexOf(command);
             pending.removeAt(position);
             try {
-              await store.write(_key(uid), jsonEncode(saved));
+              await store.write(_key(uid), await codec.encode(saved));
             } catch (_) {
               pending.insert(position, command);
               rethrow;
@@ -367,7 +370,7 @@ class OfflineMobileApi extends ValueNotifier<OfflineStatus>
                 .add(Duration(seconds: seconds))
                 .toIso8601String();
             try {
-              await store.write(_key(uid), jsonEncode(saved));
+              await store.write(_key(uid), await codec.encode(saved));
             } catch (_) {
               // The original durable command remains available for replay.
             }
@@ -445,7 +448,7 @@ class OfflineMobileApi extends ValueNotifier<OfflineStatus>
       // rather than presenting a discarded local response as authoritative.
       (saved['cache'] as Map)
           .removeWhere((_, entry) => entry['name'] == 'getAlerts');
-      await store.write(_key(uid), jsonEncode(saved));
+      await store.write(_key(uid), await codec.encode(saved));
       _check(uid);
       _status(uid, pending: pending.length);
     });
@@ -458,7 +461,7 @@ class OfflineMobileApi extends ValueNotifier<OfflineStatus>
       saved['pending'] = [];
       (saved['cache'] as Map)
           .removeWhere((_, entry) => entry['name'] == 'getAlerts');
-      await store.write(_key(uid), jsonEncode(saved));
+      await store.write(_key(uid), await codec.encode(saved));
       _status(uid, pending: 0);
     });
   }

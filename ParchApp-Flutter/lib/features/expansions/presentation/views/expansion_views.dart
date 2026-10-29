@@ -474,8 +474,12 @@ class _JoinLinkViewState extends SessionState<JoinLinkView> {
 class CalendarStatusView extends StatefulWidget {
   final ExpansionRepository repository;
   final Future<void> Function() importCalendar;
+  final bool canImport;
   const CalendarStatusView(
-      {super.key, required this.repository, required this.importCalendar});
+      {super.key,
+      required this.repository,
+      required this.importCalendar,
+      this.canImport = true});
   @override
   State<CalendarStatusView> createState() => _CalendarStatusViewState();
 }
@@ -500,6 +504,11 @@ class _CalendarStatusViewState extends SessionState<CalendarStatusView> {
       appBar: const ParchAppBar(title: 'Calendar & import', showBack: true),
       body: ListView(padding: const EdgeInsets.all(20), children: [
         feedback(),
+        if (!widget.canImport)
+          const Padding(
+              padding: EdgeInsets.only(bottom: 12),
+              child: Text(
+                  'Google Calendar import is not configured for this build. You can still compare shared availability and export activities as calendar files.')),
         const Text(
             'Google FreeBusy import copies busy intervals. It does not export activities, sync automatically, or connect Apple/Outlook.'),
         if (_status != null && sameSession)
@@ -509,7 +518,7 @@ class _CalendarStatusViewState extends SessionState<CalendarStatusView> {
         const Text(
             'A saved snapshot does not prove that provider authorization is still valid. Import requests consent when required. Existing data remains if import fails.'),
         FilledButton(
-            onPressed: busy
+            onPressed: busy || !widget.canImport
                 ? null
                 : () => action(() async {
                       await widget.importCalendar();

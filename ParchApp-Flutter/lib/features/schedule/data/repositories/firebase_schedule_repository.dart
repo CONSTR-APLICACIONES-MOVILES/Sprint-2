@@ -8,13 +8,22 @@ import '../../domain/entities/schedule_friend.dart';
 import '../../domain/repositories/schedule_repository.dart';
 
 class FirebaseScheduleRepository
-    implements ScheduleRepository, PlanningSlotValidator {
+    implements
+        ScheduleRepository,
+        PlanningSlotValidator,
+        ProposalComparisonProvider {
   final MobileApi _api;
   final String? Function() _userId;
   final String? groupId;
   FirebaseScheduleRepository(this._api, this._userId, {this.groupId});
   FirebaseScheduleRepository forGroup(String id) =>
       FirebaseScheduleRepository(_api, _userId, groupId: id);
+
+  @override
+  Future<CreationComparison> prepareProposalComparison(
+          DateTime day, List<String> friendIds) async =>
+      CreationComparison.fromMap(await _api.call('prepareProposalComparison',
+          {'date': _date(day), 'friendIds': friendIds}));
 
   @override
   Future<PlanningContext> validatePlanningSlot(PlanningContext context) async {

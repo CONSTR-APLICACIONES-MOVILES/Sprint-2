@@ -1,3 +1,4 @@
+import '../../../../core/domain/data_freshness.dart';
 import '../../domain/entities/app_alert.dart';
 
 enum AlertsFilter {
@@ -12,6 +13,7 @@ enum AlertsFilter {
 
 class AlertsState {
   final List<AppAlert> alerts;
+  final DataFreshness freshness;
   final AlertsFilter filter;
   final String query;
   final bool isLoading;
@@ -20,6 +22,7 @@ class AlertsState {
 
   AlertsState(
       {List<AppAlert> alerts = const [],
+      this.freshness = const DataFreshness(),
       this.filter = AlertsFilter.all,
       this.query = '',
       this.isLoading = false,
@@ -53,6 +56,7 @@ class AlertsState {
 
   AlertsState copyWith(
           {List<AppAlert>? alerts,
+          DataFreshness? freshness,
           AlertsFilter? filter,
           String? query,
           bool? isLoading,
@@ -60,6 +64,7 @@ class AlertsState {
           String? error}) =>
       AlertsState(
           alerts: alerts ?? this.alerts,
+          freshness: freshness ?? this.freshness,
           filter: filter ?? this.filter,
           query: query ?? this.query,
           isLoading: isLoading ?? this.isLoading,

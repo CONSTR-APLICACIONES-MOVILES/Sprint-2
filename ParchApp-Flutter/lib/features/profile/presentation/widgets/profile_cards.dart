@@ -132,9 +132,11 @@ class ProfileAcademicCard extends StatelessWidget {
           const SizedBox(height: 12),
           _row(
             icon: Icons.location_on_outlined,
-            text: [user.campus, user.university]
-                .where((s) => s.isNotEmpty)
-                .join(' • '),
+            text: user.campus.isEmpty && user.university.isEmpty
+                ? 'Campus not set'
+                : [user.campus, user.university]
+                    .where((s) => s.isNotEmpty)
+                    .join(' • '),
           ),
           const SizedBox(height: 12),
           _row(
@@ -149,10 +151,7 @@ class ProfileAcademicCard extends StatelessWidget {
                       ? AppColors.success
                       : AppColors.friendBusy),
               const SizedBox(width: 5),
-              Text(
-                  user.effectiveStatus == AvailabilityStatus.active
-                      ? 'Active'
-                      : 'Busy',
+              Text(user.effectiveStatus.label,
                   style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,

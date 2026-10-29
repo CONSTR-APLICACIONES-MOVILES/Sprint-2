@@ -16,6 +16,7 @@ class ScheduleViewModel extends ValueNotifier<ScheduleState> {
   final AuthorizeGoogleCalendar _authorizeGoogleCalendar;
   final ImportGoogleCalendar _importGoogleCalendar;
 
+  final bool calendarImportEnabled;
   bool _disposed = false;
   bool _loading = false;
   int _requestVersion = 0;
@@ -25,6 +26,7 @@ class ScheduleViewModel extends ValueNotifier<ScheduleState> {
     this._importGoogleCalendar, {
     required AuthorizeGoogleCalendar authorizeGoogleCalendar,
     DateTime? initialDay,
+    this.calendarImportEnabled = true,
   })  : _authorizeGoogleCalendar = authorizeGoogleCalendar,
         super(
           ScheduleState(
@@ -36,6 +38,19 @@ class ScheduleViewModel extends ValueNotifier<ScheduleState> {
     if (!_disposed) {
       value = state;
     }
+  }
+
+  Future<CreationComparison?> prepareProposal() async {
+    final selected = value, version = _requestVersion;
+    if (selected.status != ScheduleLoadStatus.ready) {
+      throw StateError('Refresh the comparison first.');
+    }
+    final result = await _schedule.prepareProposalComparison(
+        selected.selectedDay, selected.selectedFriendIds.toList()..sort());
+    if (_disposed || version != _requestVersion) {
+      throw StateError('The comparison changed. Compare again.');
+    }
+    return result;
   }
 
   Future<PlanningContext> preparePlan({String? groupId}) async {
@@ -100,6 +115,12 @@ class ScheduleViewModel extends ValueNotifier<ScheduleState> {
   }
 
   Future<void> importGoogleCalendar() async {
+    if (!calendarImportEnabled) {
+      _emit(value.copyWith(
+          calendarImportStatus: CalendarImportStatus.error,
+          calendarImportMessage: 'Google Calendar import is not configured.'));
+      return;
+    }
     if (_disposed ||
         value.calendarImportStatus == CalendarImportStatus.importing) {
       return;

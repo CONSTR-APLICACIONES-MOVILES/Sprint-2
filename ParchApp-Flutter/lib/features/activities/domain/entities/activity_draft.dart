@@ -13,6 +13,8 @@ class ActivityGroup {
 class ActivityDraft {
   final DateTime? startsAt, endsAt;
   final PlanningContext? planning;
+  final CreationComparison? comparison;
+  final int? measurementVersion;
   final String? requestId;
   final String groupId,
       title,
@@ -34,11 +36,15 @@ class ActivityDraft {
       this.startsAt,
       this.endsAt,
       this.planning,
+      this.comparison,
+      this.measurementVersion = 1,
       this.requestId});
 
   Map<String, dynamic> publication(String key) => {
         'requestId': key,
         'groupId': groupId,
+        if (measurementVersion != null)
+          'measurementVersion': measurementVersion,
         'fields': {
           'title': title,
           'description': description,
@@ -51,6 +57,12 @@ class ActivityDraft {
         if (startsAt != null) 'startTime': startsAt!.toUtc().toIso8601String(),
         if (endsAt != null) 'endTime': endsAt!.toUtc().toIso8601String(),
         'timeZone': 'America/Bogota',
+        if (comparison != null) ...{
+          'comparisonEvidenceId': comparison!.comparisonEvidenceId,
+          'participantIds': comparison!.participantIds,
+        },
+        if (planning?.comparisonEvidenceId != null)
+          'comparisonEvidenceId': planning!.comparisonEvidenceId,
         if (planning != null) ...{
           'participantIds': planning!.participantIds,
           'comparisonId': planning!.comparisonId,
@@ -94,6 +106,8 @@ class ActivityDraft {
         startsAt: startsAt,
         endsAt: endsAt,
         planning: planning,
+        comparison: comparison,
+        measurementVersion: measurementVersion,
         requestId: requestId);
   }
 }

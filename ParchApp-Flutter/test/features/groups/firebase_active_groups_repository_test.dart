@@ -115,7 +115,7 @@ void main() {
     final group = (await repository.getActiveGroups()).single;
     expect(group.statusText, 'Activity cancelled');
     expect(group.hasProgress, isFalse);
-    expect(group.primaryAction, GroupAction.viewSchedule);
+    expect(group.primaryAction, GroupAction.viewDetails);
   });
   test('BQ5 sets current identity before recording a successful RSVP',
       () async {

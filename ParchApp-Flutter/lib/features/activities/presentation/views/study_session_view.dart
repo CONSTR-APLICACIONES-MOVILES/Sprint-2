@@ -1,3 +1,4 @@
+import '../../../../shared/widgets/data_freshness_banner.dart';
 import '../../../../shared/widgets/parch_visuals.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -285,6 +286,7 @@ class _StudySessionViewState extends State<StudySessionView> {
                         padding: const EdgeInsets.only(bottom: 12),
                         child: Text(state.error!,
                             style: const TextStyle(color: AppColors.error))),
+                  DataFreshnessBanner(freshness: session.freshness),
                   ActivityCover(category: session.category),
                   const SizedBox(height: 16),
                   Wrap(spacing: 8, runSpacing: 8, children: [
@@ -403,31 +405,32 @@ class _StudySessionViewState extends State<StudySessionView> {
                                         textAlign: TextAlign.center)
                                   ])),
                               const SizedBox(height: 12),
-                              Wrap(spacing: 12, runSpacing: 8, children: [
-                                TextButton.icon(
-                                    onPressed: () => _sheet(
-                                        'Campus Walking Route',
-                                        const Text(
-                                            'Walking directions require a connected maps provider. No live location is being read.')),
-                                    icon: const Icon(Icons.directions_walk),
-                                    label: const Text('Route')),
-                                TextButton.icon(
-                                    onPressed: () => _sheet(
-                                        'Study room',
-                                        Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(session.location),
-                                              Text(session.room),
-                                              const SizedBox(height: 16),
-                                              const Text(
-                                                  'Room reservations and access codes are not connected.')
-                                            ])),
-                                    icon:
-                                        const Icon(Icons.meeting_room_outlined),
-                                    label: const Text('View room')),
-                              ]),
+                              if (widget.isDemo)
+                                Wrap(spacing: 12, runSpacing: 8, children: [
+                                  TextButton.icon(
+                                      onPressed: () => _sheet(
+                                          'Campus Walking Route',
+                                          const Text(
+                                              'Walking directions require a connected maps provider. No live location is being read.')),
+                                      icon: const Icon(Icons.directions_walk),
+                                      label: const Text('Route')),
+                                  TextButton.icon(
+                                      onPressed: () => _sheet(
+                                          'Study room',
+                                          Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(session.location),
+                                                Text(session.room),
+                                                const SizedBox(height: 16),
+                                                const Text(
+                                                    'Room reservations and access codes are not connected.')
+                                              ])),
+                                      icon: const Icon(
+                                          Icons.meeting_room_outlined),
+                                      label: const Text('View room')),
+                                ]),
                             ])),
                   if (session.topics.isNotEmpty)
                     SessionCard(
@@ -467,14 +470,21 @@ class _StudySessionViewState extends State<StudySessionView> {
                       title: 'Participants (${session.participants.length})',
                       icon: Icons.people_outline,
                       trailing: IconButton(
-                          tooltip: 'Invite classmate',
+                          tooltip: widget.isDemo
+                              ? 'Invite classmate'
+                              : 'Share activity',
                           onPressed: blocked
                               ? null
-                              : () => _sheet(
-                                  'Invite Classmate',
-                                  const Text(
-                                      'Invitations will be available when the backend is connected. No invitation has been sent.')),
-                          icon: const Icon(Icons.person_add_alt)),
+                              : !widget.isDemo
+                                  ? () => context.push(
+                                      '/share/activity/${Uri.encodeComponent(session.id)}')
+                                  : () => _sheet(
+                                      'Invite Classmate',
+                                      const Text(
+                                          'Invitations will be available when the backend is connected. No invitation has been sent.')),
+                          icon: Icon(widget.isDemo
+                              ? Icons.person_add_alt
+                              : Icons.share_outlined)),
                       child: Column(children: [
                         for (final person in session.participants)
                           ListTile(
@@ -484,21 +494,27 @@ class _StudySessionViewState extends State<StudySessionView> {
                                 child: Text(person.initials)),
                             title: Text(
                                 '${person.name}${person.leader ? ' • Leader' : ''}'),
-                            subtitle:
-                                Text('${person.program}\n${person.status}'),
-                            isThreeLine: true,
-                            onTap: () => _sheet(
-                                person.name,
-                                Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(person.program),
-                                      Text(person.status),
-                                      const SizedBox(height: 16),
-                                      const Text(
-                                          'Direct messages are not connected yet.'),
-                                    ])),
+                            subtitle: Text(person.program.isEmpty
+                                ? person.status
+                                : '${person.program}\n${person.status}'),
+                            isThreeLine: person.program.isNotEmpty,
+                            onTap: !widget.isDemo
+                                ? person.id == null
+                                    ? null
+                                    : () => context.push(
+                                        '/people/${Uri.encodeComponent(person.id!)}')
+                                : () => _sheet(
+                                    person.name,
+                                    Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(person.program),
+                                          Text(person.status),
+                                          const SizedBox(height: 16),
+                                          const Text(
+                                              'Direct messages are not connected yet.'),
+                                        ])),
                           )
                       ])),
                   if (session.resources.isNotEmpty ||

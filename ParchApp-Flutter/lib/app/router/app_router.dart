@@ -33,6 +33,9 @@ abstract final class AppRouter {
         routes: [
           if (expansions != null) ...[
             GoRoute(
+                path: '/insights/coordination',
+                builder: (_, __) => expansions.insights()),
+            GoRoute(
                 path: '/join',
                 builder: (context, state) => expansions.join(null)),
             GoRoute(
@@ -85,6 +88,9 @@ abstract final class AppRouter {
               path: AppRoutes.createActivity,
               builder: (context, state) => activitiesDependencies.createRoute(
                   groupId: state.uri.queryParameters['groupId'],
+                  comparison: state.extra is CreationComparison
+                      ? state.extra as CreationComparison
+                      : null,
                   planning: state.extra is PlanningContext
                       ? state.extra as PlanningContext
                       : null,

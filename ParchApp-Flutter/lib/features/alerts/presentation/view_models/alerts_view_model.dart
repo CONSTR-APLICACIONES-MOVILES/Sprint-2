@@ -17,7 +17,8 @@ class AlertsViewModel extends ValueNotifier<AlertsState> {
     _emit(value.copyWith(isLoading: true));
     try {
       final items = await _alerts.load();
-      _emit(value.copyWith(alerts: items, isLoading: false));
+      _emit(value.copyWith(
+          alerts: items, freshness: _alerts.freshness, isLoading: false));
     } catch (_) {
       _emit(value.copyWith(
           isLoading: false, error: 'Unable to load alerts. Please try again.'));

@@ -1,3 +1,4 @@
+import '../../../../core/domain/data_freshness.dart';
 import '../../domain/entities/activity_summary.dart';
 import '../../domain/entities/study_session.dart';
 import '../../domain/entities/slot_recommendation.dart';
@@ -8,6 +9,7 @@ class ActivityModel {
 
   StudySession toEntity(String? uid) => StudySession(
         id: data['id'] as String,
+        freshness: DataFreshness.fromMap(data),
         version: data['version'] as String? ?? '',
         cancelled: data['cancelled'] == true,
         title: data['title'] as String,
