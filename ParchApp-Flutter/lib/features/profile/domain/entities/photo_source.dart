@@ -1,1 +1,0 @@
-enum PhotoSource { frontCamera, rearCamera }

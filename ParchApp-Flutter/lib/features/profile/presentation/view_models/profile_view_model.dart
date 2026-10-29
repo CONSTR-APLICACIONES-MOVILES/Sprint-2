@@ -1,6 +1,5 @@
-import '../../domain/entities/profile_preferences.dart';
 import 'package:flutter/foundation.dart';
-import '../../domain/entities/photo_source.dart';
+import '../../domain/entities/profile_preferences.dart';
 import '../../domain/entities/profile_user.dart';
 import '../../domain/use_cases/change_profile_photo.dart';
 import '../../domain/use_cases/manage_profile.dart';
@@ -69,7 +68,7 @@ class ProfileViewModel extends ValueNotifier<ProfileState> {
   Future<bool> updateProfile(ProfileUser user) =>
       _update(() => _profile.updateProfile(user));
 
-  Future<bool> changePhoto(PhotoSource source) async {
+  Future<bool> changePhoto() async {
     final user = value.user;
     final changePhoto = _changePhoto;
     if (_disposed ||
@@ -81,7 +80,7 @@ class ProfileViewModel extends ValueNotifier<ProfileState> {
     }
     _emit(value.copyWith(isUpdating: true));
     try {
-      final updated = await changePhoto(user, source);
+      final updated = await changePhoto(user);
       if (_disposed) return false;
       _emit(value.copyWith(user: updated, isUpdating: false));
       return updated != null;
