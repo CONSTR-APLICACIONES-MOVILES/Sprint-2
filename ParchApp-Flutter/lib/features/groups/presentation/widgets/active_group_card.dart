@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/entities/active_group.dart';
 import '../../domain/entities/response_time_estimate.dart';
+import '../../domain/entities/activity_weather.dart';
 import '../../domain/entities/weather_forecast.dart';
 import '../../domain/use_cases/activity_timing.dart';
 
@@ -9,7 +10,7 @@ class ActiveGroupCard extends StatelessWidget {
   final ActiveGroup group;
 
   final ResponseTimeEstimate? estimate;
-  final WeatherForecast? weather;
+  final ActivityWeather? weather;
   final bool busy;
   final void Function(GroupAction action) onAction;
 
@@ -138,7 +139,9 @@ class ActiveGroupCard extends StatelessWidget {
                   ? _ResponseTimeHint(group, estimate!)
                   : const _ResponseTimeLearning(),
             ],
-            if (weather != null) _WeatherHint(weather!),
+            if (weather != null)
+              _WeatherHint(weather!,
+                  outdoor: group.category == GroupCategory.sports),
             const SizedBox(height: 14),
             Row(children: [
               Expanded(child: _actionButton(group.primaryAction, true)),
@@ -331,38 +334,66 @@ class _ResponseTimeLearning extends StatelessWidget {
 }
 
 class _WeatherHint extends StatelessWidget {
-  final WeatherForecast forecast;
-  const _WeatherHint(this.forecast);
+  final ActivityWeather weather;
+  final bool outdoor;
+  const _WeatherHint(this.weather, {required this.outdoor});
 
   @override
   Widget build(BuildContext context) {
-    final rain = forecast.rainLikely;
+    final forecast = weather.forecast;
+    final bad = forecast.bad;
+    final better = weather.betterHour;
+    final advice = better != null
+        ? '${TimeOfDay.fromDateTime(better.time.toLocal()).format(context)} is better: ${weather.reason}'
+        : weather.noBetterTime
+            ? (outdoor
+                ? 'No drier time nearby · plan indoors or another day'
+                : 'No drier time nearby · bring an umbrella')
+            : null;
+    final color = bad ? const Color(0xFF92400E) : AppColors.primary;
     return Container(
       key: const ValueKey('activity-weather'),
       margin: const EdgeInsets.only(top: 10),
       padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
       decoration: BoxDecoration(
-          color: rain ? const Color(0xFFFEF6E7) : const Color(0xFFEEF4FF),
+          color: bad ? const Color(0xFFFEF6E7) : const Color(0xFFEEF4FF),
           borderRadius: BorderRadius.circular(11)),
-      child: Row(children: [
-        Icon(_icon,
-            size: 16, color: rain ? AppColors.warning : AppColors.primary),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-              rain
-                  ? '${forecast.label} at the activity time. Consider a backup plan'
-                  : '${forecast.label} at the activity time',
-              style: TextStyle(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w600,
-                  color: rain ? const Color(0xFF92400E) : AppColors.primary)),
-        ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Icon(_icon(forecast),
+              size: 16, color: bad ? AppColors.warning : AppColors.primary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text('${forecast.label} at the activity time',
+                style: TextStyle(
+                    fontSize: 11.5, fontWeight: FontWeight.w600, color: color)),
+          ),
+        ]),
+        if (advice != null) ...[
+          const SizedBox(height: 6),
+          Row(children: [
+            Icon(
+                better != null
+                    ? Icons.lightbulb_outline
+                    : Icons.umbrella_outlined,
+                size: 15,
+                color: AppColors.primary),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(advice,
+                  key: const ValueKey('weather-advice'),
+                  style: const TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.primary)),
+            ),
+          ]),
+        ],
       ]),
     );
   }
 
-  IconData get _icon => switch (forecast.weatherCode) {
+  IconData _icon(WeatherForecast forecast) => switch (forecast.weatherCode) {
         0 => Icons.wb_sunny_outlined,
         >= 95 => Icons.thunderstorm_outlined,
         _ when forecast.rainLikely => Icons.umbrella_outlined,

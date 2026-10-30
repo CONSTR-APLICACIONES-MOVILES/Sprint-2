@@ -1,6 +1,6 @@
 import '../../domain/entities/active_group.dart';
 import '../../domain/entities/response_time_estimate.dart';
-import '../../domain/entities/weather_forecast.dart';
+import '../../domain/entities/activity_weather.dart';
 
 enum GroupsFilter { all, study, socialLiving, sports }
 
@@ -8,7 +8,7 @@ class ActiveGroupsState {
   final List<ActiveGroup> groups;
 
   final Map<String, ResponseTimeEstimate> estimates;
-  final Map<String, WeatherForecast> weather;
+  final Map<String, ActivityWeather> weather;
   final GroupsFilter filter;
   final bool isLoading;
   final bool isUpdating;
@@ -26,7 +26,7 @@ class ActiveGroupsState {
 
   ResponseTimeEstimate? estimateFor(ActiveGroup group) => estimates[group.id];
 
-  WeatherForecast? weatherFor(ActiveGroup group) => weather[group.id];
+  ActivityWeather? weatherFor(ActiveGroup group) => weather[group.id];
 
   List<ActiveGroup> get visibleGroups => switch (filter) {
         GroupsFilter.all => groups,
@@ -58,7 +58,7 @@ class ActiveGroupsState {
   ActiveGroupsState copyWith({
     List<ActiveGroup>? groups,
     Map<String, ResponseTimeEstimate>? estimates,
-    Map<String, WeatherForecast>? weather,
+    Map<String, ActivityWeather>? weather,
     GroupsFilter? filter,
     bool? isLoading,
     bool? isUpdating,

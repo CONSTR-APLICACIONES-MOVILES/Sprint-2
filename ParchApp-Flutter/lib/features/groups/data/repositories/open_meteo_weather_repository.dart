@@ -17,7 +17,8 @@ class OpenMeteoWeatherRepository implements WeatherRepository {
     final url = Uri.https('api.open-meteo.com', '/v1/forecast', {
       'latitude': '$latitude',
       'longitude': '$longitude',
-      'hourly': 'temperature_2m,precipitation_probability,weather_code',
+      'hourly':
+          'temperature_2m,precipitation_probability,weather_code,is_day',
       'timezone': 'GMT',
       'forecast_days': '7',
     });
@@ -37,6 +38,7 @@ List<WeatherForecast> parseHourlyForecast(Object? data) {
   final temperatures = hourly['temperature_2m'];
   final rain = hourly['precipitation_probability'];
   final codes = hourly['weather_code'];
+  final days = hourly['is_day'];
   if (times is! List ||
       temperatures is! List ||
       rain is! List ||
@@ -61,7 +63,8 @@ List<WeatherForecast> parseHourlyForecast(Object? data) {
         time: time,
         temperature: temperature.toDouble(),
         rainChance: chance.toInt(),
-        weatherCode: code.toInt()));
+        weatherCode: code.toInt(),
+        isDay: days is List && i < days.length ? days[i] != 0 : true));
   }
   return List.unmodifiable(result);
 }
