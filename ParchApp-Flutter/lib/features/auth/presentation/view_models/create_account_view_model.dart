@@ -1,4 +1,3 @@
-import '../../domain/entities/auth_failure.dart';
 import '../../domain/use_cases/create_account.dart';
 import 'auth_state.dart';
 import 'auth_view_model.dart';
@@ -38,10 +37,6 @@ class CreateAccountViewModel extends AuthViewModel {
 
   Future<void> continueWithGoogle() => authenticate(() async {
         final account = value.suggestedGoogleAccount;
-        if (account == null) {
-          throw const AuthValidationException(
-              'Please choose a Google account first.');
-        }
         return _createAccount.withGoogle(account);
       });
 }

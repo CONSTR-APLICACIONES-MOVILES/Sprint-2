@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // START: FlutterFire Configuration
@@ -6,6 +8,14 @@ plugins {
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+val mapsProperties = Properties().apply {
+    val file = rootProject.file("maps.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+val mapsApiKey = providers.environmentVariable("GOOGLE_MAPS_API_KEY")
+    .orElse(providers.gradleProperty("GOOGLE_MAPS_API_KEY"))
+    .getOrElse(mapsProperties.getProperty("GOOGLE_MAPS_API_KEY", ""))
 
 android {
     namespace = "com.example.parchapp"
@@ -18,6 +28,7 @@ android {
     }
 
     defaultConfig {
+        manifestPlaceholders["googleMapsApiKey"] = mapsApiKey
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.example.parchapp"
         // You can update the following values to match your application needs.
@@ -49,4 +60,8 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    implementation("com.google.android.libraries.places:places:6.0.2")
 }

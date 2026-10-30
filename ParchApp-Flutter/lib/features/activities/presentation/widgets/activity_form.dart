@@ -2,6 +2,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/parch_visuals.dart';
 import 'package:flutter/material.dart';
 import '../../domain/entities/activity_draft.dart';
+import '../../domain/entities/activity_location.dart';
+import '../views/location_picker_view.dart';
 import '../view_models/activity_editor_view_model.dart';
 
 class ActivityForm extends StatefulWidget {
@@ -20,6 +22,8 @@ class _ActivityFormState extends State<ActivityForm> {
       TextEditingController(text: widget.viewModel.session?.description);
   late final _location =
       TextEditingController(text: widget.viewModel.session?.location);
+  late ActivityLocation? _locationDetails =
+      widget.viewModel.session?.locationDetails;
   late final _date = TextEditingController(
       text: widget.viewModel.session?.legacyDate ??
           widget.viewModel.requestedDate);
@@ -61,6 +65,7 @@ class _ActivityFormState extends State<ActivityForm> {
       title: _title.text,
       description: _description.text,
       location: _location.text,
+      locationDetails: _locationDetails,
       category: _category,
       status: _status,
       date: _date.text,
@@ -121,6 +126,7 @@ class _ActivityFormState extends State<ActivityForm> {
           _title.text = draft.title;
           _description.text = draft.description;
           _location.text = draft.location;
+          _locationDetails = draft.locationDetails;
           _date.text = draft.date;
           _time.text = draft.time;
           _category = draft.category;
@@ -398,9 +404,38 @@ class _ActivityFormState extends State<ActivityForm> {
                         TextField(
                             controller: _location,
                             enabled: !blocked,
+                            onChanged: (_) =>
+                                setState(() => _locationDetails = null),
                             maxLength: 500,
                             decoration:
                                 const InputDecoration(labelText: 'Location')),
+                        OutlinedButton.icon(
+                            onPressed: blocked ||
+                                    widget.viewModel.places == null
+                                ? null
+                                : () async {
+                                    final selected = await Navigator.of(context)
+                                        .push<ActivityLocation>(
+                                            MaterialPageRoute(
+                                                builder: (_) =>
+                                                    LocationPickerView(
+                                                        source: widget
+                                                            .viewModel.places!,
+                                                        initial:
+                                                            _locationDetails)));
+                                    if (!mounted || selected == null) return;
+                                    setState(() {
+                                      _locationDetails = selected;
+                                      _location.text = selected.label;
+                                    });
+                                  },
+                            icon: const Icon(Icons.map_outlined),
+                            label: Text(_locationDetails == null
+                                ? 'Choose on Google Maps'
+                                : 'Change map location')),
+                        if (_locationDetails != null)
+                          Text(
+                              'Map pin saved · ${_locationDetails!.latitude.toStringAsFixed(5)}, ${_locationDetails!.longitude.toStringAsFixed(5)}'),
                         const SizedBox(height: 16),
                       ],
                       if (state.error != null)

@@ -31,6 +31,7 @@ class ManageStudySession {
       if (session.title == data.title &&
           session.description == data.description &&
           session.location == data.location &&
+          session.locationDetails == data.locationDetails &&
           session.category == data.category &&
           session.status == data.status &&
           session.groupId == data.groupId &&
@@ -56,6 +57,8 @@ class ManageStudySession {
         title: data.title,
         description: data.description,
         location: data.location,
+        locationDetails: data.locationDetails,
+        clearLocationDetails: data.locationDetails == null,
         category: data.category,
         status: data.status,
         legacyDate: data.date,

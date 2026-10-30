@@ -1,4 +1,5 @@
 import 'package:google_sign_in/google_sign_in.dart';
+import '../../../../core/auth/google_sign_in_session.dart';
 
 class GoogleCalendarAuthDataSource {
   static const List<String> calendarScopes = [
@@ -22,10 +23,7 @@ class GoogleCalendarAuthDataSource {
   Future<void> initialize() async {
     if (_initialized) return;
 
-    await _googleSignIn.initialize(
-      clientId:
-          '632049552762-f4kvc3h556t9ijsq36hnn3kk4d62g2od.apps.googleusercontent.com',
-    );
+    await GoogleSignInSession.initialize();
 
     _initialized = true;
   }

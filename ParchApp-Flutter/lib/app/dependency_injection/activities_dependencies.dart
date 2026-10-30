@@ -14,6 +14,8 @@ import '../router/app_routes.dart';
 import '../../features/activities/presentation/view_models/activity_editor_view_model.dart';
 import '../../features/activities/presentation/widgets/activity_form.dart';
 import '../../features/activities/data/data_sources/firebase_activity_data_source.dart';
+import '../../features/activities/data/data_sources/google_places_source.dart';
+import '../../features/activities/domain/repositories/places_source.dart';
 import '../../features/activities/data/repositories/firebase_study_sessions_repository.dart';
 import '../../features/activities/domain/repositories/activity_catalog.dart';
 import '../../features/home/presentation/view_models/home_view_model.dart';
@@ -35,6 +37,7 @@ import '../../features/activities/presentation/view_models/study_session_view_mo
 import '../../features/activities/presentation/views/study_session_view.dart';
 
 class ActivitiesDependencies {
+  final PlacesSource places;
   final StudySessionsRepository repository;
   final bool isDemo;
   final ActivityCatalog? catalog;
@@ -45,6 +48,7 @@ class ActivitiesDependencies {
   final String Function()? currentName;
   const ActivitiesDependencies(
       {required this.repository,
+      this.places = const GooglePlacesSource(),
       this.isDemo = false,
       this.catalog,
       this.profiles,
@@ -79,6 +83,7 @@ class ActivitiesDependencies {
   }
   StudySessionViewModel createViewModel(String id) =>
       StudySessionViewModel(ManageStudySession(repository), id,
+          places: places,
           recommendations: GetRecommendedSlots(repository),
           autoLoadRecommendations: isDemo,
           refreshAfterDecision: !isDemo);
@@ -115,6 +120,7 @@ class ActivitiesDependencies {
           PlanningContext? planning}) =>
       _CreateActivityEntry(
           repository: repository,
+          places: places,
           date: date,
           time: time,
           planning: planning,
@@ -123,6 +129,7 @@ class ActivitiesDependencies {
 }
 
 class _CreateActivityEntry extends StatefulWidget {
+  final PlacesSource places;
   final StudySessionsRepository repository;
   final String date, time;
   final String? groupId;
@@ -130,6 +137,7 @@ class _CreateActivityEntry extends StatefulWidget {
   final CreationComparison? comparison;
   const _CreateActivityEntry(
       {required this.repository,
+      required this.places,
       required this.date,
       required this.time,
       this.planning,
@@ -142,6 +150,7 @@ class _CreateActivityEntry extends StatefulWidget {
 class _CreateActivityEntryState extends State<_CreateActivityEntry> {
   late final model = ActivityEditorViewModel(
       ManageStudySession(widget.repository),
+      places: widget.places,
       requestedDate: widget.date,
       requestedTime: widget.time,
       planning: widget.planning,

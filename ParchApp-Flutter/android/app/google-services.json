@@ -1,26 +1,52 @@
 {
   "project_info": {
-    "project_number": "632049552762",
-    "project_id": "parchapp-852e8",
-    "storage_bucket": "parchapp-852e8.firebasestorage.app"
+    "project_number": "718308941728",
+    "project_id": "parchapp-ee6cc",
+    "storage_bucket": "parchapp-ee6cc.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:632049552762:android:1b5b1648ab9cf29ced9ac3",
+        "mobilesdk_app_id": "1:718308941728:android:117a10f675ea5500998ec5",
         "android_client_info": {
           "package_name": "com.example.parchapp"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "718308941728-8cisuhsesb80006dmf8efr5io7isja60.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.parchapp",
+            "certificate_hash": "2e318395e9f6b55bd5b70f201bde7241a27dc0d7"
+          }
+        },
+        {
+          "client_id": "718308941728-gabk4e8sim3fpl6chf8md1jmt6ie0mpf.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.parchapp",
+            "certificate_hash": "6332f769d4b570efe03cf600f9f6114de603b573"
+          }
+        },
+        {
+          "client_id": "718308941728-i9lkar62kc4a6j8mv2mlfcd9tlkmip91.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyAUhtQ4ORAlm_BA3D3LbGwlNwqWXFgjUZk"
+          "current_key": "AIzaSyCd9VH_So4fwGOV-xy5UkBE_MRK4lt5uNc"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "718308941728-i9lkar62kc4a6j8mv2mlfcd9tlkmip91.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

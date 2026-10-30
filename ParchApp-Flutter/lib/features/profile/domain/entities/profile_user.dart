@@ -1,4 +1,5 @@
 import 'profile_preferences.dart';
+import '../../../../core/domain/data_freshness.dart';
 
 enum AvailabilityStatus { active, busy, inClass, focused, inTransit, offline }
 
@@ -16,6 +17,7 @@ extension AvailabilityStatusLabel on AvailabilityStatus {
 enum AcademicLevel { undergraduate, graduate, master, phd }
 
 class ProfileUser {
+  final DataFreshness freshness;
   // Campos
   final String id;
   final String name;
@@ -65,6 +67,7 @@ class ProfileUser {
     required this.activeGroups,
     required this.onTimeRate,
     this.photoPath,
+    this.freshness = const DataFreshness(),
   });
 
   ProfileUser copyWith(
@@ -81,6 +84,7 @@ class ProfileUser {
           String? photoPath}) =>
       ProfileUser(
           id: id,
+          freshness: freshness,
           name: name ?? this.name,
           program: program ?? this.program,
           verified: verified,

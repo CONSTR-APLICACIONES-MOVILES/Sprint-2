@@ -11,6 +11,7 @@ import '../../../alerts/presentation/view_models/alerts_state.dart';
 import '../../../groups/presentation/view_models/active_groups_state.dart';
 import '../../../profile/domain/entities/profile_user.dart';
 import 'home_preview_view.dart';
+import '../../../../shared/widgets/data_freshness_banner.dart';
 
 class HomeView extends StatelessWidget {
   final ActivityListState? activityState;
@@ -91,6 +92,9 @@ class HomeView extends StatelessWidget {
                                 const SizedBox(height: 16),
                               ],
                               _quickStatus(context),
+                              if (profile != null)
+                                DataFreshnessBanner(
+                                    freshness: profile!.freshness),
                               if (profileError != null) _retry(profileError!),
                               const SizedBox(height: 22),
                               _heading(
@@ -103,6 +107,11 @@ class HomeView extends StatelessWidget {
                                     semanticsLabel: 'Loading activities'),
                               if (activities?.error != null)
                                 _retry(activities!.error!),
+                              if (activities != null &&
+                                  activities.activities.isNotEmpty)
+                                DataFreshnessBanner(
+                                    freshness:
+                                        activities.activities.first.freshness),
                               if (activities != null &&
                                   !activities.loading &&
                                   activities.error == null)

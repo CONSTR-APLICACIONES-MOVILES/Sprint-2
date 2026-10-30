@@ -1,6 +1,7 @@
 import '../../../../shared/widgets/data_freshness_banner.dart';
 import '../../../../shared/widgets/parch_visuals.dart';
 import 'package:flutter/material.dart';
+import '../widgets/activity_location_preview.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -389,21 +390,27 @@ class _StudySessionViewState extends State<StudySessionView> {
                                   style: const TextStyle(
                                       fontWeight: FontWeight.w600)),
                               const SizedBox(height: 16),
-                              Container(
-                                  padding: const EdgeInsets.all(20),
-                                  decoration: BoxDecoration(
-                                      color: const Color(0xFFEFF4FF),
-                                      borderRadius: BorderRadius.circular(16)),
-                                  child: Column(children: [
-                                    const Icon(Icons.local_library_outlined,
-                                        size: 48, color: AppColors.primary),
-                                    const SizedBox(height: 12),
-                                    Text(session.location,
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.w700)),
-                                    const Text('Campus location preview',
-                                        textAlign: TextAlign.center)
-                                  ])),
+                              if (session.locationDetails != null)
+                                ActivityLocationPreview(
+                                    location: session.locationDetails!,
+                                    offline: session.freshness.offline)
+                              else
+                                Container(
+                                    padding: const EdgeInsets.all(20),
+                                    decoration: BoxDecoration(
+                                        color: const Color(0xFFEFF4FF),
+                                        borderRadius:
+                                            BorderRadius.circular(16)),
+                                    child: Column(children: [
+                                      const Icon(Icons.local_library_outlined,
+                                          size: 48, color: AppColors.primary),
+                                      const SizedBox(height: 12),
+                                      Text(session.location,
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.w700)),
+                                      const Text('Campus location preview',
+                                          textAlign: TextAlign.center)
+                                    ])),
                               const SizedBox(height: 12),
                               if (widget.isDemo)
                                 Wrap(spacing: 12, runSpacing: 8, children: [

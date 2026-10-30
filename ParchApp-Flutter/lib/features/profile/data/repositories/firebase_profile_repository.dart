@@ -1,6 +1,7 @@
 import '../../domain/repositories/presence_repository.dart';
 import '../../domain/entities/profile_preferences.dart';
 import '../../../../core/data/mobile_api.dart';
+import '../../../../core/domain/data_freshness.dart';
 import '../../domain/entities/profile_user.dart';
 import '../../domain/repositories/profile_repository.dart';
 
@@ -10,6 +11,7 @@ class FirebaseProfileRepository
   const FirebaseProfileRepository(this._api);
 
   ProfileUser _user(Map<String, dynamic> data) => ProfileUser(
+        freshness: DataFreshness.fromMap(data),
         id: data['id'] as String,
         name: data['name'] as String,
         program: data['program'] as String? ?? '',

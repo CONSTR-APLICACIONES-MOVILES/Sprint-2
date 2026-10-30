@@ -1,4 +1,5 @@
 import '../../../../core/domain/data_freshness.dart';
+import 'activity_location.dart';
 
 class StudyTopic {
   final String id;
@@ -29,6 +30,7 @@ class StudyResource {
 }
 
 class StudySession {
+  final ActivityLocation? locationDetails;
   final String id;
   final DataFreshness freshness;
   final String version;
@@ -64,6 +66,7 @@ class StudySession {
       required this.startsAt,
       required this.endsAt,
       required this.location,
+      this.locationDetails,
       required this.room,
       required this.reminder,
       required List<StudyTopic> topics,
@@ -96,6 +99,8 @@ class StudySession {
           String? version,
           String? description,
           String? location,
+          ActivityLocation? locationDetails,
+          bool clearLocationDetails = false,
           String? category,
           String? status,
           String? legacyDate,
@@ -115,6 +120,9 @@ class StudySession {
           startsAt: startsAt ?? this.startsAt,
           endsAt: endsAt ?? this.endsAt,
           location: location ?? this.location,
+          locationDetails: clearLocationDetails
+              ? null
+              : locationDetails ?? this.locationDetails,
           room: room ?? this.room,
           reminder: reminder,
           topics: topics ?? this.topics,

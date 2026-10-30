@@ -165,9 +165,9 @@ void main() {
     expect(createAccount.value.status, AuthStatus.authenticated);
   });
 
-  test('Google creation without a suggestion reports validationError',
+  test('Google creation without a suggestion opens provider authentication',
       () async {
     await createAccount.continueWithGoogle();
-    expect(createAccount.value.status, AuthStatus.validationError);
+    expect(createAccount.value.status, AuthStatus.authenticated);
   });
 }

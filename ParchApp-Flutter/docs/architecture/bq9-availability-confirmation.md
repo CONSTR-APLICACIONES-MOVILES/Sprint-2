@@ -1,8 +1,11 @@
 # BQ9 — Uso de comparación y confirmación de actividades
 
 **Responsable:** Gabriel Enrique Rodríguez Pinto, Flutter, sprint 3.
+**Alcance confirmado por Gabriel el 29/10/2026:** implementar y presentar BQ9 desde Flutter. El SQL y aporte Java previo de Juan David se conservan y se reconocen en el PR Backend #2; esta documentación no sustituye su autoría.
 **Tipo:** 3, análisis de funcionalidades.
 **Estado (26/10/2026):** instrumentación, primera confirmación, agregación Firestore y panel local implementados. Despliegue y conexión al dashboard unificado del equipo pendientes. Ver [cierre local](../CIERRE_SPRINT_3.md).
+
+**Revisión vigente (29/10/2026):** el backend de esta sesión ya admite `measurementVersion` y `comparisonEvidenceId`; cuatro payloads exportados desde `ActivityDraft` pasan la validación callable y la medición (40 pruebas backend y cinco pruebas Flutter enfocadas). Los endpoints nuevos tienen código desplegado, pero la invocación sigue bloqueada por IAM (HTTP 403). El agregado real está en Firestore; el tablero compartido aún no muestra BQ9. Los resultados del cierre del 26 no certifican el recorrido autenticado actual.
 
 ## Pregunta y decisión
 
