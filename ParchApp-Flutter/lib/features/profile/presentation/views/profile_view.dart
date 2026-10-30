@@ -227,8 +227,8 @@ class _ProfileViewState extends State<ProfileView> {
     }
   }
 
-  Future<void> _changePhoto(PhotoSource source) async {
-    if (await widget.viewModel.changePhoto(source)) {
+  Future<void> _changePhoto() async {
+    if (await widget.viewModel.changePhoto()) {
       _message('Profile photo updated');
     }
   }
