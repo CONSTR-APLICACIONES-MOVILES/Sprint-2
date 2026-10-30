@@ -1,4 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import '../../../../core/auth/google_sign_in_session.dart';
 import '../../../../core/data/mobile_api.dart';
 import '../../domain/entities/auth_failure.dart';
 import '../models/authenticated_user_model.dart';
@@ -8,7 +11,9 @@ import 'auth_data_source.dart';
 class FirebaseAuthDataSource implements AuthDataSource {
   final FirebaseAuth _auth;
   final MobileApi? profiles;
-  FirebaseAuthDataSource(this._auth, {this.profiles});
+  final GoogleIdentitySource google;
+  FirebaseAuthDataSource(this._auth,
+      {this.profiles, this.google = const DeviceGoogleIdentitySource()});
   Future<AuthenticatedUserModel?> _resolvedUser(User? user) async {
     final model = _model(user);
     if (model == null || profiles == null) return model;
@@ -26,7 +31,14 @@ class FirebaseAuthDataSource implements AuthDataSource {
   }
 
   @override
-  Future<void> signOut() => _auth.signOut();
+  Future<void> signOut() async {
+    await _auth.signOut();
+    try {
+      await google.signOut();
+    } catch (_) {
+      // Firebase logout succeeded; a provider cleanup failure cannot undo it.
+    }
+  }
 
   AuthenticatedUserModel? _model(User? user) => user == null
       ? null
@@ -37,7 +49,8 @@ class FirebaseAuthDataSource implements AuthDataSource {
           verified: user.emailVerified);
 
   Future<AuthenticatedUserModel?> _authenticate(
-      Future<UserCredential> Function() action) async {
+      Future<UserCredential> Function() action,
+      {bool withGoogle = false}) async {
     try {
       return await _resolvedUser((await action()).user);
     } on FirebaseAuthException catch (error) {
@@ -45,7 +58,17 @@ class FirebaseAuthDataSource implements AuthDataSource {
         'invalid-credential' ||
         'user-not-found' ||
         'wrong-password' =>
-          'Check your email and password.',
+          withGoogle
+              ? 'Google could not verify this sign-in. Please try again.'
+              : 'Check your email and password.',
+        'operation-not-allowed' =>
+          'Google sign-in is unavailable. Use email sign-in or contact the team.',
+        'account-exists-with-different-credential' =>
+          'This email already uses another sign-in method. Sign in with that method first.',
+        'popup-closed-by-user' ||
+        'cancelled-popup-request' =>
+          'Google sign-in cancelled.',
+        'network-request-failed' => 'Check your connection and try again.',
         'email-already-in-use' =>
           'An account already exists for this email. Sign in instead.',
         'weak-password' => 'Use a password with at least six characters.',
@@ -114,9 +137,30 @@ class FirebaseAuthDataSource implements AuthDataSource {
   @override
   Future<GoogleAccountModel?> getSuggestedGoogleAccount() async => null;
   @override
-  Future<AuthenticatedUserModel?> signInWithGoogle() async =>
-      throw const AuthenticationException(
-          'Use email and password. Google sign-in is not configured.');
+  Future<AuthenticatedUserModel?> signInWithGoogle() async {
+    try {
+      return await _authenticate(() async {
+        if (kIsWeb) {
+          return _auth.signInWithPopup(GoogleAuthProvider()
+            ..setCustomParameters({'prompt': 'select_account'}));
+        }
+        final token = await google.authenticate();
+        return _auth.signInWithCredential(
+            GoogleAuthProvider.credential(idToken: token));
+      }, withGoogle: true);
+    } on GoogleSignInException catch (error) {
+      debugPrint('Google sign-in failed: ${error.code.name}');
+      throw AuthenticationException(switch (error.code.name) {
+        'canceled' || 'interrupted' => 'Google sign-in cancelled.',
+        'clientConfigurationError' ||
+        'providerConfigurationError' =>
+          'Google sign-in is unavailable for this build. Use email sign-in or contact the team.',
+        _ =>
+          'Unable to sign in with Google. Check your connection and try again.',
+      });
+    }
+  }
+
   @override
   Future<AuthenticatedUserModel?> createAccountWithGoogle(String accountId) =>
       signInWithGoogle();

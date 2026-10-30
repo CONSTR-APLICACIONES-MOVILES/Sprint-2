@@ -9,8 +9,10 @@ class CreateAccount {
 
   Future<GoogleAccount?> suggestedAccount() =>
       _repository.getSuggestedGoogleAccount();
-  Future<AuthenticatedUser> withGoogle(GoogleAccount account) =>
-      _repository.createAccountWithGoogle(account);
+  Future<AuthenticatedUser> withGoogle([GoogleAccount? account]) =>
+      account == null
+          ? _repository.signInWithGoogle()
+          : _repository.createAccountWithGoogle(account);
 
   Future<AuthenticatedUser> call({
     required String fullName,

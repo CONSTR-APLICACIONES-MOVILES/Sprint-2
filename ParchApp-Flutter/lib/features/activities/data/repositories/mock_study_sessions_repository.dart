@@ -24,6 +24,7 @@ class MockStudySessionsRepository implements StudySessionsRepository {
         title: data.title,
         description: data.description,
         location: data.location,
+        locationDetails: data.locationDetails,
         category: data.category,
         status: data.status,
         legacyDate: data.date,

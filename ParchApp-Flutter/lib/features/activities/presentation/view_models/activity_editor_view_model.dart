@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import '../../domain/entities/activity_draft.dart';
 import '../../domain/entities/study_session.dart';
 import '../../domain/use_cases/manage_study_session.dart';
+import '../../domain/repositories/places_source.dart';
 
 class ActivityEditorState {
   final bool loading, saving;
@@ -17,6 +18,7 @@ class ActivityEditorState {
 }
 
 class ActivityEditorViewModel extends ValueNotifier<ActivityEditorState> {
+  final PlacesSource? places;
   final ManageStudySession _sessions;
   final StudySession? session;
   final String requestedDate, requestedTime;
@@ -50,6 +52,7 @@ class ActivityEditorViewModel extends ValueNotifier<ActivityEditorState> {
 
   ActivityEditorViewModel(this._sessions,
       {this.session,
+      this.places,
       this.requestedDate = '',
       this.requestedTime = '',
       this.planning,
@@ -99,6 +102,7 @@ class ActivityEditorViewModel extends ValueNotifier<ActivityEditorState> {
             description: reviewed.description,
             category: reviewed.category,
             location: reviewed.location,
+            locationDetails: reviewed.locationDetails,
             status: reviewed.status,
             date: reviewed.date,
             time: reviewed.time,

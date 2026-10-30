@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
@@ -77,6 +78,46 @@ void main() {
     api = create();
   });
   tearDown(() => api.dispose());
+
+  test(
+      'LRU hit protects an entry across restart without refreshing its server age',
+      () async {
+    api.dispose();
+    OfflineMobileApi small() => OfflineMobileApi(
+        remote: remote,
+        store: store,
+        project: 'demo',
+        currentUserId: () => uid,
+        clock: () => now,
+        cacheCapacity: 2);
+    api = small();
+    await api.call('getProfile', {});
+    await api.call('getActivity', {'activityId': 'one'});
+    await api.setForcedOffline(true);
+    final saved = await api.call('getProfile', {});
+    final age = saved['cachedAt'];
+    api.dispose();
+    api = small();
+    now = now.add(const Duration(hours: 1));
+    await api.call('getScheduleFriends', {});
+    await api.setForcedOffline(true);
+    expect((await api.call('getProfile', {}))['cachedAt'], age);
+    await expectLater(
+        api.call('getActivity', {'activityId': 'one'}), throwsStateError);
+    expect(jsonDecode(store.values.values.single)['cache'], hasLength(2));
+  });
+
+  test(
+      'activity mutation invalidates lists and affected detail instead of serving stale data',
+      () async {
+    await api.call('getActivities', {});
+    await api.call('getActivity', {'activityId': 'u1'});
+    await api.call('updateActivityDetails', {'activityId': 'u1'});
+    await api.setForcedOffline(true);
+    await expectLater(api.call('getActivities', {}), throwsStateError);
+    await expectLater(
+        api.call('getActivity', {'activityId': 'u1'}), throwsStateError);
+  });
 
   for (final debug in [false, true]) {
     testWidgets(

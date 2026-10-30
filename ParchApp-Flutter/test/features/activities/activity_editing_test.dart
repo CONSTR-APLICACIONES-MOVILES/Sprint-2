@@ -147,6 +147,7 @@ void main() {
           'description',
           'category',
           'location',
+          'locationDetails',
           'status',
           'date',
           'time'

@@ -107,7 +107,11 @@ class FirebaseActivityDataSource
       final result = await api!.call('getActivities', {});
       return [
         for (final raw in result['activities'] as List)
-          ActivityModel(Map<String, dynamic>.from(raw as Map))
+          ActivityModel({
+            ...Map<String, dynamic>.from(raw as Map),
+            'offline': result['offline'],
+            'cachedAt': result['cachedAt']
+          })
       ];
     }
     final uid = currentUserId;

@@ -1,4 +1,7 @@
+import '../../../../core/domain/data_freshness.dart';
+
 class ActivitySummary {
+  final DataFreshness freshness;
   final String id;
   final String title;
   final String location;
@@ -18,5 +21,6 @@ class ActivitySummary {
       this.cancelled = false,
       this.startsAt,
       this.endsAt,
-      this.attendance = const {}});
+      this.attendance = const {},
+      this.freshness = const DataFreshness()});
 }

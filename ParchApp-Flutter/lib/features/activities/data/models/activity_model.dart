@@ -1,5 +1,6 @@
 import '../../../../core/domain/data_freshness.dart';
 import '../../domain/entities/activity_summary.dart';
+import '../../domain/entities/activity_location.dart';
 import '../../domain/entities/study_session.dart';
 import '../../domain/entities/slot_recommendation.dart';
 
@@ -22,6 +23,8 @@ class ActivityModel {
         legacyTime: data['time'] as String? ?? '',
         status: data['status'] as String,
         location: data['location'] as String? ?? '',
+        locationDetails: ActivityLocation.fromMap(data['locationDetails'],
+            expectedLabel: data['location'] as String? ?? ''),
         room: '',
         reminder: '',
         canOrganize: uid != null && uid == data['createdBy'],
@@ -57,6 +60,7 @@ class ActivityModel {
       value == null ? null : DateTime.parse(value as String);
 
   ActivitySummary toSummary() => ActivitySummary(
+          freshness: DataFreshness.fromMap(data),
           id: data['id'] as String,
           title: data['title'] as String,
           location: data['location'] as String? ?? '',

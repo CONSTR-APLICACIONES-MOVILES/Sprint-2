@@ -1,5 +1,6 @@
 import 'study_session.dart';
 import 'planning_context.dart';
+import 'activity_location.dart';
 
 class ActivityGroup {
   final String id;
@@ -11,6 +12,7 @@ class ActivityGroup {
 /// Editable fields from the shared Firestore activity contract. Canonical
 /// start/end times are changed only through recommendation decisions.
 class ActivityDraft {
+  final ActivityLocation? locationDetails;
   final DateTime? startsAt, endsAt;
   final PlanningContext? planning;
   final CreationComparison? comparison;
@@ -30,6 +32,7 @@ class ActivityDraft {
       this.description = '',
       this.category = 'study',
       this.location = '',
+      this.locationDetails,
       this.status = 'PROPOSED',
       this.date = '',
       this.time = '',
@@ -50,6 +53,8 @@ class ActivityDraft {
           'description': description,
           'category': category,
           'location': location,
+          if (locationDetails != null)
+            'locationDetails': locationDetails!.toMap(),
           'status': status,
           'date': date,
           'time': time
@@ -70,6 +75,17 @@ class ActivityDraft {
       };
 
   ActivityDraft validated() {
+    if (locationDetails != null) {
+      try {
+        locationDetails!.validated();
+      } on FormatException {
+        throw const SessionFailure('Choose a valid place on the map.');
+      }
+      if (locationDetails!.label != location.trim()) {
+        throw const SessionFailure(
+            'Choose the place again after changing its address.');
+      }
+    }
     if ((startsAt == null) != (endsAt == null) ||
         startsAt != null &&
             (!endsAt!.isAfter(startsAt!) ||
@@ -100,6 +116,7 @@ class ActivityDraft {
         description: description.trim(),
         category: category,
         location: location.trim(),
+        locationDetails: locationDetails,
         status: status,
         date: date.trim(),
         time: time.trim(),

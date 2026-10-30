@@ -1,4 +1,5 @@
 import '../../domain/entities/planning_context.dart';
+import '../../domain/entities/activity_location.dart';
 import 'package:firebase_core/firebase_core.dart';
 import '../../domain/entities/activity_summary.dart';
 import '../../domain/entities/activity_draft.dart';
@@ -32,6 +33,8 @@ class FirebaseStudySessionsRepository
         title: fields['title'] as String,
         description: fields['description'] as String? ?? '',
         location: fields['location'] as String? ?? '',
+        locationDetails: ActivityLocation.fromMap(fields['locationDetails'],
+            expectedLabel: fields['location'] as String? ?? ''),
         category: fields['category'] as String? ?? 'study',
         status: fields['status'] as String? ?? 'PROPOSED',
         date: fields['date'] as String? ?? '',
@@ -187,7 +190,8 @@ class FirebaseStudySessionsRepository
               description: session.description,
               category: session.category,
               status: session.status,
-              location: session.location)
+              location: session.location,
+              locationDetails: session.locationDetails)
           .validated();
       if (session.cancelled != current.cancelled) {
         await _request(() => _source.call('cancelActivity',
@@ -201,6 +205,7 @@ class FirebaseStudySessionsRepository
                 'description': session.description,
                 'category': session.category,
                 'location': session.location,
+                'locationDetails': session.locationDetails?.toMap(),
                 'status': session.status,
                 'date': session.legacyDate,
                 'time': session.legacyTime

@@ -57,6 +57,7 @@ class OfflineMobileApi extends ValueNotifier<OfflineStatus>
   final String? Function() currentUserId;
   final DateTime Function() clock;
   final OfflineDocumentCodec codec;
+  final int cacheCapacity;
   Future<void> _tail = Future.value();
   bool _flushing = false;
   bool _networkAvailable = true;
@@ -67,8 +68,10 @@ class OfflineMobileApi extends ValueNotifier<OfflineStatus>
       required this.project,
       required this.currentUserId,
       DateTime Function()? clock,
-      this.codec = const OfflineDocumentCodec()})
-      : clock = clock ?? DateTime.now,
+      this.codec = const OfflineDocumentCodec(),
+      this.cacheCapacity = 64})
+      : assert(cacheCapacity > 0),
+        clock = clock ?? DateTime.now,
         super(const OfflineStatus());
   static const _reads = {
     'getProfile',
@@ -84,6 +87,36 @@ class OfflineMobileApi extends ValueNotifier<OfflineStatus>
       '$name:${sha256.convert(utf8.encode(jsonEncode(input)))}';
   Map<String, dynamic> _copy(Map value) =>
       jsonDecode(jsonEncode(value)) as Map<String, dynamic>;
+
+  void _remember(Map cache, String key, Map entry) {
+    cache.remove(key);
+    cache[key] = entry;
+    while (cache.length > cacheCapacity) {
+      cache.remove(cache.keys.first);
+    }
+  }
+
+  void _invalidateAfterMutation(Map saved, String name, Map input) {
+    const changes = {
+      'publishActivity',
+      'updateActivityDetails',
+      'cancelActivity',
+      'acceptActivityRecommendation',
+      'modifyActivityRecommendation',
+      'respondToActivityInvitation'
+    };
+    if (!changes.contains(name)) return;
+    final id = input['activityId'] ?? input['id'];
+    (saved['cache'] as Map).removeWhere((_, entry) =>
+        entry['name'] == 'getActivities' ||
+        entry['name'] == 'getActivity' &&
+            (id == null ||
+                entry['data']['id'] == id ||
+                entry['data']['activityId'] == id) ||
+        {'acceptActivityRecommendation', 'modifyActivityRecommendation'}
+                .contains(name) &&
+            entry['name'] == 'getScheduleDay');
+  }
 
   Future<Map<String, dynamic>> _load(String uid) async {
     final raw = await store.read(_key(uid));
@@ -218,25 +251,22 @@ class OfflineMobileApi extends ValueNotifier<OfflineStatus>
             final saved = await _load(uid);
             if (_reads.contains(name)) {
               final cache = saved['cache'] as Map;
-              cache.remove(_requestKey(name, input));
-              cache[_requestKey(name, input)] = {
+              _remember(cache, _requestKey(name, input), {
                 'name': name,
                 'data': result,
                 'savedAt': clock().toUtc().toIso8601String()
-              };
-              while (cache.length > 64) {
-                cache.remove(cache.keys.first);
-              }
+              });
             } else if ({'updateProfile', 'updatePresence', 'updatePreferences'}
                 .contains(name)) {
-              (saved['cache'] as Map)[_requestKey('getProfile', {})] = {
+              _remember(saved['cache'] as Map, _requestKey('getProfile', {}), {
                 'name': 'getProfile',
                 'data': result,
                 'savedAt': clock().toUtc().toIso8601String(),
-              };
+              });
             } else if (_queued.contains(name)) {
               _apply(saved, name, input, false);
             }
+            _invalidateAfterMutation(saved, name, input);
             // A cache failure must not report that a successful server write failed.
             try {
               await store.write(_key(uid), await codec.encode(saved));
@@ -265,6 +295,14 @@ class OfflineMobileApi extends ValueNotifier<OfflineStatus>
         if (cached == null) {
           throw StateError(
               'No saved data for this view. Open it online first.');
+        }
+        // A hit changes recency, never the server download time (savedAt).
+        _remember(
+            saved['cache'] as Map, _requestKey(name, input), cached as Map);
+        try {
+          await store.write(_key(uid), await codec.encode(saved));
+        } catch (_) {
+          _status(uid, error: 'Unable to persist cache recency.');
         }
         _status(uid, offline: true, pending: (saved['pending'] as List).length);
         return {
@@ -349,6 +387,8 @@ class OfflineMobileApi extends ValueNotifier<OfflineStatus>
             _check(uid);
             _apply(saved, command['name'] as String, command['input'] as Map,
                 false);
+            _invalidateAfterMutation(
+                saved, command['name'] as String, command['input'] as Map);
             final position = pending.indexOf(command);
             pending.removeAt(position);
             try {

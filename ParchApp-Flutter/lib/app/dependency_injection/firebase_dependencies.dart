@@ -7,6 +7,7 @@ import '../../firebase_options.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/data/mobile_api.dart';
 import '../../core/data/offline_mobile_api.dart';
+import '../../core/data/sqlite_offline_store.dart';
 import '../../core/data/restore_auth_session.dart';
 
 /// Uses the checked-in live configuration or the shared demo-parchapp emulators.
@@ -20,7 +21,7 @@ class FirebaseDependencies {
 
   static Future<FirebaseDependencies> initialize() async {
     const emulators =
-        bool.fromEnvironment('USE_FIREBASE_EMULATORS', defaultValue: true);
+        bool.fromEnvironment('USE_FIREBASE_EMULATORS', defaultValue: false);
     // Platform configuration now creates a live default app on Android. Keep
     // it initialized (native Firestore needs a default delegate), and isolate
     // emulator Auth/Firestore/Functions in a separate named app.
@@ -66,9 +67,16 @@ class FirebaseDependencies {
     // Wait for any persisted account before constructing routes/catalog queries.
     await auth.authStateChanges().first;
     await validateRestoredAuthSession(auth);
+    final preferences = await SharedPreferences.getInstance();
+    final nativeSqlite = !kIsWeb &&
+        {TargetPlatform.android, TargetPlatform.iOS, TargetPlatform.macOS}
+            .contains(defaultTargetPlatform);
+    final OfflineStore offlineStore = nativeSqlite
+        ? await SqliteOfflineStore.open(legacyPreferences: preferences)
+        : PreferencesOfflineStore(preferences);
     final mobile = OfflineMobileApi(
         remote: FirebaseMobileApi(functions),
-        store: PreferencesOfflineStore(await SharedPreferences.getInstance()),
+        store: offlineStore,
         project: app.options.projectId,
         currentUserId: () => auth.currentUser?.uid);
     auth.authStateChanges().listen((_) => mobile.refreshSession());
