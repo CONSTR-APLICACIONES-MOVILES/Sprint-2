@@ -179,6 +179,7 @@ class _ActiveGroupsViewState extends State<ActiveGroupsView> {
                                 key: ValueKey(group.id),
                                 group: group,
                                 estimate: state.estimateFor(group),
+                                weather: state.weatherFor(group),
                                 busy: state.isUpdating,
                                 onAction: (action) =>
                                     _handleAction(group, action),

@@ -69,6 +69,10 @@ class FirestoreGroupsDataSource implements GroupsDataSource {
           'invitationSentAt': createdAt.toDate(),
           'activityCategory': activity.data()['category'],
           'activityTitle': activity.data()['title'],
+          if (activity.data()['startTime'] is Timestamp)
+            'activityStartsAt':
+                (activity.data()['startTime'] as Timestamp).toDate(),
+          'activityLocation': activity.data()['locationDetails'],
         },
       };
     }));
