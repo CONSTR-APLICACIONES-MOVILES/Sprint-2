@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../shared/widgets/inline_error_notice.dart';
 
 class PasswordRecoverySheet extends StatefulWidget {
   final String email;
@@ -54,9 +55,12 @@ class _PasswordRecoverySheetState extends State<PasswordRecoverySheet> {
               children: [
             Text('Reset password',
                 style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 20),
             if (_acknowledged) ...[
               const Text(
-                  'Request accepted. If an account uses this email, follow the recovery instructions. Check spam too.'),
+                  'Request accepted. If an account uses this email, follow the recovery instructions. Check spam too.',
+                  style: TextStyle(height: 1.6)),
+              const SizedBox(height: 18),
               TextButton(
                   onPressed: () => Navigator.pop(context),
                   child: const Text('Done'))
@@ -66,7 +70,8 @@ class _PasswordRecoverySheetState extends State<PasswordRecoverySheet> {
                   enabled: !_busy,
                   keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(labelText: 'Email')),
-              if (_error != null) Text(_error!),
+              if (_error != null) InlineErrorNotice(_error!),
+              const SizedBox(height: 18),
               FilledButton(
                   onPressed: _busy ? null : _send,
                   child: Text(_busy ? 'Requesting…' : 'Request password reset'))

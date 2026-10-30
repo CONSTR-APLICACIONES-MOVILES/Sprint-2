@@ -30,6 +30,10 @@ class AppAlert {
   final bool isRead;
   final AlertResponse? response;
   final String? studySessionId, groupId;
+  final String? requesterId,
+      requesterName,
+      requesterUsername,
+      friendshipVersion;
   final bool authoritative;
   final DateTime? invitationSentAt;
   final int? groupSize;
@@ -46,6 +50,10 @@ class AppAlert {
       this.response,
       this.studySessionId,
       this.groupId,
+      this.requesterId,
+      this.requesterName,
+      this.requesterUsername,
+      this.friendshipVersion,
       this.authoritative = false,
       this.invitationSentAt,
       this.groupSize,
@@ -68,6 +76,10 @@ class AppAlert {
           response: response ?? this.response,
           studySessionId: studySessionId,
           groupId: groupId,
+          requesterId: requesterId,
+          requesterName: requesterName,
+          requesterUsername: requesterUsername,
+          friendshipVersion: friendshipVersion,
           authoritative: authoritative,
           invitationSentAt: invitationSentAt,
           groupSize: groupSize,

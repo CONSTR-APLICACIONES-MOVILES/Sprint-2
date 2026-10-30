@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../../../shared/widgets/inline_error_notice.dart';
 import 'dart:math';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
@@ -57,8 +58,7 @@ abstract class SessionState<T extends StatefulWidget> extends State<T> {
       Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         if (busy) const LinearProgressIndicator(),
         if (!sameSession) const Text('Session changed. Reopen this screen.'),
-        if (error != null)
-          Text(error!, style: const TextStyle(color: Colors.red))
+        if (error != null) InlineErrorNotice(error!)
       ]);
   Future<void> open(String route) async {
     await context.push(route);
@@ -315,6 +315,7 @@ class _ShareEntityViewState extends SessionState<ShareEntityView> {
           Text(widget.kind == 'group'
               ? 'Anyone with this code can request to join by confirming. It expires in 24 hours and can be revoked.'
               : 'This link preserves existing group permissions. It does not grant access to private activities or profiles.'),
+          const SizedBox(height: 16),
           if (link == null)
             FilledButton(
                 onPressed: busy ? null : _create,
@@ -332,7 +333,8 @@ class _ShareEntityViewState extends SessionState<ShareEntityView> {
                       semanticsLabel: 'Share link QR: $url',
                       size: 220,
                       backgroundColor: Colors.white)),
-            Wrap(spacing: 8, children: [
+            const SizedBox(height: 14),
+            Wrap(spacing: 12, runSpacing: 12, children: [
               OutlinedButton(
                   onPressed: busy ? null : () => _copy(url ?? link['token']),
                   child: const Text('Copy')),
@@ -346,6 +348,7 @@ class _ShareEntityViewState extends SessionState<ShareEntityView> {
                           }),
                   child: const Text('Share'))
             ]),
+            const SizedBox(height: 14),
             const Text(
                 'Opening a share sheet is not proof of an email or invitation delivery.'),
           ],
@@ -630,143 +633,170 @@ class _ActivityMaterialsViewState extends SessionState<ActivityMaterialsView> {
     return Scaffold(
         appBar:
             const ParchAppBar(title: 'Checklist & resources', showBack: true),
-        body: ListView(padding: const EdgeInsets.all(20), children: [
-          feedback(),
-          TextButton(
-              onPressed: busy || _pending != null ? null : () => action(_load),
-              child: const Text('Reload resources')),
-          if (_pending != null)
-            FilledButton(
-                onPressed: busy ? null : _sendMaterials,
-                child: const Text('Retry the same resource save')),
-          if (data != null) ...[
-            Text(
-                '${topics.where((t) => t['completed'] == true).length}/${topics.length} personal checklist items completed'),
-            for (final t in topics)
-              CheckboxListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(t['title']),
-                  value: t['completed'] == true,
-                  onChanged: busy ||
-                          _pending != null ||
-                          data['cancelled'] == true
-                      ? null
-                      : (value) => action(() async {
-                            await request('setTopicCompletion', {
-                              'activityId': widget.activityId,
-                              'topicId': t['id'],
-                              'completed': value,
-                              'clientUserId': repository.sessionId
-                            });
-                            if (mounted) setState(() => t['completed'] = value);
-                          }),
-                  secondary: data['canEdit'] == true
-                      ? IconButton(
-                          tooltip: 'Remove topic',
-                          onPressed: busy || _pending != null
+        body: ListView(
+            padding: EdgeInsets.fromLTRB(
+                20, 20, 20, 24 + MediaQuery.paddingOf(context).bottom),
+            children: [
+              feedback(),
+              TextButton(
+                  onPressed:
+                      busy || _pending != null ? null : () => action(_load),
+                  child: const Text('Reload resources')),
+              if (_pending != null)
+                FilledButton(
+                    style: FilledButton.styleFrom(
+                        minimumSize: const Size.fromHeight(48)),
+                    onPressed: busy ? null : _sendMaterials,
+                    child: const Text('Retry the same resource save')),
+              if (data != null) ...[
+                Text(
+                    '${topics.where((t) => t['completed'] == true).length}/${topics.length} personal checklist items completed'),
+                for (final t in topics)
+                  CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(t['title']),
+                      value: t['completed'] == true,
+                      onChanged:
+                          busy || _pending != null || data['cancelled'] == true
                               ? null
-                              : () => _save(
-                                  topics
-                                      .where((x) => x['id'] != t['id'])
-                                      .toList(),
-                                  resources),
-                          icon: const Icon(Icons.delete_outline))
-                      : null),
-            if (topics.isEmpty) const Text('No checklist items yet.'),
-            const SizedBox(height: 16),
-            Text('Organizer-provided HTTPS resources',
-                style: Theme.of(context).textTheme.titleLarge),
-            for (final r in resources)
-              Card(
-                  child: ListTile(
-                      title: Text(r['title']),
-                      subtitle: Text(r['url']),
-                      onTap: busy
-                          ? null
-                          : () => action(() async {
-                                if (!await widget.external
-                                    .openResource(r['url'])) {
-                                  throw StateError(
-                                      'No application accepted this URL.');
-                                }
-                              }),
-                      trailing: data['canEdit'] == true
+                              : (value) => action(() async {
+                                    await request('setTopicCompletion', {
+                                      'activityId': widget.activityId,
+                                      'topicId': t['id'],
+                                      'completed': value,
+                                      'clientUserId': repository.sessionId
+                                    });
+                                    if (mounted) {
+                                      setState(() => t['completed'] = value);
+                                    }
+                                  }),
+                      secondary: data['canEdit'] == true
                           ? IconButton(
-                              tooltip: 'Remove resource',
+                              tooltip: 'Remove topic',
                               onPressed: busy || _pending != null
                                   ? null
                                   : () => _save(
-                                      topics,
-                                      resources
-                                          .where((x) => x['id'] != r['id'])
-                                          .toList()),
+                                      topics
+                                          .where((x) => x['id'] != t['id'])
+                                          .toList(),
+                                      resources),
                               icon: const Icon(Icons.delete_outline))
-                          : null)),
-            if (resources.isEmpty)
+                          : null),
+                if (topics.isEmpty) const Text('No checklist items yet.'),
+                const SizedBox(height: 16),
+                Text('Resource links',
+                    style: Theme.of(context).textTheme.titleLarge),
+                for (final r in resources)
+                  Card(
+                      child: ListTile(
+                          title: Text(r['title']),
+                          subtitle: Text(r['url']),
+                          onTap: busy
+                              ? null
+                              : () => action(() async {
+                                    if (!await widget.external
+                                        .openResource(r['url'])) {
+                                      throw StateError(
+                                          'No application accepted this URL.');
+                                    }
+                                  }),
+                          trailing: data['canEdit'] == true
+                              ? IconButton(
+                                  tooltip: 'Remove resource',
+                                  onPressed: busy || _pending != null
+                                      ? null
+                                      : () => _save(
+                                          topics,
+                                          resources
+                                              .where((x) => x['id'] != r['id'])
+                                              .toList()),
+                                  icon: const Icon(Icons.delete_outline))
+                              : null)),
+                if (resources.isEmpty)
+                  const Text(
+                      'No resources attached. Opening a link does not download or save a file.'),
+                if (data['canEdit'] == true) ...[
+                  TextField(
+                      controller: _topic,
+                      enabled: !busy && _pending == null,
+                      maxLength: 120,
+                      decoration:
+                          const InputDecoration(labelText: 'New topic')),
+                  const SizedBox(height: 12),
+                  FilledButton(
+                      style: FilledButton.styleFrom(
+                          minimumSize: const Size.fromHeight(48)),
+                      onPressed: busy || _pending != null
+                          ? null
+                          : () => _save([
+                                ...topics,
+                                {'id': _key(), 'title': _topic.text.trim()}
+                              ], resources),
+                      child: const Text('Add topic')),
+                  const SizedBox(height: 24),
+                  TextField(
+                      controller: _resource,
+                      enabled: !busy && _pending == null,
+                      maxLength: 120,
+                      decoration:
+                          const InputDecoration(labelText: 'Resource title')),
+                  const SizedBox(height: 12),
+                  TextField(
+                      controller: _url,
+                      enabled: !busy && _pending == null,
+                      maxLength: 2048,
+                      keyboardType: TextInputType.url,
+                      decoration: const InputDecoration(
+                          labelText: 'Resource URL',
+                          helperText:
+                              'Use a secure link starting with https://')),
+                  const SizedBox(height: 12),
+                  FilledButton(
+                      style: FilledButton.styleFrom(
+                          minimumSize: const Size.fromHeight(48)),
+                      onPressed: busy || _pending != null
+                          ? null
+                          : () => _save(topics, [
+                                ...resources,
+                                {
+                                  'id': _key(),
+                                  'title': _resource.text.trim(),
+                                  'url': _url.text.trim()
+                                }
+                              ]),
+                      child: const Text('Add resource')),
+                ],
+              ],
+              if (_message != null) Text(_message!),
+              const SizedBox(height: 24),
+              const Divider(),
+              const SizedBox(height: 16),
+              Text('Calendar export',
+                  style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 8),
               const Text(
-                  'No resources attached. Opening a link does not download or save a file.'),
-            if (data['canEdit'] == true) ...[
-              TextField(
-                  controller: _topic,
-                  enabled: !busy && _pending == null,
-                  maxLength: 120,
-                  decoration: const InputDecoration(labelText: 'New topic')),
+                  'Export a scheduled activity as an .ics file to import in your calendar. This does not connect or synchronize a calendar account.'),
+              const SizedBox(height: 16),
               FilledButton(
-                  onPressed: busy || _pending != null
+                  style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(48)),
+                  onPressed: busy
                       ? null
-                      : () => _save([
-                            ...topics,
-                            {'id': _key(), 'title': _topic.text.trim()}
-                          ], resources),
-                  child: const Text('Add topic')),
-              TextField(
-                  controller: _resource,
-                  enabled: !busy && _pending == null,
-                  maxLength: 120,
-                  decoration:
-                      const InputDecoration(labelText: 'Resource title')),
-              TextField(
-                  controller: _url,
-                  enabled: !busy && _pending == null,
-                  maxLength: 2048,
-                  keyboardType: TextInputType.url,
-                  decoration:
-                      const InputDecoration(labelText: 'HTTPS resource URL')),
-              FilledButton(
-                  onPressed: busy || _pending != null
-                      ? null
-                      : () => _save(topics, [
-                            ...resources,
-                            {
-                              'id': _key(),
-                              'title': _resource.text.trim(),
-                              'url': _url.text.trim()
-                            }
-                          ]),
-                  child: const Text('Add HTTPS resource')),
-            ],
-          ],
-          if (_message != null) Text(_message!),
-          const Divider(),
-          Text('Calendar export',
-              style: Theme.of(context).textTheme.titleLarge),
-          const Text(
-              'Export a scheduled activity as an .ics file to import in your calendar. This does not connect or synchronize a calendar account.'),
-          FilledButton(
-              onPressed: busy
-                  ? null
-                  : () => action(() async {
-                        final file = await request('exportActivityCalendar',
-                            {'activityId': widget.activityId});
-                        final result = await widget.external
-                            .shareCalendar(file['fileName'], file['content']);
-                        if (mounted) setState(() => _message = result);
-                      }),
-              child: const Text('Share calendar file (.ics)')),
-          OutlinedButton(
-              onPressed: () => open(
-                  '/share/activity/${Uri.encodeComponent(widget.activityId)}'),
-              child: const Text('Share activity link')),
-        ]));
+                      : () => action(() async {
+                            final file = await request('exportActivityCalendar',
+                                {'activityId': widget.activityId});
+                            final result = await widget.external.shareCalendar(
+                                file['fileName'], file['content']);
+                            if (mounted) setState(() => _message = result);
+                          }),
+                  child: const Text('Share calendar file (.ics)')),
+              const SizedBox(height: 12),
+              OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(48)),
+                  onPressed: () => open(
+                      '/share/activity/${Uri.encodeComponent(widget.activityId)}'),
+                  child: const Text('Share activity link')),
+            ]));
   }
 }

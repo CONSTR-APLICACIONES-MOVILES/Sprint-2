@@ -1,4 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="48dp" android:height="48dp" android:viewportWidth="48" android:viewportHeight="48">
-    <path android:fillColor="#00000000" android:strokeColor="#52634F" android:strokeWidth="3" android:strokeLineCap="round" android:pathData="M24,9 A15,15 0,1 1,9 24" />
-</vector>
+<!-- Android 12 scales the complete icon canvas. Keep the logo small inside it. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <size android:width="288dp" android:height="288dp" />
+            <solid android:color="@android:color/transparent" />
+        </shape>
+    </item>
+    <item android:width="48dp" android:height="48dp"
+        android:gravity="center" android:drawable="@drawable/parchapp_logo" />
+</layer-list>

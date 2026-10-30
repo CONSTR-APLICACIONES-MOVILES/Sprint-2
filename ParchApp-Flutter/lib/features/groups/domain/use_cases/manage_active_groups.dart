@@ -21,10 +21,10 @@ class ManageActiveGroups {
 
   Future<List<ActiveGroup>> confirmRsvp(ActiveGroup group) async {
     if (group.hasResponded) {
-      throw StateError('Your RSVP is already confirmed.');
+      throw StateError('You have already responded to this invitation.');
     }
     if (!group.hasProgress) {
-      throw StateError('This group does not track RSVPs.');
+      throw StateError('This group has no attendance request.');
     }
     if (group.progressCurrent! >= group.progressTotal!) {
       throw StateError('The roster is already full.');

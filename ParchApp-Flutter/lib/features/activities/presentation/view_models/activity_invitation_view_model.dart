@@ -58,7 +58,7 @@ class ActivityInvitationViewModel
         value.saving ||
         value.session?.cancelled != false ||
         value.invitation == null ||
-        value.invitation!.response != null ||
+        value.invitation!.pendingSync ||
         alerts == null) {
       return;
     }
@@ -74,19 +74,19 @@ class ActivityInvitationViewModel
           invitation: invitation,
           acknowledgement: invitation?.pendingSync == true
               ? 'Saved on this device · Pending sync'
-              : 'Response saved by the server'));
+              : 'Response saved'));
       if (invitation?.pendingSync != true) {
         try {
           final updated = await sessions.getById(activityId);
           _emit(ActivityInvitationState(
               session: updated ?? session,
               invitation: invitation,
-              acknowledgement: 'Response saved by the server'));
+              acknowledgement: 'Response saved'));
         } catch (_) {
           _emit(ActivityInvitationState(
               session: session,
               invitation: invitation,
-              acknowledgement: 'Response saved by the server',
+              acknowledgement: 'Response saved',
               error:
                   'Attendance could not be refreshed. Retry loading; your response is saved.'));
         }

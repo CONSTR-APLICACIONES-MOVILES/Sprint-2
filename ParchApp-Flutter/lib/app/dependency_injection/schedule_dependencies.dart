@@ -103,10 +103,8 @@ class ScheduleDependencies {
           ? null
           : LocalScheduleCacheMetadataRepository(auth: firebase!.auth),
       connectivityService: firebase == null ? null : ConnectivityService(),
-      isOffline: firebase == null
-          ? null
-          : () =>
-              firebase!.mobile.value.offline || firebase!.mobile.value.forced,
+      isOffline:
+          firebase == null ? null : () => !firebase!.mobile.canAttemptRemote,
       initialDay: initialDay,
       calendarImportEnabled: calendarImportEnabled,
       authorizeGoogleCalendar:

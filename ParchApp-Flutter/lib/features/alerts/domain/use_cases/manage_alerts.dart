@@ -28,7 +28,8 @@ class ManageAlerts {
       AlertKind.timeChanged => {AlertResponse.acknowledged},
       AlertKind.groupInvite => {AlertResponse.joined, AlertResponse.declined},
     };
-    if (alert.isResolved || !allowed.contains(response)) {
+    if (alert.isResolved && alert.kind != AlertKind.invitation ||
+        !allowed.contains(response)) {
       throw StateError('This alert cannot receive that response.');
     }
     return _repository.respond(alert.id, response);

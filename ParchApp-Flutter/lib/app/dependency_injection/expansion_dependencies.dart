@@ -1,4 +1,5 @@
 import '../../features/expansions/presentation/views/coordination_insights_view.dart';
+import '../../features/expansions/presentation/views/activity_participants_view.dart';
 import '../../features/expansions/presentation/views/social_views.dart';
 import '../../features/expansions/presentation/views/planning_metrics_view.dart';
 import 'package:flutter/material.dart';
@@ -71,4 +72,6 @@ class ExpansionDependencies {
       repository: repository,
       external: external,
       activityId: id);
+  Widget participants(String id) => ActivityParticipantsView(
+      key: ValueKey(id), repository: repository, activityId: id);
 }

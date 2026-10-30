@@ -270,7 +270,11 @@ void main() {
             .single
             .response,
         AlertResponse.accepted);
-    expect(api.calls.last.$2, {'id': 'activity-real', 'response': 'accepted'});
+    expect(api.calls.last.$2, {
+      'id': 'activity-real',
+      'response': 'accepted',
+      'expectedResponse': null
+    });
   });
   test('an alert write failure does not resolve the local invitation',
       () async {

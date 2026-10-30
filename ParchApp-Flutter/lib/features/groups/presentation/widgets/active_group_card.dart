@@ -118,7 +118,9 @@ class ActiveGroupCard extends StatelessWidget {
                   value: group.progressValue,
                   minHeight: 7,
                   backgroundColor: const Color(0xFFE8EDF6),
-                  valueColor: const AlwaysStoppedAnimation(AppColors.warning),
+                  valueColor: AlwaysStoppedAnimation(group.progressValue >= 1
+                      ? AppColors.success
+                      : AppColors.warning),
                 ),
               ),
               if (estimate != null && !group.activityAttendance)
@@ -225,7 +227,7 @@ String _actionLabel(GroupAction action) => switch (action) {
       GroupAction.viewDetails => 'View group',
       GroupAction.roommateSync => 'Roommate Sync',
       GroupAction.viewNotes => 'View Notes',
-      GroupAction.voteRsvp => 'Vote RSVP',
+      GroupAction.voteRsvp => 'Confirm attendance',
       GroupAction.teamChat => 'Team Chat',
       GroupAction.dropIn => 'Drop In',
       GroupAction.chat => 'Chat',

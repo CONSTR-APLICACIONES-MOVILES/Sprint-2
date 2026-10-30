@@ -79,6 +79,49 @@ void main() {
   });
   tearDown(() => api.dispose());
 
+  test('a friendship response invalidates cached pending notifications',
+      () async {
+    await api.call('getAlerts', {});
+    await api.call('changeFriendship',
+        {'userId': 'requester', 'action': 'accept', 'expectedVersion': 'v1'});
+    await api.setForcedOffline(true);
+    await expectLater(api.call('getAlerts', {}), throwsStateError);
+  });
+
+  test('stale offline status does not prevent retrying a reviewed publication',
+      () async {
+    await api.call('getProfile', {});
+    remote.unavailable = true;
+    expect((await api.call('getProfile', {}))['offline'], true);
+    expect(api.value.offline, true);
+    expect(api.canAttemptRemote, true);
+    remote.unavailable = false;
+    const request = {'requestId': 'review-retry', 'groupId': 'group-one'};
+    await api.call('publishActivity', request);
+    expect(remote.calls.where((call) => call.$1 == 'publishActivity').single.$2,
+        request);
+    expect(api.value.offline, false);
+  });
+
+  test('device and forced offline still block publication without queueing it',
+      () async {
+    api.setNetworkAvailable(false);
+    expect(api.canAttemptRemote, false);
+    await expectLater(
+        api.call('publishActivity', {'requestId': 'offline-review'}),
+        throwsStateError);
+    expect(remote.calls.where((call) => call.$1 == 'publishActivity'), isEmpty);
+    api.setNetworkAvailable(true);
+    expect(api.canAttemptRemote, true);
+    await api.setForcedOffline(true);
+    expect(api.canAttemptRemote, false);
+    await expectLater(
+        api.call('publishActivity', {'requestId': 'offline-review'}),
+        throwsStateError);
+    expect(remote.calls.where((call) => call.$1 == 'publishActivity'), isEmpty);
+    expect(api.value.pending, 0);
+  });
+
   test(
       'LRU hit protects an entry across restart without refreshing its server age',
       () async {

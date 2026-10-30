@@ -94,8 +94,8 @@ class FirebaseActiveGroupsRepository implements ActiveGroupsRepository {
           progressLabel: invitation == null || r['activityCancelled'] == true
               ? null
               : perActivity
-                  ? 'Activity RSVP'
-                  : 'Group RSVP',
+                  ? 'Activity attendance'
+                  : 'Confirmed attendance',
           progressCurrent: invitation == null || r['activityCancelled'] == true
               ? null
               : going.length,
