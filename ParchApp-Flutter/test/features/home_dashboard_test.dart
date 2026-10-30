@@ -39,7 +39,7 @@ void main() {
       (tester) async {
     await tester.pumpWidget(MaterialApp(
         home: HomeView(
-            userName: 'Gabriel',
+            userName: 'Alex',
             userInitials: 'GP',
             activityState:
                 ActivityListState(loading: false, activities: [plan]),
@@ -96,7 +96,7 @@ void main() {
                   .copyWith(textScaler: const TextScaler.linear(1.8)),
               child: child!),
           home: HomeView(
-              userName: 'Gabriel con un nombre largo',
+              userName: 'Alex con un nombre largo',
               activityState:
                   ActivityListState(loading: false, activities: [plan]),
               groupsState: ActiveGroupsState(groups: [group]),

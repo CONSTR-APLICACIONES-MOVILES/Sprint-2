@@ -21,6 +21,7 @@ class ProfileUser {
   // Campos
   final String id;
   final String name;
+  final String? username;
   final String program;
   final bool verified;
 
@@ -51,6 +52,7 @@ class ProfileUser {
   const ProfileUser({
     required this.id,
     required this.name,
+    this.username,
     required this.program,
     required this.verified,
     required this.semester,
@@ -86,6 +88,7 @@ class ProfileUser {
           id: id,
           freshness: freshness,
           name: name ?? this.name,
+          username: username,
           program: program ?? this.program,
           verified: verified,
           semester: semester ?? this.semester,

@@ -129,8 +129,14 @@ class FirebaseAuthDataSource implements AuthDataSource {
     if (user == null || user.uid != userId) {
       throw const AuthenticationException('Sign in again to continue.');
     }
-    await user.reload();
-    await _auth.currentUser?.getIdToken(true);
+    try {
+      await user.reload();
+      await _auth.currentUser?.getIdToken(true);
+    } on FirebaseAuthException catch (error) {
+      throw AuthenticationException(error.code == 'network-request-failed'
+          ? 'Check your connection and try again.'
+          : 'Your saved session could not be verified. Sign in with your email and password again.');
+    }
     return _resolvedUser(_auth.currentUser);
   }
 

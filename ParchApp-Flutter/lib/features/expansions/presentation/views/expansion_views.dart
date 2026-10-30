@@ -140,7 +140,11 @@ class _DiscoverViewState extends SessionState<DiscoverView> {
       bottomNavigationBar: const ParchNavigationBar(),
       body: ListView(padding: const EdgeInsets.all(20), children: [
         const Text(
-            'Search your groups, shared peers and the latest activities in your groups. No public people directory.'),
+            'Search your groups, shared peers and the latest activities in your groups.'),
+        TextButton.icon(
+            onPressed: () => context.push('/people'),
+            icon: const Icon(Icons.person_search_outlined),
+            label: const Text('Find people by username')),
         TextField(
             controller: _query,
             decoration: const InputDecoration(

@@ -1,3 +1,7 @@
+import '../../features/home/domain/repositories/quick_status_repository.dart';
+import '../../features/home/domain/entities/quick_status.dart';
+import '../../features/home/data/repositories/preferences_quick_status_repository.dart';
+import '../../features/home/presentation/widgets/quick_status_sheet.dart';
 import '../../shared/widgets/parch_visuals.dart';
 import '../../features/activities/presentation/views/suggested_times_view.dart';
 import 'dart:async';
@@ -46,6 +50,7 @@ class ActivitiesDependencies {
   final AlertsRepository? alerts;
   final String? Function()? currentUserId;
   final String Function()? currentName;
+  final QuickStatusRepository? quickStatuses;
   const ActivitiesDependencies(
       {required this.repository,
       this.places = const GooglePlacesSource(),
@@ -55,7 +60,8 @@ class ActivitiesDependencies {
       this.groups,
       this.alerts,
       this.currentUserId,
-      this.currentName});
+      this.currentName,
+      this.quickStatuses});
   factory ActivitiesDependencies.mock() => ActivitiesDependencies(
       repository: MockStudySessionsRepository(), isDemo: true);
   factory ActivitiesDependencies.firebase(FirebaseDependencies firebase) {
@@ -65,6 +71,7 @@ class ActivitiesDependencies {
             auth: firebase.auth,
             firestore: firebase.firestore,
             api: firebase.mobile,
+            monitorFactory: firebase.creationMonitor,
             offline: () =>
                 firebase.mobile.value.offline || firebase.mobile.value.forced));
     return ActivitiesDependencies(
@@ -75,6 +82,8 @@ class ActivitiesDependencies {
             firebase.firestore, firebase.auth, api: firebase.mobile)),
         alerts: FirebaseAlertsRepository(firebase.mobile,
             currentUserId: () => firebase.auth.currentUser?.uid),
+        quickStatuses: PreferencesQuickStatusRepository(
+            firebase.auth.app.options.projectId),
         currentUserId: () => firebase.auth.currentUser?.uid,
         currentName: () =>
             firebase.auth.currentUser?.displayName ??
@@ -99,7 +108,8 @@ class ActivitiesDependencies {
               groups: groups,
               alerts: alerts,
               currentUserId: currentUserId,
-              currentName: currentName);
+              currentName: currentName,
+              quickStatuses: quickStatuses);
   Widget route(String id) =>
       _SessionEntry(key: ValueKey(id), dependencies: this, id: id);
   Widget resultRoute(String id, {bool acknowledged = false}) =>
@@ -193,19 +203,64 @@ class _HomeEntry extends StatefulWidget {
   final AlertsRepository? alerts;
   final String? Function()? currentUserId;
   final String Function()? currentName;
+  final QuickStatusRepository? quickStatuses;
   const _HomeEntry(
       {required this.catalog,
       this.profiles,
       this.groups,
       this.alerts,
       this.currentUserId,
-      this.currentName});
+      this.currentName,
+      this.quickStatuses});
   @override
   State<_HomeEntry> createState() => _HomeEntryState();
 }
 
 class _HomeEntryState extends State<_HomeEntry> with WidgetsBindingObserver {
   Timer? _expiryTimer;
+  QuickStatus _quickStatus = const QuickStatus();
+  String? _quickOwner;
+  Future<void> _loadQuickStatus() async {
+    final uid = widget.currentUserId?.call();
+    if (uid == null || widget.quickStatuses == null) return;
+    try {
+      final saved = await widget.quickStatuses!.load(uid);
+      if (mounted && widget.currentUserId?.call() == uid) {
+        setState(() {
+          _quickStatus = saved;
+          _quickOwner = uid;
+        });
+      }
+    } catch (_) {
+      /* Keep the editor available for retry after a read failure. */
+    }
+  }
+
+  Future<void> _refresh() async {
+    await Future.wait([model.load(), _loadQuickStatus()]);
+  }
+
+  Future<void> _editQuickStatus() async {
+    final uid = widget.currentUserId?.call();
+    if (uid == null || widget.quickStatuses == null) return;
+    await showProfileSheet<bool>(context,
+        child: QuickStatusSheet(
+            initial: _quickOwner == uid ? _quickStatus : const QuickStatus(),
+            onSave: (free, next) async {
+              if (widget.currentUserId?.call() != uid) {
+                throw StateError('Session changed.');
+              }
+              final saved = await widget.quickStatuses!.save(uid, free, next);
+              if (!mounted || widget.currentUserId?.call() != uid) {
+                throw StateError('Session changed.');
+              }
+              setState(() {
+                _quickStatus = saved;
+                _quickOwner = uid;
+              });
+            }));
+  }
+
   late final model = HomeViewModel(
       catalog: widget.catalog,
       groups: widget.groups,
@@ -217,6 +272,7 @@ class _HomeEntryState extends State<_HomeEntry> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    unawaited(_loadQuickStatus());
     _expiryTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (mounted) setState(() {});
     });
@@ -224,7 +280,7 @@ class _HomeEntryState extends State<_HomeEntry> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) model.load();
+    if (state == AppLifecycleState.resumed) _refresh();
   }
 
   @override
@@ -237,7 +293,14 @@ class _HomeEntryState extends State<_HomeEntry> with WidgetsBindingObserver {
           profile: state.profile.user,
           profileLoading: state.profile.isLoading,
           profileError: state.profile.error,
-          onRefreshActivities: model.load,
+          onRefreshActivities: _refresh,
+          quickStatus: _quickOwner == state.profile.user?.id
+              ? _quickStatus
+              : const QuickStatus(),
+          onEditQuickStatus:
+              state.profile.user == null || widget.quickStatuses == null
+                  ? null
+                  : _editQuickStatus,
           onManageStatus: state.profile.user == null
               ? null
               : () async {

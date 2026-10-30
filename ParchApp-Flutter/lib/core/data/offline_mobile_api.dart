@@ -74,6 +74,7 @@ class OfflineMobileApi extends ValueNotifier<OfflineStatus>
         clock = clock ?? DateTime.now,
         super(const OfflineStatus());
   static const _reads = {
+    'getFriends',
     'getProfile',
     'getAlerts',
     'getScheduleFriends',
@@ -97,6 +98,11 @@ class OfflineMobileApi extends ValueNotifier<OfflineStatus>
   }
 
   void _invalidateAfterMutation(Map saved, String name, Map input) {
+    if ({'changeFriendship', 'setUsername'}.contains(name)) {
+      (saved['cache'] as Map).removeWhere((_, entry) =>
+          entry['name'] == 'getFriends' ||
+          name == 'setUsername' && entry['name'] == 'getProfile');
+    }
     const changes = {
       'publishActivity',
       'updateActivityDetails',

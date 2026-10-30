@@ -1,3 +1,4 @@
+import '../../domain/entities/quick_status.dart';
 import '../../../../shared/widgets/parch_visuals.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -21,7 +22,8 @@ class HomeView extends StatelessWidget {
   final String? profileError;
   final bool profileLoading;
   final Future<void> Function()? onRefreshActivities;
-  final VoidCallback? onManageStatus;
+  final VoidCallback? onManageStatus, onEditQuickStatus;
+  final QuickStatus quickStatus;
   final String? demoStudySessionId, userName, userInitials;
   final int? groupCount;
   const HomeView(
@@ -34,6 +36,8 @@ class HomeView extends StatelessWidget {
       this.profileLoading = false,
       this.onRefreshActivities,
       this.onManageStatus,
+      this.onEditQuickStatus,
+      this.quickStatus = const QuickStatus(),
       this.demoStudySessionId,
       this.userName,
       this.userInitials,
@@ -71,12 +75,40 @@ class HomeView extends StatelessWidget {
                         child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Text(
-                                  'Hello, ${profile?.name ?? userName ?? 'there'}! 👋',
-                                  style: const TextStyle(
-                                      fontSize: 25,
-                                      fontWeight: FontWeight.w800,
-                                      color: AppColors.textPrimary)),
+                              Wrap(
+                                  spacing: 10,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  children: [
+                                    Text(
+                                        'Hello, ${profile?.name ?? userName ?? 'there'}! 👋',
+                                        style: const TextStyle(
+                                            fontSize: 25,
+                                            fontWeight: FontWeight.w800,
+                                            color: AppColors.textPrimary)),
+                                    if (profile != null)
+                                      ActionChip(
+                                        key: const ValueKey(
+                                            'availability-status-bubble'),
+                                        avatar: Icon(Icons.circle,
+                                            size: 12,
+                                            color: profile!.effectiveStatus ==
+                                                    AvailabilityStatus.active
+                                                ? Colors.green
+                                                : profile!.effectiveStatus ==
+                                                        AvailabilityStatus
+                                                            .offline
+                                                    ? Colors.grey
+                                                    : Colors.orange),
+                                        label: Text(profile!.effectiveStatus ==
+                                                AvailabilityStatus.active
+                                            ? 'Available now'
+                                            : profile!.effectiveStatus.label),
+                                        tooltip: 'Change availability status',
+                                        onPressed: profileLoading
+                                            ? null
+                                            : onManageStatus,
+                                      ),
+                                  ]),
                               const SizedBox(height: 4),
                               const Text('Make time for your people.'),
                               const SizedBox(height: 20),
@@ -209,6 +241,20 @@ class HomeView extends StatelessWidget {
     );
   }
 
+  String _nextActivity() {
+    final now = DateTime.now();
+    final plans = (activityState?.activities ?? <ActivitySummary>[])
+        .where((a) =>
+            !a.cancelled && a.startsAt != null && a.startsAt!.isAfter(now))
+        .toList()
+      ..sort((a, b) => a.startsAt!.compareTo(b.startsAt!));
+    return plans.isNotEmpty
+        ? plans.first.title
+        : quickStatus.nextActivity.isEmpty
+            ? 'Set your next activity'
+            : quickStatus.nextActivity;
+  }
+
   Widget _quickStatus(BuildContext context) => Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
@@ -268,28 +314,36 @@ class HomeView extends StatelessWidget {
                     child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                      const Text('STATUS DURATION',
+                      const Text('FREE UNTIL',
                           style: TextStyle(
                               color: Color(0xFFC5DCFF),
                               fontWeight: FontWeight.w700,
                               fontSize: 10)),
                       const SizedBox(height: 4),
                       Text(
-                          profile?.statusExpiresAt == null
-                              ? 'No expiration set'
-                              : 'Until ${profile!.statusExpiresAt!.toUtc().subtract(const Duration(hours: 5)).toString().substring(11, 16)} · Bogotá',
+                          quickStatus.freeUntil.isEmpty
+                              ? 'Set your free time'
+                              : quickStatus.freeUntil,
                           style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w700,
                               fontSize: 13)),
                     ])),
                 IconButton(
-                    tooltip: 'Manage status',
-                    onPressed: onManageStatus ??
-                        () => _open(context, AppRoutes.profile),
+                    tooltip: 'Edit quick status',
+                    onPressed: onEditQuickStatus,
                     icon: const Icon(Icons.edit_outlined,
                         color: Colors.white, size: 19))
               ])),
+          const SizedBox(height: 10),
+          const Text('NEXT ACTIVITY',
+              style: TextStyle(
+                  color: Color(0xFFC5DCFF),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700)),
+          Text(_nextActivity(),
+              style: const TextStyle(
+                  color: Colors.white, fontWeight: FontWeight.w700)),
           const SizedBox(height: 10),
           FilledButton.icon(
               style: FilledButton.styleFrom(

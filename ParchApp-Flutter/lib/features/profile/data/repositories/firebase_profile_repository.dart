@@ -1,4 +1,6 @@
 import '../../domain/repositories/presence_repository.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import '../../domain/entities/profile_load_failure.dart';
 import '../../domain/entities/profile_preferences.dart';
 import '../../../../core/data/mobile_api.dart';
 import '../../../../core/domain/data_freshness.dart';
@@ -14,6 +16,7 @@ class FirebaseProfileRepository
         freshness: DataFreshness.fromMap(data),
         id: data['id'] as String,
         name: data['name'] as String,
+        username: data['username'] as String?,
         program: data['program'] as String? ?? '',
         verified: data['verified'] == true,
         semester: (data['semester'] as num?)?.toInt() ?? 0,
@@ -64,8 +67,25 @@ class FirebaseProfileRepository
           .map((p) => Map<String, dynamic>.from(p))
           .toList();
   @override
-  Future<ProfileUser> getProfile() async =>
-      _user(await _api.call('getProfile', {}));
+  Future<ProfileUser> getProfile() async {
+    try {
+      return _user(await _api.call('getProfile', {}));
+    } on FirebaseFunctionsException catch (error) {
+      throw ProfileLoadFailure(switch (error.code) {
+        'unauthenticated' =>
+          'Your session could not be verified. Sign out and sign in again.',
+        'permission-denied' =>
+          'The backend denied profile access. The team must check the deployed function permissions.',
+        'not-found' ||
+        'unimplemented' =>
+          'The profile service is not deployed in this Firebase project.',
+        'unavailable' ||
+        'deadline-exceeded' =>
+          'The profile service is unreachable. Check your connection and retry.',
+        _ => 'Unable to load your profile (${error.code}). Please retry.',
+      });
+    }
+  }
 
   @override
   Future<ProfileUser> updateStatus(AvailabilityStatus status) async =>

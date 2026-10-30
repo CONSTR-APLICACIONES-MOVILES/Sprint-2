@@ -23,9 +23,9 @@ void main() {
     await tester.pumpWidget(MaterialApp(
         home: HomeView(
             activityState: ActivityListState(loading: false),
-            userName: 'Gabriel Pinto',
+            userName: 'Alex Rivera',
             userInitials: 'GP')));
-    expect(find.text('Hello, Gabriel Pinto! 👋'), findsOneWidget);
+    expect(find.text('Hello, Alex Rivera! 👋'), findsOneWidget);
     expect(find.text('Hello, Alex! 👋'), findsNothing);
     expect(find.text('GP'), findsOneWidget);
     await tester.pumpWidget(MaterialApp(
@@ -34,6 +34,6 @@ void main() {
             userName: 'Updated student',
             userInitials: 'US')));
     expect(find.text('Hello, Updated student! 👋'), findsOneWidget);
-    expect(find.text('Hello, Gabriel Pinto! 👋'), findsNothing);
+    expect(find.text('Hello, Alex Rivera! 👋'), findsNothing);
   });
 }
