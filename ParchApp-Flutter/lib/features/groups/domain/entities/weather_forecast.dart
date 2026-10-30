@@ -3,15 +3,21 @@ class WeatherForecast {
   final double temperature;
   final int rainChance;
   final int weatherCode;
+  final bool isDay;
 
   const WeatherForecast({
     required this.time,
     required this.temperature,
     required this.rainChance,
     required this.weatherCode,
+    this.isDay = true,
   });
 
   bool get rainLikely => rainChance >= 50;
+
+  bool get stormy => weatherCode >= 95;
+
+  bool get bad => rainLikely || stormy;
 
   String get sky => switch (weatherCode) {
         0 => 'Clear',

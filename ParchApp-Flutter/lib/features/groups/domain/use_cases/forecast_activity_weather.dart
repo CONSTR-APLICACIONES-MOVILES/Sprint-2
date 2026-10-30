@@ -1,6 +1,8 @@
 import '../entities/active_group.dart';
+import '../entities/activity_weather.dart';
 import '../entities/weather_forecast.dart';
 import '../repositories/weather_repository.dart';
+import 'weather_advisor.dart';
 
 class ForecastActivityWeather {
   static const campusLatitude = 4.6021;
@@ -11,9 +13,9 @@ class ForecastActivityWeather {
   final WeatherRepository _weather;
   const ForecastActivityWeather(this._weather);
 
-  Future<Map<String, WeatherForecast>> forGroups(
+  Future<Map<String, ActivityWeather>> forGroups(
       List<ActiveGroup> groups, DateTime now) async {
-    final result = <String, WeatherForecast>{};
+    final result = <String, ActivityWeather>{};
     final byPlace = <String, Future<List<WeatherForecast>>>{};
     for (final group in groups) {
       final startsAt = group.activityStartsAt;
@@ -29,7 +31,14 @@ class ForecastActivityWeather {
       final hours = await byPlace.putIfAbsent(
           place, () => _weather.hourlyForecast(latitude, longitude));
       final match = closestHour(hours, startsAt);
-      if (match != null) result[group.id] = match;
+      if (match != null) {
+        result[group.id] = WeatherAdvisor.advise(
+            current: match,
+            hours: hours,
+            startsAt: startsAt,
+            now: now,
+            outdoor: group.category == GroupCategory.sports);
+      }
     }
     return Map.unmodifiable(result);
   }

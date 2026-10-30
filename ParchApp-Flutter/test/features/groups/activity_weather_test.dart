@@ -89,8 +89,8 @@ void main() {
       _group('football', startsAt: DateTime.utc(2026, 10, 30, 18, 20)),
       _group('study', startsAt: DateTime.utc(2026, 10, 30, 16, 50)),
     ], now);
-    expect(result['football']!.rainChance, 70);
-    expect(result['study']!.rainChance, 20);
+    expect(result['football']!.forecast.rainChance, 70);
+    expect(result['study']!.forecast.rainChance, 20);
     expect(weather.places, ['4.6021,-74.0654']);
   });
 
@@ -136,7 +136,7 @@ void main() {
         weather: ForecastActivityWeather(_FakeWeather(hours)),
         now: () => now);
     await model.load();
-    expect(model.value.weatherFor(model.value.groups.single)?.rainChance, 70);
+    expect(model.value.weatherFor(model.value.groups.single)?.forecast.rainChance, 70);
     model.dispose();
   });
 }
