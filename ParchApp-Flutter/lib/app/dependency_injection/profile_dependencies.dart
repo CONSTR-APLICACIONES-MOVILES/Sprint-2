@@ -11,14 +11,19 @@ import '../../features/profile/presentation/views/profile_view.dart';
 import '../../features/profile/data/repositories/device_profile_photo_repository.dart';
 import '../../features/profile/domain/repositories/profile_photo_repository.dart';
 import '../../features/profile/domain/use_cases/change_profile_photo.dart';
+import '../../core/connectivity/connectivity_service.dart';
 
 class ProfileDependencies {
   final ProfileRepository repository;
   final AuthRepository? authRepository;
   final ProfilePhotoRepository photos;
+  final Future<bool> Function()? isOnline;
 
   const ProfileDependencies(
-      {required this.repository, this.authRepository, required this.photos});
+      {required this.repository,
+      this.authRepository,
+      required this.photos,
+      this.isOnline});
 
   factory ProfileDependencies.mock({AuthRepository? authRepository}) =>
       ProfileDependencies(
@@ -31,12 +36,13 @@ class ProfileDependencies {
       ProfileDependencies(
           repository: FirebaseProfileRepository(firebase.mobile),
           authRepository: authRepository,
-          photos: DeviceProfilePhotoRepository());
+          photos: DeviceProfilePhotoRepository(),
+          isOnline: ConnectivityService().hasConnection);
 
   ProfileViewModel createViewModel() => ProfileViewModel(
         ManageProfile(repository),
         signOut: authRepository == null ? null : SignOut(authRepository!),
-        changePhoto: ChangeProfilePhoto(photos, repository),
+        changePhoto: ChangeProfilePhoto(photos, repository, isOnline: isOnline),
       );
 
   Widget route() => _ProfileEntry(dependencies: this);

@@ -145,5 +145,19 @@ void main() {
       expect(model.value.biometricSignIn, BiometricSignIn.available);
       expect(model.value.message, 'Face ID sign-in is turned off.');
     });
+
+        test('offline Face ID sign-in explains it needs internet', () async {
+      credentials.saved = const SavedCredentials(
+          email: 'student@example.com', password: 'secret');
+      final offline = SignInViewModel(SignIn(repository,
+          biometrics: biometrics,
+          credentials: credentials,
+          isOnline: () async => false));
+      await offline.load();
+      await offline.signInWithBiometrics();
+      expect(biometrics.reasons, isEmpty);
+      expect(offline.value.message, contains('internet'));
+      offline.dispose();
+    });
   });
 }

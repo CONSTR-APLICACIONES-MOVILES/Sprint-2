@@ -353,6 +353,13 @@ class _WeatherHint extends StatelessWidget {
                 : 'No drier time nearby · bring an umbrella')
             : null;
     final color = bad ? const Color(0xFF92400E) : AppColors.primary;
+    final age = forecast.fetchedAt == null
+        ? null
+        : DateTime.now().difference(forecast.fetchedAt!);
+    final saved = age != null && age >= const Duration(hours: 1)
+        ? ' · saved ${age.inHours} h ago'
+        : '';
+    
     return Container(
       key: const ValueKey('activity-weather'),
       margin: const EdgeInsets.only(top: 10),
@@ -366,7 +373,7 @@ class _WeatherHint extends StatelessWidget {
               size: 16, color: bad ? AppColors.warning : AppColors.primary),
           const SizedBox(width: 8),
           Expanded(
-            child: Text('${forecast.label} at the activity time',
+            child: Text('${forecast.label} at the activity time$saved',
                 style: TextStyle(
                     fontSize: 11.5, fontWeight: FontWeight.w600, color: color)),
           ),

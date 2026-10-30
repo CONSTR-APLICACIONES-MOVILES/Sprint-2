@@ -51,4 +51,16 @@ void main() {
     expect(model.value.error, contains('camera'));
     expect(model.value.user, isNotNull);
   });
+
+    test('offline the camera does not open and the user is told why', () async {
+    final profiles = MockProfileRepository();
+    final offline = ProfileViewModel(ManageProfile(profiles),
+        changePhoto: ChangeProfilePhoto(photos, profiles,
+            isOnline: () async => false));
+    await offline.load();
+    expect(await offline.changePhoto(), isFalse);
+    expect(photos.captures, 0);
+    expect(offline.value.error, contains('offline'));
+    offline.dispose();
+  });
 }
