@@ -9,6 +9,8 @@ import '../../core/data/mobile_api.dart';
 import '../../core/data/offline_mobile_api.dart';
 import '../../core/data/sqlite_offline_store.dart';
 import '../../core/data/restore_auth_session.dart';
+import 'dart:async';
+import '../../features/activities/data/data_sources/creation_attempt_monitor.dart';
 
 /// Uses the checked-in live configuration or the shared demo-parchapp emulators.
 class FirebaseDependencies {
@@ -16,8 +18,30 @@ class FirebaseDependencies {
   final FirebaseFirestore firestore;
   final FirebaseFunctions functions;
   final OfflineMobileApi mobile;
+  final Map<String, CreationAttemptMonitor> _creationMonitors = {};
   FirebaseDependencies._(
       this.auth, this.firestore, this.functions, this.mobile);
+
+  Future<CreationAttemptMonitor> creationMonitor(String uid) async {
+    final preferences = await SharedPreferences.getInstance();
+    return _creationMonitors.putIfAbsent(
+        uid,
+        () => CreationAttemptMonitor(preferences,
+            project: firestore.app.options.projectId,
+            uid: uid,
+            canSend: () =>
+                auth.currentUser?.uid == uid &&
+                !mobile.value.forced &&
+                !mobile.value.offline,
+            send: (event) async {
+              if (auth.currentUser?.uid != uid) {
+                throw StateError('Session changed.');
+              }
+              await functions
+                  .httpsCallable('recordCreationAttempt')
+                  .call(event);
+            }));
+  }
 
   static Future<FirebaseDependencies> initialize() async {
     const emulators =
@@ -29,6 +53,12 @@ class FirebaseDependencies {
         options: DefaultFirebaseOptions.currentPlatform);
     final FirebaseApp app;
     if (emulators) {
+      const emulatorProject = String.fromEnvironment(
+          'FIREBASE_EMULATOR_PROJECT',
+          defaultValue: 'demo-parchapp');
+      if (!RegExp(r'^demo-[a-z0-9-]{1,40}$').hasMatch(emulatorProject)) {
+        throw StateError('Emulator verification requires a demo project.');
+      }
       final platform = kIsWeb
           ? 'web'
           : switch (defaultTargetPlatform) {
@@ -39,12 +69,12 @@ class FirebaseDependencies {
       // Emulator-only placeholders. Android Functions validates API-key syntax
       // even locally; demoProjectId's short generated key fails that validation.
       app = await Firebase.initializeApp(
-          name: 'demo-parchapp',
+          name: emulatorProject,
           options: FirebaseOptions(
               apiKey: 'A00000000000000000000000000000000000000',
               appId: '1:1234567890:$platform:0000000000000000000000',
               messagingSenderId: '1234567890',
-              projectId: 'demo-parchapp'));
+              projectId: emulatorProject));
     } else {
       app = defaultApp;
     }
@@ -75,11 +105,33 @@ class FirebaseDependencies {
         ? await SqliteOfflineStore.open(legacyPreferences: preferences)
         : PreferencesOfflineStore(preferences);
     final mobile = OfflineMobileApi(
-        remote: FirebaseMobileApi(functions),
+        remote: FirebaseMobileApi(functions, auth: auth),
         store: offlineStore,
         project: app.options.projectId,
         currentUserId: () => auth.currentUser?.uid);
-    auth.authStateChanges().listen((_) => mobile.refreshSession());
-    return FirebaseDependencies._(auth, firestore, functions, mobile);
+    final dependencies =
+        FirebaseDependencies._(auth, firestore, functions, mobile);
+    void retryMetrics() {
+      final uid = auth.currentUser?.uid;
+      if (uid != null) {
+        unawaited(dependencies
+            .creationMonitor(uid)
+            .then((monitor) => monitor.flush())
+            .catchError((Object _) {}));
+      }
+    }
+
+    auth.authStateChanges().listen((_) {
+      mobile.refreshSession();
+      retryMetrics();
+    });
+    var wasOffline = mobile.value.offline || mobile.value.forced;
+    mobile.addListener(() {
+      final offline = mobile.value.offline || mobile.value.forced;
+      if (wasOffline && !offline) retryMetrics();
+      wasOffline = offline;
+    });
+    retryMetrics();
+    return dependencies;
   }
 }

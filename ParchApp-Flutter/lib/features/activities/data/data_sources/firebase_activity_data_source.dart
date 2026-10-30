@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'publication_journal.dart';
+import 'creation_attempt_monitor.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
@@ -14,11 +16,14 @@ class FirebaseActivityDataSource
   final FirebaseFirestore firestore;
   final MobileApi? api;
   final bool Function()? offline;
+  final Map<String, CreationAttemptMonitor> _metrics = {};
+  final Future<CreationAttemptMonitor> Function(String uid)? monitorFactory;
   FirebaseActivityDataSource(
       {required this.functions,
       required this.auth,
       required this.firestore,
       this.api,
+      this.monitorFactory,
       this.offline});
   void _requireOnline() {
     if (offline?.call() == true) {
@@ -48,11 +53,31 @@ class FirebaseActivityDataSource
   Future<PublicationJournal> _journal(String uid) async =>
       PublicationJournal(await SharedPreferences.getInstance(),
           project: firestore.app.options.projectId, uid: uid);
+  Future<CreationAttemptMonitor> _monitor(String uid) async {
+    if (monitorFactory != null) return monitorFactory!(uid);
+    final preferences = await SharedPreferences.getInstance();
+    return _metrics.putIfAbsent(
+        uid,
+        () => CreationAttemptMonitor(preferences,
+            project: firestore.app.options.projectId,
+            uid: uid,
+            canSend: () => currentUserId == uid && offline?.call() != true,
+            send: (event) async {
+              if (currentUserId != uid) throw StateError('Session changed.');
+              await functions
+                  .httpsCallable('recordCreationAttempt')
+                  .call(event);
+            }));
+  }
+
   @override
   Future<Map<String, dynamic>?> pendingPublication() async {
     final uid = currentUserId;
     if (uid == null) return null;
     final journal = await _journal(uid);
+    unawaited(_monitor(uid)
+        .then((monitor) => monitor.flush())
+        .catchError((Object _) {}));
     if (currentUserId != uid) throw StateError('Session changed.');
     return journal.read();
   }
@@ -67,11 +92,19 @@ class FirebaseActivityDataSource
     await journal.write(fields);
     if (currentUserId != uid) throw StateError('Session changed.');
     try {
-      final receipt = await call('publishActivity', fields);
+      final monitor = await _monitor(uid);
+      final receipt = await monitor.observe(
+          fields['requestId'] as String, () => call('publishActivity', fields));
+      if (currentUserId != uid) throw StateError('Session changed.');
       try {
         await journal.clear();
       } catch (_) {/* Server acknowledgement remains authoritative. */}
       return receipt['activityId'] as String;
+    } on TimeoutException {
+      throw FirebaseFunctionsException(
+          code: 'deadline-exceeded',
+          message:
+              'Acknowledgement timed out. Recover this publication to check its result.');
     } on FirebaseException catch (error) {
       if (![
         'unavailable',

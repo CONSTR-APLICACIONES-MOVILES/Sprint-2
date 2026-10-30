@@ -113,14 +113,6 @@ class _ProfileViewState extends State<ProfileView> {
                 ProfileAcademicCard(user: user),
                 const SizedBox(height: 12),
                 ProfileStatsRow(user: user),
-                const ProfileSectionLabel('Planning insights'),
-                ProfileMenuGroup(children: [
-                  ProfileMenuTile(
-                      icon: Icons.insights_outlined,
-                      title: 'Comparison & confirmation',
-                      subtitle: 'Measured coordination outcomes',
-                      onTap: () => context.push('/insights/coordination'))
-                ]),
                 const ProfileSectionLabel('Availability & schedule'),
                 ProfileMenuGroup(children: [
                   ProfileMenuTile(
@@ -146,6 +138,22 @@ class _ProfileViewState extends State<ProfileView> {
                     child: const Text('Share my profile')),
                 const ProfileSectionLabel('Community & groups'),
                 ProfileMenuGroup(children: [
+                  ProfileMenuTile(
+                      icon: Icons.alternate_email,
+                      title: 'Username',
+                      subtitle: user.username == null
+                          ? 'Choose your unique username'
+                          : '@${user.username}',
+                      onTap: () async {
+                        await context.push('/username');
+                        if (mounted) await widget.viewModel.load();
+                      }),
+                  ProfileMenuTile(
+                      icon: Icons.people_outline,
+                      title: 'Friends',
+                      subtitle:
+                          'Search people, requests and accepted friendships',
+                      onTap: () => context.push('/friends')),
                   ProfileMenuTile(
                       icon: Icons.groups_2_outlined,
                       title: 'My Groups',

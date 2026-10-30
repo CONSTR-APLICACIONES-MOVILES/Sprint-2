@@ -33,8 +33,16 @@ abstract final class AppRouter {
         routes: [
           if (expansions != null) ...[
             GoRoute(
+                path: '/insights/planning',
+                redirect: (_, __) => AppRoutes.profile),
+            GoRoute(path: '/friends', builder: (_, __) => expansions.friends()),
+            GoRoute(
+                path: '/people', builder: (_, __) => expansions.findPeople()),
+            GoRoute(
+                path: '/username', builder: (_, __) => expansions.username()),
+            GoRoute(
                 path: '/insights/coordination',
-                builder: (_, __) => expansions.insights()),
+                redirect: (_, __) => AppRoutes.profile),
             GoRoute(
                 path: '/join',
                 builder: (context, state) => expansions.join(null)),

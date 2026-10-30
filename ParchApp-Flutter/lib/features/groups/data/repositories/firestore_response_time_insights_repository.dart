@@ -1,19 +1,18 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../../../core/data/mobile_api.dart';
 
 import '../../domain/entities/response_time_estimate.dart';
 import '../../domain/repositories/response_time_insights_repository.dart';
 
 class FirestoreResponseTimeInsightsRepository
     implements ResponseTimeInsightsRepository {
-  final FirebaseFirestore _db;
-  const FirestoreResponseTimeInsightsRepository(this._db);
+  final MobileApi _api;
+  const FirestoreResponseTimeInsightsRepository(this._api);
 
   @override
   Future<List<ResponseTimeEstimate>> getEstimates() async {
     try {
-      final snapshot =
-          await _db.collection('insights').doc('bq5_response_time').get();
-      return parseEstimates(snapshot.data());
+      final result = await _api.call('getResponseTimeEstimates', {});
+      return parseEstimates(result);
     } catch (_) {
       return const [];
     }

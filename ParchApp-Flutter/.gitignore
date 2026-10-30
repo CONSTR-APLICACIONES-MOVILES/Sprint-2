@@ -15,3 +15,20 @@ coverage/
 
 # Local Google Maps API key
 /android/maps.properties
+
+# Firebase CLI diagnostics can include local authentication metadata.
+/firebase-debug.log
+
+# Private local planning and review materials
+/docs/RUTA_GABRIEL*
+**/Nivio*.png
+/tmp/
+**/VivaVoce*
+**/viva_voce*
+**/RUTA_EMERGENCIA*
+
+# Private defense preparation
+/docs/DEFENSA_GABRIEL*
+
+# Generated Kotlin compiler state
+/android/.kotlin/

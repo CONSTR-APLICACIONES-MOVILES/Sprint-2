@@ -52,7 +52,7 @@ class GroupsDependencies {
         repository: FirebaseActiveGroupsRepository(FirestoreGroupsDataSource(
             firebase.firestore, firebase.auth,
             api: firebase.mobile)),
-        insights: FirestoreResponseTimeInsightsRepository(firebase.firestore),
+        insights: FirestoreResponseTimeInsightsRepository(firebase.mobile),
         analytics: analytics,
         currentUserId: () => firebase.auth.currentUser?.uid,
       );

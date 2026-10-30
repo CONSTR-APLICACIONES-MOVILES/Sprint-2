@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import '../../domain/entities/profile_load_failure.dart';
 import '../../domain/entities/profile_preferences.dart';
 import '../../domain/entities/profile_user.dart';
 import '../../domain/use_cases/change_profile_photo.dart';
@@ -42,10 +43,17 @@ class ProfileViewModel extends ValueNotifier<ProfileState> {
     try {
       final user = await _profile.load();
       _emit(value.copyWith(user: user, isLoading: false));
-    } catch (_) {
+    } catch (error, stack) {
+      assert(() {
+        debugPrint('Profile load failed: ${error.runtimeType}');
+        debugPrintStack(stackTrace: stack);
+        return true;
+      }());
       _emit(value.copyWith(
           isLoading: false,
-          error: 'Unable to load your profile. Please try again.'));
+          error: error is ProfileLoadFailure
+              ? error.message
+              : 'Unable to load your profile. Please try again.'));
     }
   }
 

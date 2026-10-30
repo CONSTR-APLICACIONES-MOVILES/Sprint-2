@@ -1,4 +1,6 @@
 import '../../features/expansions/presentation/views/coordination_insights_view.dart';
+import '../../features/expansions/presentation/views/social_views.dart';
+import '../../features/expansions/presentation/views/planning_metrics_view.dart';
 import 'package:flutter/material.dart';
 import '../../features/expansions/data/repositories/firebase_expansion_repository.dart';
 import '../../features/expansions/data/repositories/platform_external_actions.dart';
@@ -11,12 +13,16 @@ import 'schedule_dependencies.dart';
 class ExpansionDependencies {
   final ExpansionRepository repository;
   final Future<Map<String, dynamic>?> Function()? loadCoordinationInsight;
+  final Future<MetricsSnapshot> Function()? loadMetrics;
+  final Future<void> Function()? refreshMetrics;
   final ExternalActions external;
   final bool calendarImportEnabled;
   final Future<void> Function() importCalendar;
   const ExpansionDependencies(
       {required this.repository,
       this.loadCoordinationInsight,
+      this.loadMetrics,
+      this.refreshMetrics,
       this.calendarImportEnabled = true,
       required this.external,
       required this.importCalendar});
@@ -24,13 +30,6 @@ class ExpansionDependencies {
     final schedule = ScheduleDependencies.firebase(firebase);
     return ExpansionDependencies(
         calendarImportEnabled: schedule.calendarImportEnabled,
-        loadCoordinationInsight: () async {
-          final result =
-              await firebase.mobile.call('getCoordinationInsight', {});
-          return result['insight'] == null
-              ? null
-              : Map<String, dynamic>.from(result['insight'] as Map);
-        },
         repository: FirebaseExpansionRepository(
             firebase.mobile, () => firebase.auth.currentUser?.uid),
         external: const PlatformExternalActions(),
@@ -47,9 +46,14 @@ class ExpansionDependencies {
   }
   Widget insights() => CoordinationInsightsView(
       loadInsight: loadCoordinationInsight ?? () async => null);
+  Widget metrics() => PlanningMetricsView(
+      load: loadMetrics ?? () async => {}, refresh: refreshMetrics);
   Widget discover() => DiscoverView(repository: repository);
+  Widget friends() => FriendsView(repository: repository);
+  Widget findPeople() => FriendsView(repository: repository, searchOnly: true);
+  Widget username() => UsernameView(repository: repository);
   Widget sharedProfile(String id) =>
-      SharedProfileView(key: ValueKey(id), repository: repository, userId: id);
+      PublicPersonView(key: ValueKey(id), repository: repository, userId: id);
   Widget share(String kind, String id) => ShareEntityView(
       key: ValueKey('$kind:$id'),
       repository: repository,
