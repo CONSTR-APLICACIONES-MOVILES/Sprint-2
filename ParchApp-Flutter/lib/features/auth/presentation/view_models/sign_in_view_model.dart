@@ -11,6 +11,7 @@ class SignInViewModel extends AuthViewModel {
   Future<void> load() async {
     if (_loaded || isDisposed) return;
     _loaded = true;
+    await _refreshBiometricSignIn();
     try {
       final user = await _signIn.recognizedUser();
       emit(value.copyWith(recognizedUser: user, message: value.message));
@@ -24,8 +25,33 @@ class SignInViewModel extends AuthViewModel {
     }
   }
 
-  Future<void> signIn({required String email, required String password}) =>
-      authenticate(() => _signIn(email: email, password: password));
+  Future<void> _refreshBiometricSignIn() async {
+    try {
+      final status = await _signIn.biometricSignIn();
+      emit(value.copyWith(biometricSignIn: status, message: value.message));
+    } catch (_) {}
+  }
+
+  Future<void> signIn(
+          {required String email,
+          required String password,
+          bool rememberWithBiometrics = false}) =>
+      authenticate(() => _signIn(
+          email: email,
+          password: password,
+          rememberWithBiometrics: rememberWithBiometrics));
+
+  Future<void> signInWithBiometrics() => authenticate(_signIn.withBiometrics);
+
+  Future<void> turnOffBiometricSignIn() async {
+    if (isDisposed || value.isLoading) return;
+    try {
+      await _signIn.turnOffBiometricSignIn();
+    } catch (_) {}
+    final status = await _signIn.biometricSignIn();
+    emit(value.copyWith(
+        biometricSignIn: status, message: 'Face ID sign-in is turned off.'));
+  }
 
   Future<void> signInWithGoogle() => authenticate(_signIn.withGoogle);
 

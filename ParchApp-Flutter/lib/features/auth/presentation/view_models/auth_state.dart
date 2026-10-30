@@ -1,4 +1,5 @@
 import '../../domain/entities/authenticated_user.dart';
+import '../../domain/entities/biometric_sign_in.dart';
 import '../../domain/entities/google_account.dart';
 
 enum AuthStatus {
@@ -14,6 +15,7 @@ class AuthState {
   final AuthenticatedUser? user;
   final AuthenticatedUser? recognizedUser;
   final GoogleAccount? suggestedGoogleAccount;
+  final BiometricSignIn biometricSignIn;
   final String? message;
 
   const AuthState(
@@ -21,6 +23,7 @@ class AuthState {
       this.user,
       this.recognizedUser,
       this.suggestedGoogleAccount,
+      this.biometricSignIn = BiometricSignIn.unavailable,
       this.message});
 
   bool get isLoading => status == AuthStatus.loading;
@@ -30,6 +33,7 @@ class AuthState {
           AuthenticatedUser? user,
           AuthenticatedUser? recognizedUser,
           GoogleAccount? suggestedGoogleAccount,
+          BiometricSignIn? biometricSignIn,
           String? message}) =>
       AuthState(
           status: status ?? this.status,
@@ -37,5 +41,6 @@ class AuthState {
           recognizedUser: recognizedUser ?? this.recognizedUser,
           suggestedGoogleAccount:
               suggestedGoogleAccount ?? this.suggestedGoogleAccount,
+          biometricSignIn: biometricSignIn ?? this.biometricSignIn,
           message: message);
 }
