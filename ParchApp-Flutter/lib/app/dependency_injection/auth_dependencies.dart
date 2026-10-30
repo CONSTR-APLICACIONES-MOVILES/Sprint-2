@@ -17,6 +17,7 @@ import '../../features/auth/domain/repositories/biometric_authenticator.dart';
 import '../../features/auth/domain/repositories/saved_credentials_repository.dart';
 import '../../features/auth/data/repositories/local_biometric_authenticator.dart';
 import '../../features/auth/data/repositories/secure_saved_credentials_repository.dart';
+import '../../core/connectivity/connectivity_service.dart';
 
 class AuthDependencies {
   final AuthRepository repository;
@@ -49,8 +50,11 @@ class AuthDependencies {
           repository: AuthRepositoryImpl(
               FirebaseAuthDataSource(auth, profiles: profiles)));
 
-  SignInViewModel createSignInViewModel() => SignInViewModel(
-      SignIn(repository, biometrics: biometrics, credentials: credentials));
+  SignInViewModel createSignInViewModel() => SignInViewModel(SignIn(
+      repository,
+      biometrics: biometrics,
+      credentials: credentials,
+      isOnline: biometrics == null ? null : ConnectivityService().hasConnection));
   CreateAccountViewModel createAccountViewModel() =>
       CreateAccountViewModel(CreateAccount(repository));
 

@@ -20,6 +20,8 @@ import '../../features/groups/domain/use_cases/forecast_activity_weather.dart';
 import '../../features/groups/domain/use_cases/manage_active_groups.dart';
 import '../../features/groups/presentation/view_models/active_groups_view_model.dart';
 import '../../features/groups/presentation/views/active_groups_view.dart';
+import '../../features/groups/data/repositories/cached_weather_repository.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class GroupsDependencies {
   final ActiveGroupsRepository repository;
@@ -59,7 +61,8 @@ class GroupsDependencies {
             api: firebase.mobile,
             canAttemptRemote: () => firebase.mobile.canAttemptRemote)),
         insights: FirestoreResponseTimeInsightsRepository(firebase.mobile),
-        weather: OpenMeteoWeatherRepository(),
+        weather: CachedWeatherRepository(
+            OpenMeteoWeatherRepository(), SharedPreferences.getInstance),
         analytics: analytics,
         currentUserId: () => firebase.auth.currentUser?.uid,
       );

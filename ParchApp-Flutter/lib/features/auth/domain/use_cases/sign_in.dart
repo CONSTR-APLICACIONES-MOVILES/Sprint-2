@@ -10,11 +10,14 @@ class SignIn {
   final AuthRepository _repository;
   final BiometricAuthenticator? _biometrics;
   final SavedCredentialsRepository? _credentials;
+  final Future<bool> Function()? _isOnline;
   const SignIn(this._repository,
       {BiometricAuthenticator? biometrics,
-      SavedCredentialsRepository? credentials})
+      SavedCredentialsRepository? credentials,
+      Future<bool> Function()? isOnline})
       : _biometrics = biometrics,
-        _credentials = credentials;
+        _credentials = credentials,
+        _isOnline = isOnline;
 
   Future<AuthenticatedUser?> recognizedUser() =>
       _repository.getRecognizedUser();
@@ -72,6 +75,11 @@ class SignIn {
     final saved = await _credentials?.read();
     if (biometrics == null || saved == null) {
       throw const AuthValidationException('Face ID sign-in is not turned on.');
+    }
+        final online = _isOnline;
+    if (online != null && !await online()) {
+      throw const AuthenticationException(
+          'Face ID sign-in needs an internet connection.');
     }
     if (!await biometrics.authenticate('Confirm it is you to sign in')) {
       throw const AuthenticationException(

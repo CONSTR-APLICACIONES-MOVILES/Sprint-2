@@ -6,6 +6,7 @@ import '../../domain/use_cases/change_profile_photo.dart';
 import '../../domain/use_cases/manage_profile.dart';
 import 'profile_state.dart';
 import '../../../auth/domain/use_cases/sign_out.dart';
+import '../../domain/entities/profile_offline.dart';
 
 class ProfileViewModel extends ValueNotifier<ProfileState> {
   final ManageProfile _profile;
@@ -92,6 +93,13 @@ class ProfileViewModel extends ValueNotifier<ProfileState> {
       if (_disposed) return false;
       _emit(value.copyWith(user: updated, isUpdating: false));
       return updated != null;
+      
+       } on ProfileOffline {
+      _emit(value.copyWith(
+          isUpdating: false,
+          error: "You're offline. Connect to update your photo."));
+      return false;
+
     } catch (_) {
       _emit(value.copyWith(
           isUpdating: false,

@@ -4,6 +4,7 @@ class WeatherForecast {
   final int rainChance;
   final int weatherCode;
   final bool isDay;
+  final DateTime? fetchedAt;
 
   const WeatherForecast({
     required this.time,
@@ -11,6 +12,7 @@ class WeatherForecast {
     required this.rainChance,
     required this.weatherCode,
     this.isDay = true,
+    this.fetchedAt,
   });
 
   bool get rainLikely => rainChance >= 50;
