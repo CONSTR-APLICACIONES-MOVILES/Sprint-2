@@ -88,5 +88,7 @@
 
 	<key>NSFaceIDUsageDescription</key>
     <string>ParchApp uses Face ID to confirm it is you before continuing with your saved account.</string>
+<key>NSLocationWhenInUseUsageDescription</key>
+<string>ParchApp uses your location to identify friends who are nearby.</string>
 </dict>
 </plist>

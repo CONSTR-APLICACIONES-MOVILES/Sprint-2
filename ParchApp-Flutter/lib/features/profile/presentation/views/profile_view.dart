@@ -12,7 +12,6 @@ import '../view_models/profile_view_model.dart';
 import '../widgets/profile_cards.dart';
 import '../widgets/profile_menu_tile.dart';
 import '../widgets/profile_sheets.dart';
-import '../../domain/entities/photo_source.dart';
 import '../../../../shared/widgets/data_freshness_banner.dart';
 
 const _surface = Color(0xFFF8FAFE);

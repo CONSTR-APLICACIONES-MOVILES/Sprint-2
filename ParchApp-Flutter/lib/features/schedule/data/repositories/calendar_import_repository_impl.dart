@@ -5,8 +5,7 @@ import '../adapters/google_calendar_adapter.dart';
 import '../data_sources/google_calendar_auth_data_source.dart';
 import '../data_sources/google_calendar_data_source.dart';
 
-class CalendarImportRepositoryImpl
-    implements CalendarImportRepository {
+class CalendarImportRepositoryImpl implements CalendarImportRepository {
   final GoogleCalendarDataSource dataSource;
   final GoogleCalendarAuthDataSource authDataSource;
   final GoogleCalendarAdapter adapter;

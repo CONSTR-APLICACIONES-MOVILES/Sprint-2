@@ -97,4 +97,36 @@ void main() {
     expect(model.value.error, isNull);
     expect(model.value.status, ScheduleLoadStatus.ready);
   });
+  test(
+      'cached schedule stays marked cached even when platform reports a connection',
+      () async {
+    model.dispose();
+    model = ScheduleViewModel(
+      ManageSchedule(repository, const AvailabilityService()),
+      ImportGoogleCalendar(calendar, repository),
+      authorizeGoogleCalendar: AuthorizeGoogleCalendar(calendar),
+      isOffline: () => true,
+    );
+    final load = model.selectDay(DateTime(2026, 10, 20));
+    repository.requests.single.complete([]);
+    await load;
+    expect(model.value.status, ScheduleLoadStatus.ready);
+    expect(model.value.connectivityStatus, ScheduleConnectivityStatus.cached);
+    expect(model.value.scheduleLastUpdatedAt, isNull);
+  });
+
+  test(
+      'missing offline data clears previous slots instead of inventing availability',
+      () async {
+    final first = model.selectDay(DateTime(2026, 10, 20));
+    repository.requests.single.complete([]);
+    await first;
+    expect(model.value.commonSlots, isNotEmpty);
+    final missing = model.selectDay(DateTime(2026, 10, 21));
+    repository.requests.last.completeError(StateError('No saved schedule'));
+    await missing;
+    expect(model.value.status, ScheduleLoadStatus.error);
+    expect(model.value.commonSlots, isEmpty);
+    expect(model.value.selectedSlot, isNull);
+  });
 }

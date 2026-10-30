@@ -1,8 +1,13 @@
 import '../../domain/entities/schedule_block.dart';
 import '../../domain/entities/schedule_friend.dart';
 import '../../domain/repositories/schedule_repository.dart';
+import '../../domain/entities/user_location.dart';
 
 class MockScheduleRepository implements ScheduleRepository {
+  @override
+  Future<Map<String, UserLocation>> getFriendLocations(
+          {required List<String> friendIds}) async =>
+      {};
   final List<ScheduleBlock> _importedCalendarBlocks = [];
 
   static const friends = [

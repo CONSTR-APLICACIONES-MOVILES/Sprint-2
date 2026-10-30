@@ -1,3 +1,5 @@
+import '../../domain/entities/user_location.dart';
+import 'firestore_friend_locations_repository.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import '../../../activities/domain/entities/study_session.dart'
     show SessionFailure;
@@ -15,9 +17,12 @@ class FirebaseScheduleRepository
   final MobileApi _api;
   final String? Function() _userId;
   final String? groupId;
-  FirebaseScheduleRepository(this._api, this._userId, {this.groupId});
+  final FirestoreFriendLocationsRepository? locations;
+  FirebaseScheduleRepository(this._api, this._userId,
+      {this.groupId, this.locations});
   FirebaseScheduleRepository forGroup(String id) =>
-      FirebaseScheduleRepository(_api, _userId, groupId: id);
+      FirebaseScheduleRepository(_api, _userId,
+          groupId: id, locations: locations);
 
   @override
   Future<CreationComparison> prepareProposalComparison(
@@ -43,6 +48,13 @@ class FirebaseScheduleRepository
           'Validating a slot requires a connection. Reconnect and compare again.');
     }
   }
+
+  @override
+  Future<Map<String, UserLocation>> getFriendLocations(
+          {required List<String> friendIds}) async =>
+      locations == null
+          ? <String, UserLocation>{}
+          : locations!.getFriendLocations(friendIds: friendIds);
 
   @override
   Future<List<ScheduleFriend>> getFriends() async {

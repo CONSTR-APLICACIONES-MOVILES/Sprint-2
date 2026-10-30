@@ -1,6 +1,6 @@
+import '../../../../shared/widgets/parch_app_bar.dart';
 import '../../../activities/domain/entities/study_session.dart'
     show SessionFailure;
-import '../../../../shared/widgets/parch_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -10,6 +10,7 @@ import '../../../../shared/widgets/parch_navigation_bar.dart';
 import '../../domain/entities/common_slot.dart';
 import '../../domain/entities/schedule_block.dart';
 import '../../domain/entities/schedule_friend.dart';
+import '../../domain/services/duration_input_service.dart';
 import '../view_models/schedule_state.dart';
 import '../view_models/schedule_view_model.dart';
 
@@ -37,6 +38,11 @@ class _ScheduleViewState extends State<ScheduleView> {
   static const double _timelineHeight =
       (_endHour - _startHour) * 60 * _pixelsPerMinute;
 
+  final DurationInputService _durationInputService =
+      const DurationInputService();
+
+  int? _editingQuickDurationMinutes;
+
   @override
   void initState() {
     super.initState();
@@ -44,7 +50,9 @@ class _ScheduleViewState extends State<ScheduleView> {
   }
 
   @override
-  void didUpdateWidget(covariant ScheduleView oldWidget) {
+  void didUpdateWidget(
+    covariant ScheduleView oldWidget,
+  ) {
     super.didUpdateWidget(oldWidget);
 
     if (oldWidget.viewModel != widget.viewModel) {
@@ -58,8 +66,12 @@ class _ScheduleViewState extends State<ScheduleView> {
       valueListenable: widget.viewModel,
       builder: (context, state, _) {
         return Scaffold(
-          backgroundColor: const Color(0xFFF4F7FC),
-          appBar: _buildAppBar(context),
+          backgroundColor: const Color(
+            0xFFF4F7FC,
+          ),
+          appBar: _buildAppBar(
+            context,
+          ),
           body: SafeArea(
             top: false,
             bottom: false,
@@ -70,17 +82,28 @@ class _ScheduleViewState extends State<ScheduleView> {
                       constraints: const BoxConstraints(maxHeight: 180),
                       child:
                           SingleChildScrollView(child: widget.activityHeader!)),
-                _buildFriendBar(context, state),
-                _buildCalendarImportBar(state),
-                _buildDurationBar(state),
-                _buildWeekSelector(state),
+                _buildFriendBar(
+                  context,
+                  state,
+                ),
+                _buildCalendarImportBar(
+                  state,
+                ),
+                _buildDurationBar(
+                  state,
+                ),
+                _buildWeekSelector(
+                  state,
+                ),
                 if (state.status == ScheduleLoadStatus.loading)
                   const LinearProgressIndicator(
                     minHeight: 2,
                   ),
                 if (state.status == ScheduleLoadStatus.error)
                   Expanded(
-                    child: _buildErrorState(state),
+                    child: _buildErrorState(
+                      state,
+                    ),
                   )
                 else
                   Expanded(
@@ -97,19 +120,13 @@ class _ScheduleViewState extends State<ScheduleView> {
                   tooltip: 'Plan activity',
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
-                  onPressed: _planning
-                      ? null
-                      : () => _planActivity(
-                            context,
-                            state,
-                          ),
-                  child: _planning
-                      ? const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white))
-                      : const Icon(Icons.add),
+                  onPressed: () => _planActivity(
+                    context,
+                    state,
+                  ),
+                  child: const Icon(
+                    Icons.add,
+                  ),
                 )
               : null,
           bottomNavigationBar: const ParchNavigationBar(
@@ -149,7 +166,9 @@ class _ScheduleViewState extends State<ScheduleView> {
                 children: [
                   const _MeChip(),
                   for (final friend in selectedFriends) ...[
-                    const SizedBox(width: 6),
+                    const SizedBox(
+                      width: 6,
+                    ),
                     _FriendChip(
                       friend: friend,
                       onRemove: () {
@@ -159,7 +178,9 @@ class _ScheduleViewState extends State<ScheduleView> {
                       },
                     ),
                   ],
-                  const SizedBox(width: 6),
+                  const SizedBox(
+                    width: 6,
+                  ),
                   ActionChip(
                     avatar: const Icon(
                       Icons.person_add_alt_1,
@@ -172,9 +193,13 @@ class _ScheduleViewState extends State<ScheduleView> {
                       context,
                     ),
                     side: const BorderSide(
-                      color: Color(0xFF9CB8E9),
+                      color: Color(
+                        0xFF9CB8E9,
+                      ),
                     ),
-                    backgroundColor: const Color(0xFFF2F6FF),
+                    backgroundColor: const Color(
+                      0xFFF2F6FF,
+                    ),
                     labelStyle: const TextStyle(
                       color: AppColors.primary,
                       fontSize: 12,
@@ -185,7 +210,9 @@ class _ScheduleViewState extends State<ScheduleView> {
               ),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(
+            width: 8,
+          ),
           Container(
             padding: const EdgeInsets.symmetric(
               horizontal: 10,
@@ -193,9 +220,13 @@ class _ScheduleViewState extends State<ScheduleView> {
             ),
             decoration: BoxDecoration(
               color: state.selectedFriendIds.isEmpty
-                  ? const Color(0xFFE9EEF7)
+                  ? const Color(
+                      0xFFE9EEF7,
+                    )
                   : AppColors.primary,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(
+                12,
+              ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -207,7 +238,9 @@ class _ScheduleViewState extends State<ScheduleView> {
                       ? AppColors.textSecondary
                       : Colors.white,
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(
+                  width: 4,
+                ),
                 Text(
                   'Comparing (${state.selectedFriendIds.length + 1})',
                   style: TextStyle(
@@ -253,21 +286,30 @@ class _ScheduleViewState extends State<ScheduleView> {
           vertical: 10,
         ),
         decoration: BoxDecoration(
-          color: const Color(0xFFF7F9FD),
-          borderRadius: BorderRadius.circular(12),
+          color: const Color(
+            0xFFF7F9FD,
+          ),
+          borderRadius: BorderRadius.circular(
+            12,
+          ),
           border: Border.all(
-            color: const Color(0xFFDCE3EF),
+            color: const Color(
+              0xFFDCE3EF,
+            ),
           ),
         ),
         child: Row(
           children: [
-            // Google Calendar icon
             Container(
               width: 34,
               height: 34,
               decoration: BoxDecoration(
-                color: const Color(0xFFEAF1FF),
-                borderRadius: BorderRadius.circular(10),
+                color: const Color(
+                  0xFFEAF1FF,
+                ),
+                borderRadius: BorderRadius.circular(
+                  10,
+                ),
               ),
               child: const Icon(
                 Icons.calendar_month_outlined,
@@ -275,26 +317,29 @@ class _ScheduleViewState extends State<ScheduleView> {
                 color: AppColors.primary,
               ),
             ),
-
-            const SizedBox(width: 10),
-
-            // Text
+            const SizedBox(
+              width: 10,
+            ),
             Expanded(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Google Calendar · Bogotá',
+                    'Google Calendar',
                     style: TextStyle(
                       color: AppColors.textPrimary,
                       fontSize: 12,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(
+                    height: 2,
+                  ),
                   Text(
-                    _calendarImportSubtitle(state),
+                    _calendarImportSubtitle(
+                      state,
+                    ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -310,23 +355,26 @@ class _ScheduleViewState extends State<ScheduleView> {
                 ],
               ),
             ),
-
-            const SizedBox(width: 8),
-
-            // Import button
+            const SizedBox(
+              width: 8,
+            ),
             SizedBox(
               width: 105,
               height: 34,
               child: FilledButton.icon(
-                onPressed: importing || !widget.viewModel.calendarImportEnabled
+                onPressed: importing || imported
                     ? null
                     : widget.viewModel.importGoogleCalendar,
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   disabledBackgroundColor: imported
-                      ? const Color(0xFFE8F8F0)
-                      : const Color(0xFFE9EEF7),
+                      ? const Color(
+                          0xFFE8F8F0,
+                        )
+                      : const Color(
+                          0xFFE9EEF7,
+                        ),
                   disabledForegroundColor:
                       imported ? AppColors.success : AppColors.textSecondary,
                   padding: const EdgeInsets.symmetric(
@@ -342,7 +390,9 @@ class _ScheduleViewState extends State<ScheduleView> {
                   ),
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(9),
+                    borderRadius: BorderRadius.circular(
+                      9,
+                    ),
                   ),
                 ),
                 icon: importing
@@ -366,7 +416,7 @@ class _ScheduleViewState extends State<ScheduleView> {
                     importing
                         ? 'Importing'
                         : imported
-                            ? 'Import again'
+                            ? 'Imported'
                             : hasError
                                 ? 'Try again'
                                 : 'Import',
@@ -387,31 +437,28 @@ class _ScheduleViewState extends State<ScheduleView> {
   String _calendarImportSubtitle(
     ScheduleState state,
   ) {
-    if (!widget.viewModel.calendarImportEnabled) {
-      return 'Google Calendar import is not configured.';
-    }
     switch (state.calendarImportStatus) {
       case CalendarImportStatus.importing:
-        return 'Importing your busy periods...';
+        return 'Importing your calendar events...';
+
       case CalendarImportStatus.imported:
-        return state.calendarImportMessage ?? 'Calendar availability imported.';
+        return state.calendarImportMessage ?? 'Calendar events imported.';
+
       case CalendarImportStatus.error:
         return state.calendarImportMessage ?? 'Could not import calendar.';
+
       case CalendarImportStatus.idle:
-        return 'Sync busy periods without sharing event details.';
+        return 'Import your events into My Schedule.';
     }
   }
+
+  // ===================================================================
+  // DURATION BAR
+  // ===================================================================
 
   Widget _buildDurationBar(
     ScheduleState state,
   ) {
-    final quickDurations = <Duration>[
-      const Duration(minutes: 30),
-      const Duration(minutes: 45),
-      const Duration(hours: 1),
-      const Duration(hours: 2),
-    ];
-
     final currentHours = state.meetingDuration.inHours;
 
     final currentMinutes = state.meetingDuration.inMinutes % 60;
@@ -432,7 +479,9 @@ class _ScheduleViewState extends State<ScheduleView> {
             size: 18,
             color: AppColors.primary,
           ),
-          const SizedBox(width: 5),
+          const SizedBox(
+            width: 5,
+          ),
           const Text(
             'Duration:',
             style: TextStyle(
@@ -441,50 +490,35 @@ class _ScheduleViewState extends State<ScheduleView> {
               fontSize: 12,
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(
+            width: 8,
+          ),
           Expanded(
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  ...quickDurations.map(
-                    (duration) {
-                      final selected = state.meetingDuration == duration;
+                  for (final minutes in state.quickDurationsMinutes)
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        right: 6,
+                      ),
+                      child: _buildQuickDurationChip(
+                        state,
+                        minutes,
+                      ),
+                    ),
 
-                      return Padding(
-                        padding: const EdgeInsets.only(
-                          right: 6,
-                        ),
-                        child: ChoiceChip(
-                          showCheckmark: false,
-                          selected: selected,
-                          selectedColor: AppColors.primary,
-                          backgroundColor: const Color(
-                            0xFFE9EEF7,
-                          ),
-                          side: BorderSide.none,
-                          label: Text(
-                            _durationLabel(
-                              duration,
-                            ),
-                            style: TextStyle(
-                              color: selected
-                                  ? Colors.white
-                                  : AppColors.textSecondary,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          onSelected: (_) {
-                            widget.viewModel.setDuration(
-                              duration,
-                            );
-                          },
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(width: 4),
+                  if (state.quickDurationsMinutes.length < 4) ...[
+                    _buildAddDurationChip(
+                      state,
+                    ),
+                    const SizedBox(
+                      width: 4,
+                    ),
+                  ],
+
+                  // Selector manual original.
                   _buildDurationStepper(
                     hours: currentHours,
                     minutes: currentMinutes,
@@ -498,6 +532,389 @@ class _ScheduleViewState extends State<ScheduleView> {
     );
   }
 
+  Widget _buildQuickDurationChip(
+    ScheduleState state,
+    int minutes,
+  ) {
+    final duration = Duration(
+      minutes: minutes,
+    );
+
+    final selected = state.meetingDuration == duration;
+
+    final editing = _editingQuickDurationMinutes == minutes;
+
+    if (editing) {
+      return Container(
+        height: 34,
+        padding: const EdgeInsets.only(
+          left: 10,
+          right: 2,
+        ),
+        decoration: BoxDecoration(
+          color: selected
+              ? AppColors.primary
+              : const Color(
+                  0xFFE9EEF7,
+                ),
+          borderRadius: BorderRadius.circular(
+            17,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _durationInputService.formatMinutes(
+                minutes,
+              ),
+              style: TextStyle(
+                color: selected ? Colors.white : AppColors.textSecondary,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(
+              width: 1,
+            ),
+            InkWell(
+              borderRadius: BorderRadius.circular(
+                20,
+              ),
+              onTap: () {
+                _showDurationInputDialog(
+                  state: state,
+                  mode: _DurationDialogMode.edit,
+                  oldMinutes: minutes,
+                );
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(
+                  5,
+                ),
+                child: Icon(
+                  Icons.edit_outlined,
+                  size: 14,
+                  color: selected ? Colors.white : AppColors.primary,
+                ),
+              ),
+            ),
+            InkWell(
+              borderRadius: BorderRadius.circular(
+                20,
+              ),
+              onTap: () async {
+                try {
+                  await widget.viewModel.removeQuickDuration(
+                    minutes,
+                  );
+
+                  if (!mounted) {
+                    return;
+                  }
+
+                  setState(() {
+                    _editingQuickDurationMinutes = null;
+                  });
+                } catch (error, stackTrace) {
+                  debugPrint(
+                    'SCHEDULE VIEW -> '
+                    'Remove duration error: '
+                    '$error',
+                  );
+
+                  debugPrint(
+                    '$stackTrace',
+                  );
+
+                  if (!mounted) {
+                    return;
+                  }
+
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Could not remove duration.',
+                      ),
+                    ),
+                  );
+                }
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(
+                  5,
+                ),
+                child: Icon(
+                  Icons.close_rounded,
+                  size: 15,
+                  color: selected ? Colors.white : AppColors.error,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return GestureDetector(
+      onLongPress: () {
+        if (!mounted) {
+          return;
+        }
+
+        setState(() {
+          _editingQuickDurationMinutes = minutes;
+        });
+      },
+      child: ChoiceChip(
+        showCheckmark: false,
+        selected: selected,
+        selectedColor: AppColors.primary,
+        backgroundColor: const Color(
+          0xFFE9EEF7,
+        ),
+        side: BorderSide.none,
+        label: Text(
+          _durationInputService.formatMinutes(
+            minutes,
+          ),
+          style: TextStyle(
+            color: selected ? Colors.white : AppColors.textSecondary,
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        onSelected: (_) async {
+          if (mounted) {
+            setState(() {
+              _editingQuickDurationMinutes = null;
+            });
+          }
+
+          await widget.viewModel.setDuration(
+            duration,
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildAddDurationChip(
+    ScheduleState state,
+  ) {
+    return ActionChip(
+      tooltip: 'Add quick duration',
+      avatar: const Icon(
+        Icons.add_rounded,
+        size: 17,
+      ),
+      label: const SizedBox.shrink(),
+      side: const BorderSide(
+        color: Color(
+          0xFF9CB8E9,
+        ),
+      ),
+      backgroundColor: const Color(
+        0xFFF2F6FF,
+      ),
+      onPressed: () {
+        _showDurationInputDialog(
+          state: state,
+          mode: _DurationDialogMode.add,
+        );
+      },
+    );
+  }
+
+  Future<void> _showDurationInputDialog({
+    required ScheduleState state,
+    required _DurationDialogMode mode,
+    int? oldMinutes,
+  }) async {
+    final isEdit = mode == _DurationDialogMode.edit;
+
+    String inputValue = isEdit && oldMinutes != null
+        ? _durationInputService.formatMinutes(
+            oldMinutes,
+          )
+        : '';
+
+    String? errorMessage;
+
+    final result = await showDialog<int>(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (
+            dialogContext,
+            setDialogState,
+          ) {
+            void submit() {
+              final minutes = _durationInputService.parse(
+                inputValue,
+              );
+
+              if (minutes == null) {
+                setDialogState(() {
+                  errorMessage = 'Enter 5–240 minutes. '
+                      'Example: 90 or 1:30.';
+                });
+
+                return;
+              }
+
+              final duplicate = state.quickDurationsMinutes.contains(
+                    minutes,
+                  ) &&
+                  (!isEdit || minutes != oldMinutes);
+
+              if (duplicate) {
+                setDialogState(() {
+                  errorMessage = 'That duration already exists.';
+                });
+
+                return;
+              }
+
+              Navigator.of(
+                dialogContext,
+              ).pop(
+                minutes,
+              );
+            }
+
+            return AlertDialog(
+              title: Text(
+                isEdit ? 'Edit duration' : 'Add duration',
+              ),
+              content: TextFormField(
+                initialValue: inputValue,
+                autofocus: true,
+                keyboardType: TextInputType.text,
+                textInputAction: TextInputAction.done,
+                onChanged: (value) {
+                  inputValue = value;
+
+                  if (errorMessage != null) {
+                    setDialogState(() {
+                      errorMessage = null;
+                    });
+                  }
+                },
+                onFieldSubmitted: (_) {
+                  submit();
+                },
+                decoration: InputDecoration(
+                  labelText: 'Duration',
+                  hintText: '90 or 1:30',
+                  helperText: 'You can write minutes or hours',
+                  errorText: errorMessage,
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(
+                      dialogContext,
+                    ).pop();
+                  },
+                  child: const Text(
+                    'Cancel',
+                  ),
+                ),
+                FilledButton(
+                  onPressed: submit,
+                  child: Text(
+                    isEdit ? 'Save' : 'Add',
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (!mounted || result == null) {
+      return;
+    }
+
+    try {
+      if (isEdit && oldMinutes != null) {
+        await widget.viewModel.editQuickDuration(
+          oldMinutes: oldMinutes,
+          newMinutes: result,
+        );
+      } else {
+        await widget.viewModel.addQuickDuration(
+          result,
+        );
+
+        await widget.viewModel.setDuration(
+          Duration(
+            minutes: result,
+          ),
+        );
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _editingQuickDurationMinutes = null;
+      });
+    } catch (error, stackTrace) {
+      debugPrint(
+        'SCHEDULE VIEW -> '
+        'Duration error: $error',
+      );
+
+      debugPrint(
+        '$stackTrace',
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      String message = 'Could not save duration.';
+
+      if (error is StateError) {
+        message = error.message;
+      } else if (error is ArgumentError) {
+        message = error.message?.toString() ?? 'Invalid duration.';
+      }
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(
+        SnackBar(
+          content: Text(
+            message,
+          ),
+        ),
+      );
+    }
+  }
+
+  // ===================================================================
+  // MANUAL DURATION SELECTOR
+  //
+  // Original UX:
+  //
+  // < 1 > : < 30 >
+  //
+  // Both values can also be typed manually.
+  //
+  // It changes meetingDuration only.
+  // It DOES NOT save as a favorite.
+  // ===================================================================
+
   Widget _buildDurationStepper({
     required int hours,
     required int minutes,
@@ -508,10 +925,16 @@ class _ScheduleViewState extends State<ScheduleView> {
         vertical: 5,
       ),
       decoration: BoxDecoration(
-        color: const Color(0xFFF7F9FD),
-        borderRadius: BorderRadius.circular(12),
+        color: const Color(
+          0xFFF7F9FD,
+        ),
+        borderRadius: BorderRadius.circular(
+          12,
+        ),
         border: Border.all(
-          color: const Color(0xFFD8E1EF),
+          color: const Color(
+            0xFFD8E1EF,
+          ),
         ),
       ),
       child: Row(
@@ -636,17 +1059,26 @@ class _ScheduleViewState extends State<ScheduleView> {
     bool twoDigits = false,
   }) {
     final controller = TextEditingController(
-      text: twoDigits ? value.toString().padLeft(2, '0') : value.toString(),
+      text: twoDigits
+          ? value.toString().padLeft(
+                2,
+                '0',
+              )
+          : value.toString(),
     );
 
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         InkWell(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(
+            8,
+          ),
           onTap: onDecrease,
           child: const Padding(
-            padding: EdgeInsets.all(3),
+            padding: EdgeInsets.all(
+              3,
+            ),
             child: Icon(
               Icons.chevron_left_rounded,
               size: 18,
@@ -676,30 +1108,44 @@ class _ScheduleViewState extends State<ScheduleView> {
               border: InputBorder.none,
             ),
             onSubmitted: (text) {
-              final parsed = int.tryParse(text);
+              final parsed = int.tryParse(
+                text,
+              );
 
               if (parsed == null) {
                 return;
               }
 
-              onSubmitted(parsed);
+              onSubmitted(
+                parsed,
+              );
             },
             onTapOutside: (_) {
-              FocusScope.of(context).unfocus();
+              FocusScope.of(
+                context,
+              ).unfocus();
 
-              final parsed = int.tryParse(controller.text);
+              final parsed = int.tryParse(
+                controller.text,
+              );
 
               if (parsed != null) {
-                onSubmitted(parsed);
+                onSubmitted(
+                  parsed,
+                );
               }
             },
           ),
         ),
         InkWell(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(
+            8,
+          ),
           onTap: onIncrease,
           child: const Padding(
-            padding: EdgeInsets.all(3),
+            padding: EdgeInsets.all(
+              3,
+            ),
             child: Icon(
               Icons.chevron_right_rounded,
               size: 18,
@@ -743,6 +1189,10 @@ class _ScheduleViewState extends State<ScheduleView> {
     );
   }
 
+  // ===================================================================
+  // WEEK SELECTOR
+  // ===================================================================
+
   Widget _buildWeekSelector(
     ScheduleState state,
   ) {
@@ -751,29 +1201,35 @@ class _ScheduleViewState extends State<ScheduleView> {
     );
 
     final sunday = monday.add(
-      const Duration(days: 6),
-    );
-
-    // ParchApp keeps its Monday-Friday visual layout.
-    final days = List.generate(
-      5,
-      (index) => monday.add(
-        Duration(days: index),
+      const Duration(
+        days: 6,
       ),
     );
 
-    // We only allow navigation inside 2026.
-    final previousWeekDay = state.selectedDay.subtract(
-      const Duration(days: 7),
+    final days = List.generate(
+      5,
+      (index) => monday.add(
+        Duration(
+          days: index,
+        ),
+      ),
     );
 
-    final nextWeekDay = state.selectedDay.add(
-      const Duration(days: 7),
+    final previousWeekDate = state.selectedDay.subtract(
+      const Duration(
+        days: 7,
+      ),
     );
 
-    final canGoPrevious = previousWeekDay.year == 2026;
+    final nextWeekDate = state.selectedDay.add(
+      const Duration(
+        days: 7,
+      ),
+    );
 
-    final canGoNext = nextWeekDay.year == 2026;
+    final canGoPrevious = previousWeekDate.year == 2026;
+
+    final canGoNext = nextWeekDate.year == 2026;
 
     return Container(
       width: double.infinity,
@@ -789,41 +1245,35 @@ class _ScheduleViewState extends State<ScheduleView> {
         children: [
           Row(
             children: [
-              // Previous week
               IconButton(
-                tooltip: 'Previous week',
                 onPressed: canGoPrevious
-                    ? () {
-                        _changeWeek(
+                    ? () => _changeWeek(
                           state,
                           -1,
-                        );
-                      }
+                        )
                     : null,
                 visualDensity: VisualDensity.compact,
+                tooltip: 'Previous week',
                 icon: const Icon(
                   Icons.chevron_left_rounded,
-                  size: 24,
+                  size: 23,
                 ),
                 color: AppColors.textPrimary,
                 disabledColor: AppColors.textSecondary.withValues(
                   alpha: 0.35,
                 ),
               ),
-
-              // Week text.
-              // Tapping it also opens the calendar.
               Expanded(
                 child: InkWell(
-                  borderRadius: BorderRadius.circular(10),
-                  onTap: () {
-                    _openCalendarPicker(
-                      state,
-                    );
-                  },
+                  borderRadius: BorderRadius.circular(
+                    10,
+                  ),
+                  onTap: () => _openCalendarPicker(
+                    state,
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
-                      vertical: 5,
+                      vertical: 7,
                       horizontal: 4,
                     ),
                     child: Column(
@@ -837,7 +1287,9 @@ class _ScheduleViewState extends State<ScheduleView> {
                             fontWeight: FontWeight.w800,
                           ),
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(
+                          height: 2,
+                        ),
                         Text(
                           _weekRangeLabel(
                             monday,
@@ -855,47 +1307,44 @@ class _ScheduleViewState extends State<ScheduleView> {
                   ),
                 ),
               ),
-
-              // Next week
               IconButton(
-                tooltip: 'Next week',
                 onPressed: canGoNext
-                    ? () {
-                        _changeWeek(
+                    ? () => _changeWeek(
                           state,
                           1,
-                        );
-                      }
+                        )
                     : null,
                 visualDensity: VisualDensity.compact,
+                tooltip: 'Next week',
                 icon: const Icon(
                   Icons.chevron_right_rounded,
-                  size: 24,
+                  size: 23,
                 ),
                 color: AppColors.textPrimary,
                 disabledColor: AppColors.textSecondary.withValues(
                   alpha: 0.35,
                 ),
               ),
-
-              const SizedBox(width: 2),
-
-              // Open monthly calendar
+              const SizedBox(
+                width: 2,
+              ),
               Container(
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEAF1FF),
-                  borderRadius: BorderRadius.circular(10),
+                  color: const Color(
+                    0xFFEAF1FF,
+                  ),
+                  borderRadius: BorderRadius.circular(
+                    10,
+                  ),
                 ),
                 child: IconButton(
-                  tooltip: 'Choose date',
+                  onPressed: () => _openCalendarPicker(
+                    state,
+                  ),
                   padding: EdgeInsets.zero,
-                  onPressed: () {
-                    _openCalendarPicker(
-                      state,
-                    );
-                  },
+                  tooltip: 'Choose date',
                   icon: const Icon(
                     Icons.calendar_month_outlined,
                     size: 19,
@@ -905,10 +1354,9 @@ class _ScheduleViewState extends State<ScheduleView> {
               ),
             ],
           ),
-
-          const SizedBox(height: 6),
-
-          // Monday - Friday selector
+          const SizedBox(
+            height: 6,
+          ),
           Row(
             children: days.map(
               (day) {
@@ -923,9 +1371,13 @@ class _ScheduleViewState extends State<ScheduleView> {
                       horizontal: 2,
                     ),
                     child: InkWell(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(
+                        12,
+                      ),
                       onTap: () {
-                        widget.viewModel.selectDay(day);
+                        widget.viewModel.selectDay(
+                          day,
+                        );
                       },
                       child: AnimatedContainer(
                         duration: const Duration(
@@ -992,41 +1444,34 @@ class _ScheduleViewState extends State<ScheduleView> {
   ) async {
     final pickedDate = await showDatePicker(
       context: context,
-
-      // Date currently selected in Schedule.
       initialDate: _clampDateTo2026(
         state.selectedDay,
       ),
-
-      // STEP 0: calendar limited to 2026.
       firstDate: DateTime(
         2026,
         1,
         1,
       ),
-
       lastDate: DateTime(
         2026,
         12,
         31,
       ),
-
       helpText: 'Select a date',
-
       cancelText: 'CANCEL',
-
       confirmText: 'SELECT',
-
-      // Forces the visual monthly calendar.
       initialEntryMode: DatePickerEntryMode.calendarOnly,
-
       builder: (
         BuildContext context,
         Widget? child,
       ) {
         return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: Theme.of(context).colorScheme.copyWith(
+          data: Theme.of(
+            context,
+          ).copyWith(
+            colorScheme: Theme.of(
+              context,
+            ).colorScheme.copyWith(
                   primary: AppColors.primary,
                   surface: Colors.white,
                 ),
@@ -1039,13 +1484,10 @@ class _ScheduleViewState extends State<ScheduleView> {
       },
     );
 
-    // User pressed Cancel.
-    if (pickedDate == null) {
+    if (pickedDate == null || !mounted) {
       return;
     }
 
-    // Selecting a date makes Schedule jump
-    // to the week containing that date.
     await widget.viewModel.selectDay(
       pickedDate,
     );
@@ -1057,11 +1499,10 @@ class _ScheduleViewState extends State<ScheduleView> {
   ) async {
     final targetDate = state.selectedDay.add(
       Duration(
-        days: weekOffset * 7,
+        days: 7 * weekOffset,
       ),
     );
 
-    // STEP 0 only supports 2026.
     if (targetDate.year != 2026) {
       return;
     }
@@ -1074,15 +1515,27 @@ class _ScheduleViewState extends State<ScheduleView> {
   DateTime _clampDateTo2026(
     DateTime date,
   ) {
-    final firstDate = DateTime(2026, 1, 1);
+    final firstDate = DateTime(
+      2026,
+      1,
+      1,
+    );
 
-    final lastDate = DateTime(2026, 12, 31);
+    final lastDate = DateTime(
+      2026,
+      12,
+      31,
+    );
 
-    if (date.isBefore(firstDate)) {
+    if (date.isBefore(
+      firstDate,
+    )) {
       return firstDate;
     }
 
-    if (date.isAfter(lastDate)) {
+    if (date.isAfter(
+      lastDate,
+    )) {
       return lastDate;
     }
 
@@ -1093,13 +1546,6 @@ class _ScheduleViewState extends State<ScheduleView> {
     DateTime monday,
     DateTime sunday,
   ) {
-    if (monday.year != sunday.year) {
-      return '${_monthShort(monday.month)} '
-          '${monday.day}, ${monday.year} – '
-          '${_monthShort(sunday.month)} '
-          '${sunday.day}, ${sunday.year}';
-    }
-
     if (monday.month == sunday.month) {
       return '${_monthShort(monday.month)} '
           '${monday.day}–${sunday.day}, '
@@ -1113,6 +1559,10 @@ class _ScheduleViewState extends State<ScheduleView> {
         '${monday.year}';
   }
 
+  // ===================================================================
+  // SCHEDULE CONTENT
+  // ===================================================================
+
   Widget _buildScheduleContent(
     BuildContext context,
     ScheduleState state,
@@ -1121,7 +1571,9 @@ class _ScheduleViewState extends State<ScheduleView> {
       children: [
         Column(
           children: [
-            _buildLaneHeader(state),
+            _buildLaneHeader(
+              state,
+            ),
             Expanded(
               child: SingleChildScrollView(
                 child: SizedBox(
@@ -1175,11 +1627,17 @@ class _ScheduleViewState extends State<ScheduleView> {
             friend.id,
           ),
         )
-        .map((friend) => friend.name)
-        .join(' & ');
+        .map(
+          (friend) => friend.name,
+        )
+        .join(
+          ' & ',
+        );
 
     return Container(
-      color: const Color(0xFFF0F4FC),
+      color: const Color(
+        0xFFF0F4FC,
+      ),
       child: Row(
         children: [
           Container(
@@ -1191,7 +1649,9 @@ class _ScheduleViewState extends State<ScheduleView> {
             decoration: const BoxDecoration(
               border: Border(
                 right: BorderSide(
-                  color: Color(0xFFDCE3EF),
+                  color: Color(
+                    0xFFDCE3EF,
+                  ),
                 ),
               ),
             ),
@@ -1216,7 +1676,9 @@ class _ScheduleViewState extends State<ScheduleView> {
                     radius: 4,
                     backgroundColor: AppColors.primary,
                   ),
-                  SizedBox(width: 6),
+                  SizedBox(
+                    width: 6,
+                  ),
                   Text(
                     'My Schedule',
                     style: TextStyle(
@@ -1235,7 +1697,9 @@ class _ScheduleViewState extends State<ScheduleView> {
                 vertical: 9,
                 horizontal: 8,
               ),
-              color: const Color(0xFFF8FAFD),
+              color: const Color(
+                0xFFF8FAFD,
+              ),
               child: Row(
                 children: [
                   const Icon(
@@ -1243,7 +1707,9 @@ class _ScheduleViewState extends State<ScheduleView> {
                     size: 15,
                     color: AppColors.textSecondary,
                   ),
-                  const SizedBox(width: 5),
+                  const SizedBox(
+                    width: 5,
+                  ),
                   Expanded(
                     child: Text(
                       selected.isEmpty ? 'Friends' : selected,
@@ -1284,7 +1750,9 @@ class _ScheduleViewState extends State<ScheduleView> {
                     Expanded(
                       child: Container(
                         height: 1,
-                        color: const Color(0xFFE2E8F0),
+                        color: const Color(
+                          0xFFE2E8F0,
+                        ),
                       ),
                     ),
                   ],
@@ -1296,7 +1764,9 @@ class _ScheduleViewState extends State<ScheduleView> {
               top: (hour - _startHour) * 60.0 + 4,
               right: 6,
               child: Text(
-                _hourLabel(hour),
+                _hourLabel(
+                  hour,
+                ),
                 style: const TextStyle(
                   color: AppColors.textSecondary,
                   fontSize: 9,
@@ -1318,17 +1788,24 @@ class _ScheduleViewState extends State<ScheduleView> {
         color: Colors.white,
         border: Border(
           left: BorderSide(
-            color: Color(0xFFE2E8F0),
+            color: Color(
+              0xFFE2E8F0,
+            ),
           ),
           right: BorderSide(
-            color: Color(0xFFE2E8F0),
+            color: Color(
+              0xFFE2E8F0,
+            ),
           ),
         ),
       ),
       child: Stack(
         children: [
           ..._hourLines(),
-          for (final block in state.myBlocks) _buildPersonalBlock(block),
+          for (final block in state.myBlocks)
+            _buildPersonalBlock(
+              block,
+            ),
           if (state.selectedSlot != null)
             _buildSelectedCommonSlot(
               state.selectedSlot!,
@@ -1344,7 +1821,9 @@ class _ScheduleViewState extends State<ScheduleView> {
   ) {
     return Container(
       height: _timelineHeight,
-      color: const Color(0xFFFAFBFD),
+      color: const Color(
+        0xFFFAFBFD,
+      ),
       child: Stack(
         children: [
           ..._hourLines(),
@@ -1372,7 +1851,9 @@ class _ScheduleViewState extends State<ScheduleView> {
         right: 0,
         child: Container(
           height: 1,
-          color: const Color(0xFFE8EDF5),
+          color: const Color(
+            0xFFE8EDF5,
+          ),
         ),
       ),
     );
@@ -1381,7 +1862,10 @@ class _ScheduleViewState extends State<ScheduleView> {
   Widget _buildPersonalBlock(
     ScheduleBlock block,
   ) {
-    final top = _topFor(block.start);
+    final top = _topFor(
+      block.start,
+    );
+
     final height = _heightFor(
       block.start,
       block.end,
@@ -1393,10 +1877,16 @@ class _ScheduleViewState extends State<ScheduleView> {
       right: 6,
       height: height,
       child: Container(
-        padding: const EdgeInsets.all(7),
+        padding: const EdgeInsets.all(
+          7,
+        ),
         decoration: BoxDecoration(
-          color: const Color(0xFFEAF1FF),
-          borderRadius: BorderRadius.circular(10),
+          color: const Color(
+            0xFFEAF1FF,
+          ),
+          borderRadius: BorderRadius.circular(
+            10,
+          ),
           border: const Border(
             left: BorderSide(
               color: AppColors.primary,
@@ -1405,7 +1895,10 @@ class _ScheduleViewState extends State<ScheduleView> {
           ),
         ),
         child: LayoutBuilder(
-          builder: (context, constraints) {
+          builder: (
+            context,
+            constraints,
+          ) {
             final showDetails = constraints.maxHeight >= 48;
 
             return Column(
@@ -1422,7 +1915,9 @@ class _ScheduleViewState extends State<ScheduleView> {
                   ),
                 ),
                 if (showDetails) ...[
-                  const SizedBox(height: 2),
+                  const SizedBox(
+                    height: 2,
+                  ),
                   if (block.subtitle != null)
                     Text(
                       block.subtitle!,
@@ -1462,7 +1957,10 @@ class _ScheduleViewState extends State<ScheduleView> {
       state.friends,
     );
 
-    final top = _topFor(block.start);
+    final top = _topFor(
+      block.start,
+    );
+
     final height = _heightFor(
       block.start,
       block.end,
@@ -1479,10 +1977,16 @@ class _ScheduleViewState extends State<ScheduleView> {
           vertical: 5,
         ),
         decoration: BoxDecoration(
-          color: const Color(0xFFF1F5F9),
-          borderRadius: BorderRadius.circular(10),
+          color: const Color(
+            0xFFF1F5F9,
+          ),
+          borderRadius: BorderRadius.circular(
+            10,
+          ),
           border: Border.all(
-            color: const Color(0xFFCBD5E1),
+            color: const Color(
+              0xFFCBD5E1,
+            ),
           ),
         ),
         child: Row(
@@ -1495,7 +1999,9 @@ class _ScheduleViewState extends State<ScheduleView> {
                 shape: BoxShape.circle,
               ),
             ),
-            const SizedBox(width: 5),
+            const SizedBox(
+              width: 5,
+            ),
             Expanded(
               child: Text(
                 friend?.name ?? 'Busy',
@@ -1518,7 +2024,10 @@ class _ScheduleViewState extends State<ScheduleView> {
     CommonSlot slot, {
     required bool alignRight,
   }) {
-    final top = _topFor(slot.start);
+    final top = _topFor(
+      slot.start,
+    );
+
     final height = _heightFor(
       slot.start,
       slot.end,
@@ -1532,8 +2041,12 @@ class _ScheduleViewState extends State<ScheduleView> {
       child: IgnorePointer(
         child: Container(
           decoration: BoxDecoration(
-            color: AppColors.availabilityLight.withValues(alpha: 0.72),
-            borderRadius: BorderRadius.circular(8),
+            color: AppColors.availabilityLight.withValues(
+              alpha: 0.72,
+            ),
+            borderRadius: BorderRadius.circular(
+              8,
+            ),
             border: Border.all(
               color: AppColors.success,
               width: 1.4,
@@ -1544,7 +2057,9 @@ class _ScheduleViewState extends State<ScheduleView> {
               : const Align(
                   alignment: Alignment.topLeft,
                   child: Padding(
-                    padding: EdgeInsets.all(4),
+                    padding: EdgeInsets.all(
+                      4,
+                    ),
                     child: Icon(
                       Icons.check_circle,
                       size: 13,
@@ -1566,29 +2081,44 @@ class _ScheduleViewState extends State<ScheduleView> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(
+          16,
+        ),
         onTap: slots.isEmpty
             ? null
             : () => _showCommonSlots(
                   context,
                 ),
         child: Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(
+            12,
+          ),
           decoration: BoxDecoration(
             color: Colors.white.withValues(
               alpha: 0.97,
             ),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(
+              16,
+            ),
             border: Border.all(
               color: slots.isEmpty
-                  ? const Color(0xFFDDE4EE)
-                  : AppColors.success.withValues(alpha: 0.55),
+                  ? const Color(
+                      0xFFDDE4EE,
+                    )
+                  : AppColors.success.withValues(
+                      alpha: 0.55,
+                    ),
             ),
             boxShadow: const [
               BoxShadow(
-                color: Color(0x22000000),
+                color: Color(
+                  0x22000000,
+                ),
                 blurRadius: 16,
-                offset: Offset(0, 6),
+                offset: Offset(
+                  0,
+                  6,
+                ),
               ),
             ],
           ),
@@ -1599,9 +2129,15 @@ class _ScheduleViewState extends State<ScheduleView> {
                 height: 38,
                 decoration: BoxDecoration(
                   color: slots.isEmpty
-                      ? const Color(0xFFF1F5F9)
-                      : const Color(0xFFDDF8EA),
-                  borderRadius: BorderRadius.circular(11),
+                      ? const Color(
+                          0xFFF1F5F9,
+                        )
+                      : const Color(
+                          0xFFDDF8EA,
+                        ),
+                  borderRadius: BorderRadius.circular(
+                    11,
+                  ),
                 ),
                 child: Icon(
                   slots.isEmpty
@@ -1612,7 +2148,9 @@ class _ScheduleViewState extends State<ScheduleView> {
                       : AppColors.success,
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(
+                width: 10,
+              ),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1627,7 +2165,9 @@ class _ScheduleViewState extends State<ScheduleView> {
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(
+                      height: 2,
+                    ),
                     Text(
                       state.selectedSlot == null
                           ? 'Try another duration or friend selection.'
@@ -1659,7 +2199,9 @@ class _ScheduleViewState extends State<ScheduleView> {
   ) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(
+          32,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -1668,7 +2210,9 @@ class _ScheduleViewState extends State<ScheduleView> {
               size: 50,
               color: AppColors.textSecondary,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(
+              height: 12,
+            ),
             Text(
               state.error ?? 'Unable to load schedule.',
               textAlign: TextAlign.center,
@@ -1676,16 +2220,24 @@ class _ScheduleViewState extends State<ScheduleView> {
                 color: AppColors.textSecondary,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(
+              height: 12,
+            ),
             FilledButton(
               onPressed: widget.viewModel.load,
-              child: const Text('Retry'),
+              child: const Text(
+                'Retry',
+              ),
             ),
           ],
         ),
       ),
     );
   }
+
+  // ===================================================================
+  // FRIEND PICKER
+  // ===================================================================
 
   Future<void> _showFriendPicker(
     BuildContext context,
@@ -1699,114 +2251,296 @@ class _ScheduleViewState extends State<ScheduleView> {
         return SafeArea(
           child: ValueListenableBuilder<ScheduleState>(
             valueListenable: widget.viewModel,
-            builder: (context, state, _) {
-              return Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  18,
-                  0,
-                  18,
-                  20,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Select Friends to Compare',
-                      style: TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Choose who to include in the mutual availability comparison.',
-                      style: TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    Flexible(
-                      child: ListView.separated(
-                        shrinkWrap: true,
-                        itemCount: state.friends.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 6),
-                        itemBuilder: (context, index) {
-                          final friend = state.friends[index];
-
-                          final selected =
-                              state.selectedFriendIds.contains(friend.id);
-
-                          return Material(
-                            color: selected
-                                ? const Color(
-                                    0xFFF1F6FF,
-                                  )
-                                : const Color(
-                                    0xFFF8FAFC,
-                                  ),
-                            borderRadius: BorderRadius.circular(14),
-                            child: CheckboxListTile(
-                              value: selected,
-                              activeColor: AppColors.primary,
-                              onChanged: (_) {
-                                widget.viewModel.toggleFriend(
-                                  friend.id,
-                                );
-                              },
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(
-                                  14,
-                                ),
-                              ),
-                              secondary: CircleAvatar(
-                                backgroundColor: AppColors.primary,
-                                child: Text(
-                                  friend.initials,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                              title: Text(
-                                friend.fullName,
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              subtitle: const Text(
-                                'Availability shared privately',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                ),
+            builder: (
+              context,
+              state,
+              _,
+            ) {
+              return DraggableScrollableSheet(
+                expand: false,
+                initialChildSize: 0.85,
+                minChildSize: 0.55,
+                maxChildSize: 0.95,
+                builder: (
+                  context,
+                  scrollController,
+                ) {
+                  return Column(
+                    children: [
+                      Expanded(
+                        child: ListView(
+                          controller: scrollController,
+                          padding: const EdgeInsets.fromLTRB(
+                            18,
+                            0,
+                            18,
+                            16,
+                          ),
+                          children: [
+                            const Text(
+                              'Select Friends to Compare',
+                              style: TextStyle(
+                                color: AppColors.textPrimary,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
                               ),
                             ),
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.icon(
-                        onPressed: () {
-                          Navigator.of(sheetContext).pop();
-                        },
-                        icon: const Icon(
-                          Icons.compare_arrows_rounded,
+                            const SizedBox(
+                              height: 4,
+                            ),
+                            const Text(
+                              'Choose friends to compare schedules. '
+                              'Nearby friends are prioritized using your current location.',
+                              style: TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 12,
+                              ),
+                            ),
+                            const SizedBox(
+                              height: 16,
+                            ),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.near_me_rounded,
+                                  size: 19,
+                                  color: AppColors.primary,
+                                ),
+                                const SizedBox(
+                                  width: 7,
+                                ),
+                                const Expanded(
+                                  child: Text(
+                                    'Nearby friends',
+                                    style: TextStyle(
+                                      color: AppColors.textPrimary,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  tooltip: 'Refresh nearby friends',
+                                  onPressed: state.nearbyFriendsStatus ==
+                                          NearbyFriendsStatus.loading
+                                      ? null
+                                      : () {
+                                          widget.viewModel.loadNearbyFriends();
+                                        },
+                                  icon: const Icon(
+                                    Icons.refresh_rounded,
+                                    size: 20,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (state.nearbyFriendsStatus ==
+                                NearbyFriendsStatus.loading)
+                              const Padding(
+                                padding: EdgeInsets.symmetric(
+                                  vertical: 18,
+                                ),
+                                child: Center(
+                                  child: CircularProgressIndicator(),
+                                ),
+                              )
+                            else if (state.nearbyFriendsStatus ==
+                                NearbyFriendsStatus.error)
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(
+                                  12,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(
+                                    0xFFFFF5F5,
+                                  ),
+                                  borderRadius: BorderRadius.circular(
+                                    12,
+                                  ),
+                                  border: Border.all(
+                                    color: const Color(
+                                      0xFFFFD7D7,
+                                    ),
+                                  ),
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Icon(
+                                      Icons.location_off_outlined,
+                                      size: 20,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                    const SizedBox(
+                                      width: 8,
+                                    ),
+                                    Expanded(
+                                      child: Text(
+                                        state.nearbyFriendsMessage ??
+                                            'Unable to determine your location.',
+                                        style: const TextStyle(
+                                          color: AppColors.textSecondary,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            else if (state.nearbyFriends.isEmpty)
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 14,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(
+                                    0xFFF8FAFC,
+                                  ),
+                                  borderRadius: BorderRadius.circular(
+                                    12,
+                                  ),
+                                ),
+                                child: const Text(
+                                  'No friends found within 2 km.',
+                                  style: TextStyle(
+                                    color: AppColors.textSecondary,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              )
+                            else
+                              ...state.nearbyFriends.map(
+                                (friend) {
+                                  final selected =
+                                      state.selectedFriendIds.contains(
+                                    friend.id,
+                                  );
+
+                                  return Padding(
+                                    padding: const EdgeInsets.only(
+                                      bottom: 6,
+                                    ),
+                                    child: _buildFriendPickerTile(
+                                      friend: friend,
+                                      selected: selected,
+                                      showDistance: true,
+                                    ),
+                                  );
+                                },
+                              ),
+                            const SizedBox(
+                              height: 16,
+                            ),
+                            const Divider(
+                              height: 1,
+                            ),
+                            const SizedBox(
+                              height: 16,
+                            ),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.people_outline,
+                                  size: 19,
+                                  color: AppColors.primary,
+                                ),
+                                const SizedBox(
+                                  width: 7,
+                                ),
+                                Text(
+                                  'All friends (${state.friends.length})',
+                                  style: const TextStyle(
+                                    color: AppColors.textPrimary,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(
+                              height: 10,
+                            ),
+                            if (state.friends.isEmpty)
+                              const Padding(
+                                padding: EdgeInsets.symmetric(
+                                  vertical: 24,
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    'No friends available.',
+                                    style: TextStyle(
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ),
+                              )
+                            else
+                              ...state.friends.map(
+                                (friend) {
+                                  final selected =
+                                      state.selectedFriendIds.contains(
+                                    friend.id,
+                                  );
+
+                                  return Padding(
+                                    padding: const EdgeInsets.only(
+                                      bottom: 6,
+                                    ),
+                                    child: _buildFriendPickerTile(
+                                      friend: friend,
+                                      selected: selected,
+                                      showDistance: false,
+                                    ),
+                                  );
+                                },
+                              ),
+                            const SizedBox(
+                              height: 12,
+                            ),
+                          ],
                         ),
-                        label: Text(
-                          'View comparison (${state.selectedFriendIds.length + 1})',
+                      ),
+                      Container(
+                        padding: const EdgeInsets.fromLTRB(
+                          18,
+                          10,
+                          18,
+                          16,
+                        ),
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          border: Border(
+                            top: BorderSide(
+                              color: Color(
+                                0xFFE2E8F0,
+                              ),
+                            ),
+                          ),
+                        ),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: FilledButton.icon(
+                            onPressed: () {
+                              Navigator.of(
+                                sheetContext,
+                              ).pop();
+                            },
+                            icon: const Icon(
+                              Icons.compare_arrows_rounded,
+                            ),
+                            label: Text(
+                              'View comparison '
+                              '(${state.selectedFriendIds.length + 1})',
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  );
+                },
               );
             },
           ),
@@ -1814,6 +2548,108 @@ class _ScheduleViewState extends State<ScheduleView> {
       },
     );
   }
+
+  Widget _buildFriendPickerTile({
+    required ScheduleFriend friend,
+    required bool selected,
+    required bool showDistance,
+  }) {
+    return Material(
+      color: selected
+          ? const Color(
+              0xFFF1F6FF,
+            )
+          : const Color(
+              0xFFF8FAFC,
+            ),
+      borderRadius: BorderRadius.circular(
+        14,
+      ),
+      child: CheckboxListTile(
+        value: selected,
+        activeColor: AppColors.primary,
+        onChanged: (_) {
+          widget.viewModel.toggleFriend(
+            friend.id,
+          );
+        },
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(
+            14,
+          ),
+        ),
+        secondary: CircleAvatar(
+          backgroundColor: selected
+              ? AppColors.primary
+              : const Color(
+                  0xFFE8EFFB,
+                ),
+          child: Text(
+            friend.initials,
+            style: TextStyle(
+              color: selected ? Colors.white : AppColors.primary,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+        title: Text(
+          friend.fullName,
+          style: const TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        subtitle: showDistance && friend.distanceMeters != null
+            ? Row(
+                children: [
+                  const Icon(
+                    Icons.location_on_outlined,
+                    size: 14,
+                    color: AppColors.primary,
+                  ),
+                  const SizedBox(
+                    width: 3,
+                  ),
+                  Text(
+                    _formatFriendDistance(
+                      friend.distanceMeters!,
+                    ),
+                    style: const TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              )
+            : const Text(
+                'Availability shared privately',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 10,
+                ),
+              ),
+      ),
+    );
+  }
+
+  String _formatFriendDistance(
+    double meters,
+  ) {
+    if (meters < 1000) {
+      return '${meters.round()} m away';
+    }
+
+    final kilometers = meters / 1000;
+
+    return '${kilometers.toStringAsFixed(1)} km away';
+  }
+
+  // ===================================================================
+  // COMMON SLOTS
+  // ===================================================================
 
   Future<void> _showCommonSlots(
     BuildContext context,
@@ -1827,7 +2663,11 @@ class _ScheduleViewState extends State<ScheduleView> {
         return SafeArea(
           child: ValueListenableBuilder<ScheduleState>(
             valueListenable: widget.viewModel,
-            builder: (context, state, _) {
+            builder: (
+              context,
+              state,
+              _,
+            ) {
               return Padding(
                 padding: const EdgeInsets.fromLTRB(
                   18,
@@ -1845,7 +2685,9 @@ class _ScheduleViewState extends State<ScheduleView> {
                           Icons.verified_rounded,
                           color: AppColors.success,
                         ),
-                        SizedBox(width: 8),
+                        SizedBox(
+                          width: 8,
+                        ),
                         Text(
                           'Available Common Slots',
                           style: TextStyle(
@@ -1856,7 +2698,9 @@ class _ScheduleViewState extends State<ScheduleView> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(
+                      height: 4,
+                    ),
                     Text(
                       '${_weekdayLong(state.selectedDay.weekday)}, '
                       '${_monthShort(state.selectedDay.month)} '
@@ -1866,27 +2710,44 @@ class _ScheduleViewState extends State<ScheduleView> {
                         fontSize: 12,
                       ),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(
+                      height: 14,
+                    ),
                     Flexible(
                       child: ListView.separated(
                         shrinkWrap: true,
                         itemCount: state.commonSlots.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 8),
-                        itemBuilder: (context, index) {
+                        separatorBuilder: (
+                          _,
+                          __,
+                        ) =>
+                            const SizedBox(
+                          height: 8,
+                        ),
+                        itemBuilder: (
+                          context,
+                          index,
+                        ) {
                           final slot = state.commonSlots[index];
 
                           final selected = state.selectedSlot?.id == slot.id;
 
                           return InkWell(
-                            borderRadius: BorderRadius.circular(14),
+                            borderRadius: BorderRadius.circular(
+                              14,
+                            ),
                             onTap: () {
-                              widget.viewModel.selectSlot(slot);
+                              widget.viewModel.selectSlot(
+                                slot,
+                              );
                             },
                             child: AnimatedContainer(
                               duration: const Duration(
                                 milliseconds: 160,
                               ),
-                              padding: const EdgeInsets.all(12),
+                              padding: const EdgeInsets.all(
+                                12,
+                              ),
                               decoration: BoxDecoration(
                                 color: selected
                                     ? const Color(
@@ -1910,15 +2771,11 @@ class _ScheduleViewState extends State<ScheduleView> {
                                 children: [
                                   RadioGroup<String>(
                                     groupValue: state.selectedSlot?.id,
-                                    onChanged: (_) {
-                                      widget.viewModel.selectSlot(
-                                        slot,
-                                      );
-                                    },
+                                    onChanged: (_) =>
+                                        widget.viewModel.selectSlot(slot),
                                     child: Radio<String>(
-                                      value: slot.id,
-                                      activeColor: AppColors.success,
-                                    ),
+                                        value: slot.id,
+                                        activeColor: AppColors.success),
                                   ),
                                   Expanded(
                                     child: Column(
@@ -1926,7 +2783,9 @@ class _ScheduleViewState extends State<ScheduleView> {
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          _slotLabel(slot),
+                                          _slotLabel(
+                                            slot,
+                                          ),
                                           style: const TextStyle(
                                             color: AppColors.textPrimary,
                                             fontSize: 13,
@@ -1953,7 +2812,9 @@ class _ScheduleViewState extends State<ScheduleView> {
                         },
                       ),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(
+                      height: 14,
+                    ),
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton.icon(
@@ -2018,6 +2879,10 @@ class _ScheduleViewState extends State<ScheduleView> {
     }
   }
 
+  // ===================================================================
+  // HELPERS
+  // ===================================================================
+
   double _topFor(
     DateTime time,
   ) {
@@ -2032,9 +2897,16 @@ class _ScheduleViewState extends State<ScheduleView> {
     DateTime start,
     DateTime end,
   ) {
-    final minutes = end.difference(start).inMinutes;
+    final minutes = end
+        .difference(
+          start,
+        )
+        .inMinutes;
 
-    return (minutes * _pixelsPerMinute).clamp(24, _timelineHeight);
+    return (minutes * _pixelsPerMinute).clamp(
+      24,
+      _timelineHeight,
+    );
   }
 
   ScheduleFriend? _friendFor(
@@ -2079,28 +2951,6 @@ class _ScheduleViewState extends State<ScheduleView> {
         first.day == second.day;
   }
 
-  static String _durationLabel(
-    Duration duration,
-  ) {
-    if (duration.inMinutes == 30) {
-      return '30m';
-    }
-
-    if (duration.inMinutes == 45) {
-      return '45m';
-    }
-
-    if (duration.inHours == 1) {
-      return '1h';
-    }
-
-    if (duration.inHours == 2) {
-      return '2h';
-    }
-
-    return '${duration.inMinutes}m';
-  }
-
   static String _slotLabel(
     CommonSlot slot,
   ) {
@@ -2111,6 +2961,7 @@ class _ScheduleViewState extends State<ScheduleView> {
     DateTime time,
   ) {
     var hour = time.hour;
+
     final period = hour >= 12 ? 'PM' : 'AM';
 
     if (hour == 0) {
@@ -2119,7 +2970,10 @@ class _ScheduleViewState extends State<ScheduleView> {
       hour -= 12;
     }
 
-    final minutes = time.minute.toString().padLeft(2, '0');
+    final minutes = time.minute.toString().padLeft(
+          2,
+          '0',
+        );
 
     return '$hour:$minutes $period';
   }
@@ -2194,11 +3048,18 @@ class _ScheduleViewState extends State<ScheduleView> {
   }
 }
 
+enum _DurationDialogMode {
+  add,
+  edit,
+}
+
 class _MeChip extends StatelessWidget {
   const _MeChip();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(
+    BuildContext context,
+  ) {
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: 10,
@@ -2206,7 +3067,9 @@ class _MeChip extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: AppColors.primary,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(
+          20,
+        ),
       ),
       child: const Row(
         mainAxisSize: MainAxisSize.min,
@@ -2216,7 +3079,9 @@ class _MeChip extends StatelessWidget {
             size: 14,
             color: Colors.white,
           ),
-          SizedBox(width: 4),
+          SizedBox(
+            width: 4,
+          ),
           Text(
             'Me',
             style: TextStyle(
@@ -2241,7 +3106,9 @@ class _FriendChip extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(
+    BuildContext context,
+  ) {
     return Container(
       padding: const EdgeInsets.fromLTRB(
         6,
@@ -2250,10 +3117,16 @@ class _FriendChip extends StatelessWidget {
         4,
       ),
       decoration: BoxDecoration(
-        color: const Color(0xFFE8EFFB),
-        borderRadius: BorderRadius.circular(20),
+        color: const Color(
+          0xFFE8EFFB,
+        ),
+        borderRadius: BorderRadius.circular(
+          20,
+        ),
         border: Border.all(
-          color: const Color(0xFFB8CAE9),
+          color: const Color(
+            0xFFB8CAE9,
+          ),
         ),
       ),
       child: Row(
@@ -2271,7 +3144,9 @@ class _FriendChip extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: 5),
+          const SizedBox(
+            width: 5,
+          ),
           Text(
             friend.name,
             style: const TextStyle(
@@ -2280,12 +3155,18 @@ class _FriendChip extends StatelessWidget {
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(width: 2),
+          const SizedBox(
+            width: 2,
+          ),
           InkWell(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(
+              20,
+            ),
             onTap: onRemove,
             child: const Padding(
-              padding: EdgeInsets.all(2),
+              padding: EdgeInsets.all(
+                2,
+              ),
               child: Icon(
                 Icons.close,
                 size: 13,

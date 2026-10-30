@@ -6,13 +6,20 @@ enum ScheduleBlockType {
 
 class ScheduleBlock {
   final String id;
+
   final DateTime start;
   final DateTime end;
+
   final ScheduleBlockType type;
 
   final String? title;
   final String? subtitle;
   final String? location;
+
+  /// User that owns the block.
+  ///
+  /// For personal events this can be null.
+  /// For friendBusy it contains the friend's UID/document ID.
   final String? ownerId;
 
   const ScheduleBlock({
@@ -30,6 +37,6 @@ class ScheduleBlock {
     DateTime candidateStart,
     DateTime candidateEnd,
   ) {
-    return start.isBefore(candidateEnd) && end.isAfter(candidateStart);
+    return candidateStart.isBefore(end) && candidateEnd.isAfter(start);
   }
 }

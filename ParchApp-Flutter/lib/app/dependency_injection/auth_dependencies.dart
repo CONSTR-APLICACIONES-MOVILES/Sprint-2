@@ -13,7 +13,6 @@ import '../../features/auth/presentation/view_models/sign_in_view_model.dart';
 import '../../features/auth/presentation/view_models/create_account_view_model.dart';
 import '../../features/auth/presentation/views/sign_in_view.dart';
 import '../../features/auth/presentation/views/create_account_view.dart';
-import '../../features/auth/data/repositories/local_biometric_authenticator.dart';
 import '../../features/auth/domain/repositories/biometric_authenticator.dart';
 
 class AuthDependencies {

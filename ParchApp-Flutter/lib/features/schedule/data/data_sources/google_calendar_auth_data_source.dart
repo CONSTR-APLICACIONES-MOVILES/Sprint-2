@@ -20,6 +20,12 @@ class GoogleCalendarAuthDataSource {
     return headers;
   }
 
+  Future<GoogleSignInClientAuthorization> getCalendarAuthorization() async {
+    final account = await authorizeCalendar();
+    return account.authorizationClient.authorizeScopes(
+        const ['https://www.googleapis.com/auth/calendar.events.readonly']);
+  }
+
   Future<void> initialize() async {
     if (_initialized) return;
 

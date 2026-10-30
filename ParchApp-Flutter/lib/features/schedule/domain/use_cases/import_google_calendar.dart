@@ -11,11 +11,9 @@ class ImportGoogleCalendar {
   );
 
   Future<int> call() async {
-    final blocks =
-        await _calendarRepository.importCalendar();
+    final blocks = await _calendarRepository.importCalendar();
 
-    await _scheduleRepository
-        .replaceImportedCalendarBlocks(
+    await _scheduleRepository.replaceImportedCalendarBlocks(
       blocks,
     );
 

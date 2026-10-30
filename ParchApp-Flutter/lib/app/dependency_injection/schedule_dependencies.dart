@@ -1,3 +1,11 @@
+import '../../core/connectivity/connectivity_service.dart';
+import '../../features/schedule/data/repositories/firestore_friend_locations_repository.dart';
+import '../../features/schedule/data/repositories/geolocator_location_repository.dart';
+import '../../features/schedule/data/repositories/local_schedule_preferences_repository.dart';
+import '../../features/schedule/data/repositories/local_schedule_cache_metadata_repository.dart';
+import '../../features/schedule/domain/use_cases/get_schedule_preferences.dart';
+import '../../features/schedule/domain/use_cases/save_schedule_preferences.dart';
+import '../../features/schedule/domain/services/distance_service.dart';
 import 'package:flutter/material.dart';
 import 'firebase_dependencies.dart';
 import '../../features/schedule/data/repositories/firebase_schedule_repository.dart';
@@ -24,11 +32,13 @@ class ScheduleDependencies {
   final ScheduleRepository repository;
   final CalendarImportRepository calendarImportRepository;
   final bool calendarImportEnabled;
+  final FirebaseDependencies? firebase;
 
   const ScheduleDependencies({
     required this.repository,
     required this.calendarImportRepository,
     this.calendarImportEnabled = true,
+    this.firebase,
   });
 
   factory ScheduleDependencies.mock() {
@@ -52,10 +62,13 @@ class ScheduleDependencies {
   factory ScheduleDependencies.firebase(FirebaseDependencies firebase) {
     final auth = GoogleCalendarAuthDataSource();
     return ScheduleDependencies(
+      firebase: firebase,
       calendarImportEnabled:
           const bool.fromEnvironment('ENABLE_GOOGLE_CALENDAR_IMPORT'),
       repository: FirebaseScheduleRepository(
-          firebase.mobile, () => firebase.auth.currentUser?.uid),
+          firebase.mobile, () => firebase.auth.currentUser?.uid,
+          locations: FirestoreFriendLocationsRepository(
+              firestore: firebase.firestore)),
       calendarImportRepository: CalendarImportRepositoryImpl(
           dataSource:
               GoogleFreeBusyDataSource(headers: auth.authorizationHeaders),
@@ -71,11 +84,29 @@ class ScheduleDependencies {
             ? (repository as FirebaseScheduleRepository).forGroup(groupId)
             : repository,
         const AvailabilityService(),
+        firebase == null ? null : const GeolocatorLocationRepository(),
+        const DistanceService(),
       ),
       ImportGoogleCalendar(
         calendarImportRepository,
         repository,
       ),
+      getSchedulePreferences: firebase == null
+          ? null
+          : GetSchedulePreferences(
+              LocalSchedulePreferencesRepository(auth: firebase!.auth)),
+      saveSchedulePreferences: firebase == null
+          ? null
+          : SaveSchedulePreferences(
+              LocalSchedulePreferencesRepository(auth: firebase!.auth)),
+      cacheMetadataRepository: firebase == null
+          ? null
+          : LocalScheduleCacheMetadataRepository(auth: firebase!.auth),
+      connectivityService: firebase == null ? null : ConnectivityService(),
+      isOffline: firebase == null
+          ? null
+          : () =>
+              firebase!.mobile.value.offline || firebase!.mobile.value.forced,
       initialDay: initialDay,
       calendarImportEnabled: calendarImportEnabled,
       authorizeGoogleCalendar:
