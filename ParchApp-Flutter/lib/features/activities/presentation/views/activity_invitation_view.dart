@@ -1,4 +1,5 @@
 import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/widgets/inline_error_notice.dart';
 import '../../../../shared/widgets/parch_visuals.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -45,7 +46,7 @@ class _ActivityInvitationViewState extends State<ActivityInvitationView> {
         final blocked = state.loading ||
             state.saving ||
             session?.cancelled != false ||
-            state.invitation?.response != null;
+            state.invitation?.pendingSync == true;
         Widget feedback() =>
             Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               if (state.acknowledgement != null)
@@ -55,9 +56,7 @@ class _ActivityInvitationViewState extends State<ActivityInvitationView> {
               if (state.invitation?.response != null)
                 Text(
                     'Your response: ${state.invitation!.response!.name}${state.invitation!.pendingSync ? ' · Pending sync' : ''}'),
-              if (state.error != null)
-                Text(state.error!,
-                    style: const TextStyle(color: AppColors.error)),
+              if (state.error != null) InlineErrorNotice(state.error!),
             ]);
         return Scaffold(
           backgroundColor: AppColors.background,
@@ -250,8 +249,17 @@ class _ActivityInvitationViewState extends State<ActivityInvitationView> {
                         if (state.invitation == null &&
                             !state.loading &&
                             session?.cancelled != true)
-                          const Text(
-                              'No invitation is available for this account.'),
+                          OutlinedButton(
+                              onPressed: session == null
+                                  ? null
+                                  : () async {
+                                      await context.push(
+                                          '/activities/${Uri.encodeComponent(widget.viewModel.activityId)}/participants');
+                                      if (mounted) {
+                                        await widget.viewModel.load();
+                                      }
+                                    },
+                              child: const Text('Join activity')),
                         TextButton(
                             onPressed: () => context.push(
                                 AppRoutes.studySession(

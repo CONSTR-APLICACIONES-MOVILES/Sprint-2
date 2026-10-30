@@ -36,12 +36,16 @@ class _OfflineShellState extends State<OfflineShell>
     widget.api.refreshSession();
   }
 
-  void _network(List<ConnectivityResult> results) => widget.api
-      .setNetworkAvailable(!results.contains(ConnectivityResult.none));
+  void _network(List<ConnectivityResult> results) =>
+      widget.api.setNetworkAvailable(
+          results.any((result) => result != ConnectivityResult.none));
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      widget.api.flush(automatic: true);
+      Connectivity()
+          .checkConnectivity()
+          .then(_network)
+          .catchError((Object _) {});
     }
   }
 

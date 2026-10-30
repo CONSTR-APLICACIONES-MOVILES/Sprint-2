@@ -72,8 +72,7 @@ class ActivitiesDependencies {
             firestore: firebase.firestore,
             api: firebase.mobile,
             monitorFactory: firebase.creationMonitor,
-            offline: () =>
-                firebase.mobile.value.offline || firebase.mobile.value.forced));
+            offline: () => !firebase.mobile.canAttemptRemote));
     return ActivitiesDependencies(
         repository: repository,
         catalog: repository,

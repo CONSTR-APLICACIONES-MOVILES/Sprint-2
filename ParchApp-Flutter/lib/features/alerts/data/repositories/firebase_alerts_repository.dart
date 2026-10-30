@@ -46,6 +46,7 @@ class FirebaseAlertsRepository
       for (final raw in response['alerts'] as List)
         _alert(Map<String, dynamic>.from(raw as Map), today)
     ];
+    _items.removeWhere((a) => a.kind == AlertKind.digest && a.isRead);
     return List.unmodifiable(_items);
   }
 
@@ -62,6 +63,10 @@ class FirebaseAlertsRepository
             orElse: () => AlertKind.invitation),
         authoritative: true,
         groupId: data['groupId'] as String?,
+        requesterId: data['requesterId'] as String?,
+        requesterName: data['requesterName'] as String?,
+        requesterUsername: data['requesterUsername'] as String?,
+        friendshipVersion: data['friendshipVersion'] as String?,
         period: isToday ? AlertPeriod.today : AlertPeriod.earlier,
         title: data['title'] as String,
         description: data['description'] as String,
@@ -95,7 +100,10 @@ class FirebaseAlertsRepository
           {'ids': events, if (uid != null) 'clientUserId': uid});
     }
     _checkSession(uid);
-    _items = [for (final item in _items) item.copyWith(isRead: true)];
+    _items = [
+      for (final item in _items)
+        if (item.kind != AlertKind.digest) item.copyWith(isRead: true)
+    ];
     return List.unmodifiable(_items);
   }
 
@@ -104,12 +112,47 @@ class FirebaseAlertsRepository
     final uid = _session();
     final prior = _items.where((a) => a.id == id).firstOrNull;
     if (prior == null) throw StateError('Reload this invitation first.');
+    if (prior.authoritative &&
+        prior.kind == AlertKind.digest &&
+        response == AlertResponse.dismissed) {
+      await _api.call('markNotificationEventsRead', {
+        'ids': [id],
+        if (uid != null) 'clientUserId': uid
+      });
+      _checkSession(uid);
+      _items.removeWhere((a) => a.id == id);
+      return List.unmodifiable(_items);
+    }
+    if (prior.kind == AlertKind.friendRequest) {
+      if (prior.isResolved ||
+          prior.requesterId == null ||
+          prior.friendshipVersion == null ||
+          !{AlertResponse.accepted, AlertResponse.declined}
+              .contains(response)) {
+        throw StateError('Reload this friendship request first.');
+      }
+      await _api.call('changeFriendship', {
+        'userId': prior.requesterId,
+        'action': response == AlertResponse.accepted ? 'accept' : 'decline',
+        'expectedVersion': prior.friendshipVersion,
+        if (uid != null) 'clientUserId': uid,
+      });
+      _checkSession(uid);
+      _items = [
+        for (final item in _items)
+          item.id == id ? item.copyWith(isRead: true, response: response) : item
+      ];
+      return List.unmodifiable(_items);
+    }
     if (prior.kind != AlertKind.invitation) {
       throw StateError('Open the alert details to act on this event.');
     }
     final respondedAt = DateTime.now();
-    final acknowledgement = await _api.call(
-        'respondToActivityInvitation', {'id': id, 'response': response.name});
+    final acknowledgement = await _api.call('respondToActivityInvitation', {
+      'id': id,
+      'response': response.name,
+      'expectedResponse': prior.response?.name
+    });
     _checkSession(uid);
     if (acknowledgement['pending'] != true &&
         analytics != null &&

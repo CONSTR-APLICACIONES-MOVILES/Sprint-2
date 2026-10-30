@@ -210,7 +210,7 @@ class _ActiveGroupsViewState extends State<ActiveGroupsView> {
           return;
         }
         if (await widget.viewModel.confirmRsvp(group)) {
-          _message('RSVP confirmed for ${group.name}');
+          _message('Attendance confirmed for ${group.name}');
         }
       case GroupAction.dropIn:
         if (await widget.viewModel.dropIn(group)) {

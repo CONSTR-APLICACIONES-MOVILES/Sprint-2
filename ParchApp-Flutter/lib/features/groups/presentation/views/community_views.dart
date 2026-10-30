@@ -1,4 +1,5 @@
 import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/widgets/inline_error_notice.dart';
 import '../../../../shared/widgets/parch_visuals.dart';
 import '../../../../shared/widgets/parch_navigation_bar.dart';
 import 'dart:async';
@@ -142,7 +143,7 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
               children: [
                 if (_busy) const LinearProgressIndicator(),
                 if (_error != null) ...[
-                  Text(_error!, style: const TextStyle(color: AppColors.error)),
+                  InlineErrorNotice(_error!),
                   TextButton(
                       onPressed: _busy ? null : _load,
                       child: const Text('Retry'))
@@ -299,6 +300,9 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
             (counts['declined'] as num) +
             (counts['pending'] as num? ?? 0),
         accepted = counts['accepted'] as num;
+    final allAccepted = total > 0 && accepted == total;
+    final pending = (counts['pending'] as num? ?? 0) > 0;
+    final attendanceColor = allAccepted ? AppColors.success : AppColors.warning;
     return Container(
         decoration: BoxDecoration(
             color: Colors.white,
@@ -307,14 +311,7 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
         clipBehavior: Clip.antiAlias,
         child:
             Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Container(
-              height: 5,
-              decoration: const BoxDecoration(
-                  gradient: LinearGradient(colors: [
-                Color(0xFFF0C02E),
-                Color(0xFF3478D5),
-                AppColors.primary
-              ]))),
+          Container(height: 5, color: attendanceColor),
           Padding(
               padding: const EdgeInsets.all(18),
               child: Column(
@@ -323,13 +320,15 @@ class _GroupDetailsViewState extends State<GroupDetailsView> {
                     Align(
                         alignment: Alignment.centerLeft,
                         child: ParchPill(
-                            a['status'] == 'CONFIRMED'
-                                ? 'Confirmed activity'
-                                : 'Awaiting responses',
-                            color: a['status'] == 'CONFIRMED'
-                                ? AppColors.success
-                                : AppColors.warning,
-                            icon: Icons.hourglass_empty)),
+                            allAccepted
+                                ? 'Everyone accepted'
+                                : pending
+                                    ? 'Awaiting responses'
+                                    : 'All responses received',
+                            color: attendanceColor,
+                            icon: allAccepted
+                                ? Icons.check_circle_outline
+                                : Icons.people_outline)),
                     const SizedBox(height: 12),
                     Text(a['title'],
                         style: const TextStyle(

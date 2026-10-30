@@ -62,6 +62,11 @@ class OfflineMobileApi extends ValueNotifier<OfflineStatus>
   bool _flushing = false;
   bool _networkAvailable = true;
   String? _visibleUser;
+
+  /// A failed request marks displayed data as offline, but must not lock out
+  /// retries while an interface is available. Only explicit/device offline
+  /// signals prevent a new attempt; the request determines reachability.
+  bool get canAttemptRemote => !value.forced && _networkAvailable;
   OfflineMobileApi(
       {required this.remote,
       required this.store,
@@ -98,9 +103,22 @@ class OfflineMobileApi extends ValueNotifier<OfflineStatus>
   }
 
   void _invalidateAfterMutation(Map saved, String name, Map input) {
+    if (name == 'changeActivityParticipants') {
+      (saved['cache'] as Map).removeWhere((_, entry) => {
+            'getAlerts',
+            'getGroupDetails',
+            'getActivityParticipants',
+            'getGroups'
+          }.contains(entry['name']));
+    }
+    if (name == 'inviteGroupFriend') {
+      (saved['cache'] as Map)
+          .removeWhere((_, entry) => entry['name'] == 'getGroupDetails');
+    }
     if ({'changeFriendship', 'setUsername'}.contains(name)) {
       (saved['cache'] as Map).removeWhere((_, entry) =>
           entry['name'] == 'getFriends' ||
+          name == 'changeFriendship' && entry['name'] == 'getAlerts' ||
           name == 'setUsername' && entry['name'] == 'getProfile');
     }
     const changes = {
@@ -109,7 +127,8 @@ class OfflineMobileApi extends ValueNotifier<OfflineStatus>
       'cancelActivity',
       'acceptActivityRecommendation',
       'modifyActivityRecommendation',
-      'respondToActivityInvitation'
+      'respondToActivityInvitation',
+      'changeActivityParticipants'
     };
     if (!changes.contains(name)) return;
     final id = input['activityId'] ?? input['id'];
@@ -239,7 +258,7 @@ class OfflineMobileApi extends ValueNotifier<OfflineStatus>
   Future<Map<String, dynamic>> call(
       String name, Map<String, dynamic> input) async {
     final uid = _user();
-    if (!value.forced && _networkAvailable) {
+    if (canAttemptRemote) {
       try {
         final result = await remote
             .call(

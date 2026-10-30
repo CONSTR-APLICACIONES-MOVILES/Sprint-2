@@ -14,6 +14,19 @@ class AlertCard extends StatelessWidget {
   final VoidCallback onCreateActivity;
   final VoidCallback onProfile;
   final VoidCallback onDetails;
+  String get _requesterName => alert.requesterName ?? alert.title;
+  String get _requesterInitials {
+    final words = _requesterName
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((w) => w.isNotEmpty)
+        .toList();
+    if (words.isEmpty) return '?';
+    return [words.first, if (words.length > 1) words.last]
+        .map((w) => String.fromCharCode(w.runes.first))
+        .join()
+        .toUpperCase();
+  }
 
   const AlertCard(
       {super.key,
@@ -58,7 +71,9 @@ class AlertCard extends StatelessWidget {
           const Color(0xFFF3E8FF)
         ),
       AlertKind.digest => (
-          'WEEKLY DIGEST',
+          alert.authoritative && alert.id.startsWith('friend_')
+              ? 'FRIENDSHIP UPDATE'
+              : 'WEEKLY DIGEST',
           Icons.forward_to_inbox,
           AppColors.primary,
           alertsBlueTint
@@ -104,7 +119,7 @@ class AlertCard extends StatelessWidget {
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Semantics(
               label: alert.kind == AlertKind.friendRequest
-                  ? 'Carlos Mendoza'
+                  ? _requesterName
                   : label,
               child: Container(
                 width: 40,
@@ -113,7 +128,7 @@ class AlertCard extends StatelessWidget {
                     color: tint, borderRadius: BorderRadius.circular(16)),
                 child: alert.kind == AlertKind.friendRequest
                     ? Center(
-                        child: Text('CM',
+                        child: Text(_requesterInitials,
                             style: TextStyle(
                                 color: color, fontWeight: FontWeight.w800)))
                     : Icon(icon, color: color, size: 23),
@@ -161,7 +176,8 @@ class AlertCard extends StatelessWidget {
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
                         height: 1.3)),
-                if (alert.kind == AlertKind.friendRequest) ...[
+                if (alert.kind == AlertKind.friendRequest &&
+                    !alert.authoritative) ...[
                   const SizedBox(height: 5),
                   const Text('● Active Now',
                       style: TextStyle(
@@ -181,16 +197,6 @@ class AlertCard extends StatelessWidget {
                 Text(alert.description,
                     style: const TextStyle(
                         fontSize: 13, height: 1.5, color: Color(0xFF43474E))),
-                if (alert.kind == AlertKind.friendRequest) ...[
-                  const SizedBox(height: 8),
-                  const Text(
-                      '“Hey Alex, let’s sync calendars for the final workshop!”',
-                      style: TextStyle(
-                          fontSize: 12,
-                          fontStyle: FontStyle.italic,
-                          color: Color(0xFF74777F),
-                          height: 1.4)),
-                ],
                 if (alert.kind == AlertKind.overlap) ...[
                   const SizedBox(height: 12),
                   Container(
@@ -285,12 +291,18 @@ class AlertCard extends StatelessWidget {
       onPressed: busy ? null : () => onRespond(response), child: Text(label));
 
   List<Widget> _actions() => alert.authoritative &&
-          alert.kind != AlertKind.invitation
+          alert.kind != AlertKind.invitation &&
+          alert.kind != AlertKind.friendRequest
       ? [
+          if (alert.kind == AlertKind.digest)
+            _secondary('Dismiss', AlertResponse.dismissed),
           _primary(
               alert.kind == AlertKind.groupInvite
                   ? 'Review group invitation'
-                  : 'View activity',
+                  : alert.kind == AlertKind.digest &&
+                          alert.studySessionId == null
+                      ? 'View friends'
+                      : 'View activity',
               onDetails)
         ]
       : switch (alert.kind) {
@@ -304,7 +316,7 @@ class AlertCard extends StatelessWidget {
                   icon: Icons.person_add_alt_1),
               _secondary('Decline', AlertResponse.declined),
               IconButton(
-                  tooltip: 'View Carlos profile',
+                  tooltip: 'View requester profile',
                   onPressed: busy ? null : onProfile,
                   icon: const Icon(Icons.account_circle,
                       color: AppColors.primary)),

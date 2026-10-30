@@ -1,4 +1,5 @@
 import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/widgets/inline_error_notice.dart';
 import 'package:flutter/material.dart';
 import '../../domain/entities/profile_user.dart';
 import '../../domain/entities/profile_preferences.dart';
@@ -133,8 +134,7 @@ class _PresenceSheetState extends State<PresenceSheet> {
             if (_error != null)
               Padding(
                   padding: const EdgeInsets.only(top: 12),
-                  child: Text(_error!,
-                      style: const TextStyle(color: AppColors.error))),
+                  child: InlineErrorNotice(_error!)),
             const SizedBox(height: 16),
             FilledButton.icon(
                 style: FilledButton.styleFrom(

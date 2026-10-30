@@ -33,6 +33,10 @@ abstract final class AppRouter {
         routes: [
           if (expansions != null) ...[
             GoRoute(
+                path: '/activities/:activityId/participants',
+                builder: (_, state) => expansions
+                    .participants(state.pathParameters['activityId']!)),
+            GoRoute(
                 path: '/insights/planning',
                 redirect: (_, __) => AppRoutes.profile),
             GoRoute(path: '/friends', builder: (_, __) => expansions.friends()),

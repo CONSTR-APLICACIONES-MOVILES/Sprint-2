@@ -1,4 +1,5 @@
 import '../../../../shared/widgets/data_freshness_banner.dart';
+import '../../../../shared/widgets/inline_error_notice.dart';
 import '../../../../shared/widgets/parch_visuals.dart';
 import 'package:flutter/material.dart';
 import '../widgets/activity_location_preview.dart';
@@ -171,6 +172,7 @@ class _StudySessionViewState extends State<StudySessionView> {
           bottomNavigationBar:
               Column(mainAxisSize: MainAxisSize.min, children: [
             if (state.session != null &&
+                state.session!.canOrganize &&
                 (state.session!.supportsDetailsEditing ||
                     state.session!.supportsActivityEditing))
               SafeArea(
@@ -223,7 +225,7 @@ class _StudySessionViewState extends State<StudySessionView> {
                           .refreshDetails(savedMessage: 'Response saved.');
                     }
                   },
-                  child: const Text('View invitation & RSVP')),
+                  child: const Text('View Invitation')),
             const ParchNavigationBar(selectedIndex: 2),
           ]),
         ),
@@ -285,8 +287,7 @@ class _StudySessionViewState extends State<StudySessionView> {
                   if (state.error != null)
                     Padding(
                         padding: const EdgeInsets.only(bottom: 12),
-                        child: Text(state.error!,
-                            style: const TextStyle(color: AppColors.error))),
+                        child: InlineErrorNotice(state.error!)),
                   DataFreshnessBanner(freshness: session.freshness),
                   ActivityCover(category: session.category),
                   const SizedBox(height: 16),
@@ -493,6 +494,23 @@ class _StudySessionViewState extends State<StudySessionView> {
                               ? Icons.person_add_alt
                               : Icons.share_outlined)),
                       child: Column(children: [
+                        if (!widget.isDemo && !session.cancelled) ...[
+                          OutlinedButton.icon(
+                              onPressed: state.saving
+                                  ? null
+                                  : () async {
+                                      await context.push(
+                                          '/activities/${Uri.encodeComponent(session.id)}/participants');
+                                      if (mounted) {
+                                        await widget.viewModel.refreshDetails();
+                                      }
+                                    },
+                              icon: const Icon(Icons.people_outline),
+                              label: Text(session.canOrganize
+                                  ? 'Manage participants'
+                                  : 'Join activity / participants')),
+                          const SizedBox(height: 12),
+                        ],
                         for (final person in session.participants)
                           ListTile(
                             contentPadding: EdgeInsets.zero,

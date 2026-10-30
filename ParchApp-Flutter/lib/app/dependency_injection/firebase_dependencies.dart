@@ -30,9 +30,7 @@ class FirebaseDependencies {
             project: firestore.app.options.projectId,
             uid: uid,
             canSend: () =>
-                auth.currentUser?.uid == uid &&
-                !mobile.value.forced &&
-                !mobile.value.offline,
+                auth.currentUser?.uid == uid && mobile.canAttemptRemote,
             send: (event) async {
               if (auth.currentUser?.uid != uid) {
                 throw StateError('Session changed.');

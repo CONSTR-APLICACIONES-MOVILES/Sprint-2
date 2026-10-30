@@ -1,4 +1,5 @@
 import '../../../../shared/widgets/data_freshness_banner.dart';
+import 'dart:async';
 import '../../../../shared/widgets/parch_app_bar.dart';
 import '../../../../shared/widgets/parch_navigation_bar.dart';
 import 'package:flutter/material.dart';
@@ -19,13 +20,29 @@ class AlertsView extends StatefulWidget {
   State<AlertsView> createState() => _AlertsViewState();
 }
 
-class _AlertsViewState extends State<AlertsView> {
+class _AlertsViewState extends State<AlertsView> with WidgetsBindingObserver {
   final _search = TextEditingController();
   bool _searchVisible = false;
+  Timer? _refreshTimer;
+  void _refreshWhenVisible() {
+    if (mounted &&
+        ModalRoute.of(context)?.isCurrent == true &&
+        WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed) {
+      widget.viewModel.load();
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _refreshWhenVisible();
+  }
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _refreshTimer = Timer.periodic(
+        const Duration(seconds: 30), (_) => _refreshWhenVisible());
     _search.text = widget.viewModel.value.query;
     widget.viewModel.load();
   }
@@ -41,6 +58,8 @@ class _AlertsViewState extends State<AlertsView> {
 
   @override
   void dispose() {
+    _refreshTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     _search.dispose();
     super.dispose();
   }
@@ -291,16 +310,22 @@ class _AlertsViewState extends State<AlertsView> {
                                         child: Padding(
                                             padding: const EdgeInsets.fromLTRB(
                                                 16, 0, 16, 14),
-                                            child: AlertCard(
-                                              key: ValueKey(alert.id),
-                                              alert: alert,
-                                              busy: state.isUpdating,
-                                              onRespond: (response) =>
-                                                  _respond(alert, response),
-                                              onCreateActivity: _createActivity,
-                                              onProfile: () => _profile(alert),
-                                              onDetails: () => _details(alert),
-                                            )))),
+                                            child: _dismissible(
+                                                alert,
+                                                state,
+                                                AlertCard(
+                                                  key: ValueKey(alert.id),
+                                                  alert: alert,
+                                                  busy: state.isUpdating,
+                                                  onRespond: (response) =>
+                                                      _respond(alert, response),
+                                                  onCreateActivity:
+                                                      _createActivity,
+                                                  onProfile: () =>
+                                                      _profile(alert),
+                                                  onDetails: () =>
+                                                      _details(alert),
+                                                ))))),
                             ]),
                           ],
                       ],
@@ -310,6 +335,28 @@ class _AlertsViewState extends State<AlertsView> {
           bottomNavigationBar: const ParchNavigationBar(),
         ),
       );
+
+  Widget _dismissible(AppAlert alert, AlertsState state, Widget card) {
+    if (!alert.authoritative || alert.kind != AlertKind.digest) return card;
+    return Dismissible(
+        key: ValueKey('dismiss-${alert.id}'),
+        direction: state.isUpdating
+            ? DismissDirection.none
+            : DismissDirection.endToStart,
+        background: Container(
+            alignment: Alignment.centerRight,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+                color: const Color(0xFFE8EDF6),
+                borderRadius: BorderRadius.circular(16)),
+            child: const Icon(Icons.done_all)),
+        confirmDismiss: (_) async {
+          // The repository removes the card only after the server acknowledges it.
+          await widget.viewModel.respond(alert, AlertResponse.dismissed);
+          return false;
+        },
+        child: card);
+  }
 
   String _filterLabel(AlertsFilter filter) => switch (filter) {
         AlertsFilter.all => 'All',
@@ -377,6 +424,12 @@ class _AlertsViewState extends State<AlertsView> {
   }
 
   Future<void> _profile(AppAlert alert) async {
+    if (alert.authoritative) {
+      if (alert.requesterId == null) return;
+      await context.push('/people/${Uri.encodeComponent(alert.requesterId!)}');
+      if (mounted) await widget.viewModel.load();
+      return;
+    }
     final accept =
         await showAlertsSheet<bool>(context, child: const AlertProfileSheet());
     if (mounted && accept == true) {
@@ -389,6 +442,17 @@ class _AlertsViewState extends State<AlertsView> {
   }
 
   Future<void> _details(AppAlert alert) async {
+    if (alert.authoritative &&
+        alert.kind == AlertKind.digest &&
+        alert.studySessionId == null) {
+      await context.push('/friends');
+      if (mounted) await widget.viewModel.load();
+      return;
+    }
+    if (alert.kind == AlertKind.friendRequest) {
+      await _profile(alert);
+      return;
+    }
     if (alert.groupId != null) {
       await context.push(AppRoutes.groupInvitations);
       if (mounted) await widget.viewModel.load();

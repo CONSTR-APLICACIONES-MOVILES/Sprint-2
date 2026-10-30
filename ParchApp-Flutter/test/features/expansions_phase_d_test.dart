@@ -295,6 +295,7 @@ void main() {
     await tester.enterText(
         find.widgetWithText(TextField, 'New topic'), 'Work through exercise');
     await tester.ensureVisible(find.text('Add topic'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Add topic'));
     await tester.pumpAndSettle();
     expect(find.text('Resources saved.'), findsNothing);
@@ -305,6 +306,7 @@ void main() {
         scrollable: find.byType(Scrollable).first);
     expect(find.text('Retry the same resource save'), findsOneWidget);
     await tester.ensureVisible(find.text('Retry the same resource save'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Retry the same resource save'));
     await tester.pumpAndSettle();
     final writes = repo.calls
@@ -312,6 +314,8 @@ void main() {
         .toList();
     expect(writes.length, 2);
     expect(writes[0], writes[1]);
+    await tester.scrollUntilVisible(find.text('Resources saved.'), 200,
+        scrollable: find.byType(Scrollable).first);
     expect(find.text('Resources saved.'), findsOneWidget);
   });
   testWidgets('failed checklist write preserves the last acknowledged progress',
