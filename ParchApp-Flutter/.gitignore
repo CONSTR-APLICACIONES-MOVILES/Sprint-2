@@ -29,6 +29,7 @@ coverage/
 
 # Private defense preparation
 /docs/DEFENSA_GABRIEL*
+/docs/business-questions.md
 
 # Generated Kotlin compiler state
 /android/.kotlin/
