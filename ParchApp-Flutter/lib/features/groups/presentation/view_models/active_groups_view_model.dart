@@ -2,17 +2,25 @@ import 'package:flutter/foundation.dart';
 import '../../domain/entities/active_group.dart';
 import '../../domain/entities/response_time_estimate.dart';
 import '../../domain/use_cases/estimate_response_time.dart';
+import '../../domain/use_cases/forecast_activity_weather.dart';
 import '../../domain/use_cases/manage_active_groups.dart';
 import 'active_groups_state.dart';
 
 class ActiveGroupsViewModel extends ValueNotifier<ActiveGroupsState> {
   final ManageActiveGroups _groups;
   final EstimateResponseTime? _estimate;
+  final ForecastActivityWeather? _weather;
+  final DateTime Function() _now;
   List<ResponseTimeEstimate> _responseTimes = const [];
   bool _disposed = false;
 
-  ActiveGroupsViewModel(this._groups, {EstimateResponseTime? estimate})
+  ActiveGroupsViewModel(this._groups,
+      {EstimateResponseTime? estimate,
+      ForecastActivityWeather? weather,
+      DateTime Function()? now})
       : _estimate = estimate,
+        _weather = weather,
+        _now = now ?? DateTime.now,
         super(ActiveGroupsState());
 
   Map<String, ResponseTimeEstimate> _estimatesFor(List<ActiveGroup> groups) =>
@@ -35,7 +43,18 @@ class ActiveGroupsViewModel extends ValueNotifier<ActiveGroupsState> {
       _emit(value.copyWith(
           isLoading: false,
           error: 'Unable to load your groups. Please try again.'));
+      return;
     }
+    await _loadWeather(value.groups);
+  }
+
+  Future<void> _loadWeather(List<ActiveGroup> groups) async {
+    final weather = _weather;
+    if (weather == null || _disposed) return;
+    try {
+      final forecasts = await weather.forGroups(groups, _now());
+      _emit(value.copyWith(weather: forecasts, error: value.error));
+    } catch (_) {}
   }
 
   void setFilter(GroupsFilter filter) =>

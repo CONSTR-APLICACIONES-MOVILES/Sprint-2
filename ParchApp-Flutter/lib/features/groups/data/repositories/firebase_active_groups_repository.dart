@@ -114,6 +114,14 @@ class FirebaseActiveGroupsRepository implements ActiveGroupsRepository {
           invitationId: invitation,
           invitationSentAt: r['invitationSentAt'] as DateTime?,
           hasResponded: responded,
+          activityStartsAt: r['activityStartsAt'] as DateTime?,
+          activityLatitude: _coordinate(r['activityLocation'], 'latitude'),
+          activityLongitude: _coordinate(r['activityLocation'], 'longitude'),
         );
       }));
+}
+
+double? _coordinate(Object? place, String key) {
+  final value = place is Map ? place[key] : null;
+  return value is num ? value.toDouble() : null;
 }

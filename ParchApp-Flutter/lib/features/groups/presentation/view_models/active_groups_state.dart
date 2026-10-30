@@ -1,5 +1,6 @@
 import '../../domain/entities/active_group.dart';
 import '../../domain/entities/response_time_estimate.dart';
+import '../../domain/entities/weather_forecast.dart';
 
 enum GroupsFilter { all, study, socialLiving, sports }
 
@@ -7,6 +8,7 @@ class ActiveGroupsState {
   final List<ActiveGroup> groups;
 
   final Map<String, ResponseTimeEstimate> estimates;
+  final Map<String, WeatherForecast> weather;
   final GroupsFilter filter;
   final bool isLoading;
   final bool isUpdating;
@@ -15,6 +17,7 @@ class ActiveGroupsState {
   ActiveGroupsState({
     List<ActiveGroup> groups = const [],
     this.estimates = const {},
+    this.weather = const {},
     this.filter = GroupsFilter.all,
     this.isLoading = false,
     this.isUpdating = false,
@@ -22,6 +25,8 @@ class ActiveGroupsState {
   }) : groups = List.unmodifiable(groups);
 
   ResponseTimeEstimate? estimateFor(ActiveGroup group) => estimates[group.id];
+
+  WeatherForecast? weatherFor(ActiveGroup group) => weather[group.id];
 
   List<ActiveGroup> get visibleGroups => switch (filter) {
         GroupsFilter.all => groups,
@@ -53,6 +58,7 @@ class ActiveGroupsState {
   ActiveGroupsState copyWith({
     List<ActiveGroup>? groups,
     Map<String, ResponseTimeEstimate>? estimates,
+    Map<String, WeatherForecast>? weather,
     GroupsFilter? filter,
     bool? isLoading,
     bool? isUpdating,
@@ -61,6 +67,7 @@ class ActiveGroupsState {
       ActiveGroupsState(
         groups: groups ?? this.groups,
         estimates: estimates ?? this.estimates,
+        weather: weather ?? this.weather,
         filter: filter ?? this.filter,
         isLoading: isLoading ?? this.isLoading,
         isUpdating: isUpdating ?? this.isUpdating,

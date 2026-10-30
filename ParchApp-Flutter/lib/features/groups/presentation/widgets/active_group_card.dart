@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/entities/active_group.dart';
 import '../../domain/entities/response_time_estimate.dart';
+import '../../domain/entities/weather_forecast.dart';
 
 class ActiveGroupCard extends StatelessWidget {
   final ActiveGroup group;
 
   final ResponseTimeEstimate? estimate;
+  final WeatherForecast? weather;
   final bool busy;
   final void Function(GroupAction action) onAction;
 
@@ -14,6 +16,7 @@ class ActiveGroupCard extends StatelessWidget {
     super.key,
     required this.group,
     this.estimate,
+    this.weather,
     required this.busy,
     required this.onAction,
   });
@@ -124,6 +127,7 @@ class ActiveGroupCard extends StatelessWidget {
               if (estimate != null && !group.activityAttendance)
                 _ResponseTimeHint(group, estimate!),
             ],
+            if (weather != null) _WeatherHint(weather!),
             const SizedBox(height: 14),
             Row(children: [
               Expanded(child: _actionButton(group.primaryAction, true)),
@@ -293,4 +297,44 @@ class _ResponseTimeHint extends StatelessWidget {
       ]),
     );
   }
+}
+
+class _WeatherHint extends StatelessWidget {
+  final WeatherForecast forecast;
+  const _WeatherHint(this.forecast);
+
+  @override
+  Widget build(BuildContext context) {
+    final rain = forecast.rainLikely;
+    return Container(
+      key: const ValueKey('activity-weather'),
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+      decoration: BoxDecoration(
+          color: rain ? const Color(0xFFFEF6E7) : const Color(0xFFEEF4FF),
+          borderRadius: BorderRadius.circular(11)),
+      child: Row(children: [
+        Icon(_icon,
+            size: 16, color: rain ? AppColors.warning : AppColors.primary),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+              rain
+                  ? '${forecast.label} at the activity time. Consider a backup plan'
+                  : '${forecast.label} at the activity time',
+              style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w600,
+                  color: rain ? const Color(0xFF92400E) : AppColors.primary)),
+        ),
+      ]),
+    );
+  }
+
+  IconData get _icon => switch (forecast.weatherCode) {
+        0 => Icons.wb_sunny_outlined,
+        >= 95 => Icons.thunderstorm_outlined,
+        _ when forecast.rainLikely => Icons.umbrella_outlined,
+        _ => Icons.cloud_outlined,
+      };
 }

@@ -36,6 +36,10 @@ class ActiveGroup {
   final bool hasResponded;
   final bool activityAttendance;
 
+  final DateTime? activityStartsAt;
+  final double? activityLatitude;
+  final double? activityLongitude;
+
   const ActiveGroup({
     required this.id,
     required this.name,
@@ -56,6 +60,9 @@ class ActiveGroup {
     this.invitationSentAt,
     this.hasResponded = false,
     this.activityAttendance = false,
+    this.activityStartsAt,
+    this.activityLatitude,
+    this.activityLongitude,
   });
 
   ActiveGroup copyWith({
@@ -87,6 +94,9 @@ class ActiveGroup {
         invitationSentAt: invitationSentAt ?? this.invitationSentAt,
         hasResponded: hasResponded,
         activityAttendance: activityAttendance,
+        activityStartsAt: activityStartsAt,
+        activityLatitude: activityLatitude,
+        activityLongitude: activityLongitude,
       );
 
   bool get hasInvitation => invitationId != null && invitationSentAt != null;
