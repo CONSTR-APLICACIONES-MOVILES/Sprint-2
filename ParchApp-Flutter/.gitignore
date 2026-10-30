@@ -12,3 +12,6 @@ coverage/
 .DS_Store
 .scannerwork/
 .env.sonar
+
+# Local Google Maps API key
+/android/maps.properties
