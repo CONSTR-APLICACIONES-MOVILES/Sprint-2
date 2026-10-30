@@ -26,8 +26,10 @@ GoRouter createAppRouter(FirebaseDependencies firebase) {
       firebase,
       analytics: FirebaseAnalyticsService(),
     ),
-    // A saved account is offered on Sign-In and explicitly confirmed by the user.
-    initialLocation: AppRoutes.signIn,
+    // Native Firebase Auth restores its persisted account before router creation.
+    // Removing the app from Recents is not an explicit logout.
+    initialLocation:
+        firebase.auth.currentUser == null ? AppRoutes.signIn : AppRoutes.home,
     redirect: (context, state) {
       final public = [
         AppRoutes.welcome,

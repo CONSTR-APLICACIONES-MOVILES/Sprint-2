@@ -1,4 +1,5 @@
 import '../../../../shared/widgets/parch_app_bar.dart';
+import '../../../../shared/widgets/data_freshness_banner.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/router/app_routes.dart';
@@ -71,8 +72,12 @@ class _ActiveGroupsViewState extends State<ActiveGroupsView> {
         child: Padding(
           padding: const EdgeInsets.all(32),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Icon(Icons.groups_outlined,
-                size: 48, color: AppColors.primary),
+            Icon(
+                state.freshness.offline
+                    ? Icons.cloud_off_outlined
+                    : Icons.groups_outlined,
+                size: 48,
+                color: AppColors.primary),
             const SizedBox(height: 16),
             TextButton(
                 onPressed: () => _open(AppRoutes.groupInvitations),
@@ -105,6 +110,7 @@ class _ActiveGroupsViewState extends State<ActiveGroupsView> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const SizedBox(height: 4),
+                  DataFreshnessBanner(freshness: state.freshness),
                   TextField(
                       controller: _search,
                       decoration: const InputDecoration(
