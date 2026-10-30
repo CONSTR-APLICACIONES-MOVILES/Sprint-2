@@ -14,17 +14,22 @@ import '../../features/auth/presentation/view_models/create_account_view_model.d
 import '../../features/auth/presentation/views/sign_in_view.dart';
 import '../../features/auth/presentation/views/create_account_view.dart';
 import '../../features/auth/domain/repositories/biometric_authenticator.dart';
+import '../../features/auth/domain/repositories/saved_credentials_repository.dart';
+import '../../features/auth/data/repositories/local_biometric_authenticator.dart';
+import '../../features/auth/data/repositories/secure_saved_credentials_repository.dart';
 
 class AuthDependencies {
   final AuthRepository repository;
   final Future<void> Function(String)? passwordReset;
   final bool googleEnabled;
   final BiometricAuthenticator? biometrics;
+  final SavedCredentialsRepository? credentials;
   const AuthDependencies(
       {required this.repository,
       this.passwordReset,
       this.googleEnabled = true,
-      this.biometrics});
+      this.biometrics,
+      this.credentials});
 
   factory AuthDependencies.mock() =>
       AuthDependencies(repository: AuthRepositoryImpl(MockAuthDataSource()));
@@ -39,11 +44,13 @@ class AuthDependencies {
           },
           googleEnabled:
               kIsWeb || defaultTargetPlatform == TargetPlatform.android,
+          biometrics: LocalBiometricAuthenticator(),
+          credentials: const SecureSavedCredentialsRepository(),
           repository: AuthRepositoryImpl(
               FirebaseAuthDataSource(auth, profiles: profiles)));
 
-  SignInViewModel createSignInViewModel() =>
-      SignInViewModel(SignIn(repository, biometrics: biometrics));
+  SignInViewModel createSignInViewModel() => SignInViewModel(
+      SignIn(repository, biometrics: biometrics, credentials: credentials));
   CreateAccountViewModel createAccountViewModel() =>
       CreateAccountViewModel(CreateAccount(repository));
 

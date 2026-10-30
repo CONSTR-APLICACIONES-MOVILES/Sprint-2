@@ -1,0 +1,1 @@
+enum BiometricSignIn { unavailable, available, enabled }
