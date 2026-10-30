@@ -56,7 +56,8 @@ class GroupsDependencies {
             currentUserId: () => firebase.auth.currentUser?.uid),
         repository: FirebaseActiveGroupsRepository(FirestoreGroupsDataSource(
             firebase.firestore, firebase.auth,
-            api: firebase.mobile)),
+            api: firebase.mobile,
+            canAttemptRemote: () => firebase.mobile.canAttemptRemote)),
         insights: FirestoreResponseTimeInsightsRepository(firebase.mobile),
         weather: OpenMeteoWeatherRepository(),
         analytics: analytics,

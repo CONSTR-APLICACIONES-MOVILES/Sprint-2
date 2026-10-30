@@ -1,8 +1,14 @@
 import '../../domain/entities/active_group.dart';
+import '../../../../core/domain/data_freshness.dart';
 import '../../domain/repositories/active_groups_repository.dart';
 import '../data_sources/groups_data_source.dart';
 
-class FirebaseActiveGroupsRepository implements ActiveGroupsRepository {
+class FirebaseActiveGroupsRepository
+    implements ActiveGroupsRepository, CacheAwareRepository {
+  @override
+  DataFreshness get freshness => _source is CacheAwareRepository
+      ? (_source as CacheAwareRepository).freshness
+      : const DataFreshness();
   final GroupsDataSource _source;
   List<Map<String, dynamic>> _records = [];
   String? _owner;
@@ -60,7 +66,10 @@ class FirebaseActiveGroupsRepository implements ActiveGroupsRepository {
           ..retainAll(participants);
         final responded =
             perActivity ? r['activityResponse'] != null : going.contains(uid);
-        final invitation = r['invitationId'] as String?;
+        final attendanceUnavailable =
+            r['activityAttendanceUnavailable'] == true;
+        final invitation =
+            attendanceUnavailable ? null : r['invitationId'] as String?;
         final category = switch (r['category'] ?? r['activityCategory']) {
           'study' => GroupCategory.study,
           'sports' => GroupCategory.sports,
@@ -73,11 +82,13 @@ class FirebaseActiveGroupsRepository implements ActiveGroupsRepository {
           memberCount: ids.length,
           subtitle: 'Shared group',
           activityAttendance: perActivity,
-          statusText: r['activityCancelled'] == true
-              ? 'Activity cancelled'
-              : invitation == null
-                  ? 'No activity yet'
-                  : '${going.length}/${participants.length} ${perActivity ? 'accepted · ${r['activityMaybeCount'] ?? 0} maybe · ${r['activityDeclinedCount'] ?? 0} declined' : 'going'}',
+          statusText: attendanceUnavailable
+              ? 'Attendance is unavailable in this saved copy'
+              : r['activityCancelled'] == true
+                  ? 'Activity cancelled'
+                  : invitation == null
+                      ? 'No activity yet'
+                      : '${going.length}/${participants.length} ${perActivity ? 'accepted · ${r['activityMaybeCount'] ?? 0} maybe · ${r['activityDeclinedCount'] ?? 0} declined' : 'going'}',
           statusTag: responded
               ? (perActivity
                   ? switch (r['activityResponse']) {

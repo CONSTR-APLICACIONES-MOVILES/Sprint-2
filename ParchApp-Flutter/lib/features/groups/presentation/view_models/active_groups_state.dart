@@ -1,10 +1,12 @@
 import '../../domain/entities/active_group.dart';
+import '../../../../core/domain/data_freshness.dart';
 import '../../domain/entities/response_time_estimate.dart';
 import '../../domain/entities/activity_weather.dart';
 
 enum GroupsFilter { all, study, socialLiving, sports }
 
 class ActiveGroupsState {
+  final DataFreshness freshness;
   final List<ActiveGroup> groups;
 
   final Map<String, ResponseTimeEstimate> estimates;
@@ -15,6 +17,7 @@ class ActiveGroupsState {
   final String? error;
 
   ActiveGroupsState({
+    this.freshness = const DataFreshness(),
     List<ActiveGroup> groups = const [],
     this.estimates = const {},
     this.weather = const {},
@@ -32,8 +35,9 @@ class ActiveGroupsState {
         GroupsFilter.all => groups,
         GroupsFilter.study =>
           groups.where((g) => g.category == GroupCategory.study).toList(),
-        GroupsFilter.socialLiving =>
-          groups.where((g) => g.category == GroupCategory.socialLiving).toList(),
+        GroupsFilter.socialLiving => groups
+            .where((g) => g.category == GroupCategory.socialLiving)
+            .toList(),
         GroupsFilter.sports =>
           groups.where((g) => g.category == GroupCategory.sports).toList(),
       };
@@ -56,6 +60,7 @@ class ActiveGroupsState {
       };
 
   ActiveGroupsState copyWith({
+    DataFreshness? freshness,
     List<ActiveGroup>? groups,
     Map<String, ResponseTimeEstimate>? estimates,
     Map<String, ActivityWeather>? weather,
@@ -65,6 +70,7 @@ class ActiveGroupsState {
     String? error,
   }) =>
       ActiveGroupsState(
+        freshness: freshness ?? this.freshness,
         groups: groups ?? this.groups,
         estimates: estimates ?? this.estimates,
         weather: weather ?? this.weather,

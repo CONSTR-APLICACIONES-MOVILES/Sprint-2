@@ -14,6 +14,7 @@ class ActiveGroupsViewModel extends ValueNotifier<ActiveGroupsState> {
   final DateTime Function() _now;
   List<ResponseTimeEstimate> _responseTimes = const [];
   bool _disposed = false;
+  int _generation = 0;
 
   ActiveGroupsViewModel(this._groups,
       {EstimateResponseTime? estimate,
@@ -34,16 +35,31 @@ class ActiveGroupsViewModel extends ValueNotifier<ActiveGroupsState> {
   Future<void> load() async {
     if (_disposed || value.isLoading || value.isUpdating) return;
     _emit(value.copyWith(isLoading: true));
+    final generation = ++_generation;
     try {
-      final estimates = _estimate?.loadEstimates();
+      final estimates = _estimate
+          ?.loadEstimates()
+          .timeout(const Duration(seconds: 3),
+              onTimeout: () => const <ResponseTimeEstimate>[])
+          .catchError((Object _) => const <ResponseTimeEstimate>[]);
       final items = ActivityTiming.byUpcoming(await _groups.load(), _now());
-      if (estimates != null) _responseTimes = await estimates;
+      if (_disposed || generation != _generation) return;
       _emit(value.copyWith(
-          groups: items, estimates: _estimatesFor(items), isLoading: false));
+          groups: items, freshness: _groups.freshness, isLoading: false));
+      if (estimates != null) _responseTimes = await estimates;
+      if (_disposed || generation != _generation) return;
+      _emit(value.copyWith(
+          groups: items,
+          freshness: _groups.freshness,
+          estimates: _estimatesFor(items),
+          isLoading: false));
     } catch (_) {
       _emit(value.copyWith(
           isLoading: false,
-          error: 'Unable to load your groups. Please try again.'));
+          freshness: _groups.freshness,
+          error: _groups.freshness.offline
+              ? 'You are offline. No saved groups are available. Connect to load them.'
+              : 'Unable to load your groups. Please try again.'));
       return;
     }
     await _loadWeather(value.groups);
@@ -51,7 +67,7 @@ class ActiveGroupsViewModel extends ValueNotifier<ActiveGroupsState> {
 
   Future<void> _loadWeather(List<ActiveGroup> groups) async {
     final weather = _weather;
-    if (weather == null || _disposed) return;
+    if (weather == null || _disposed || value.freshness.offline) return;
     try {
       final forecasts = await weather.forGroups(groups, _now());
       _emit(value.copyWith(weather: forecasts, error: value.error));

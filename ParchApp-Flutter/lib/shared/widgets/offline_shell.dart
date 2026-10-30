@@ -70,8 +70,7 @@ class _OfflineShellState extends State<OfflineShell>
   Widget build(BuildContext context) => ValueListenableBuilder<OfflineStatus>(
       valueListenable: widget.api,
       builder: (context, state, _) => Column(children: [
-            if (widget.api.currentUserId() != null &&
-                (widget.showDebugControls || state.pending > 0))
+            if (widget.showDebugControls && widget.api.currentUserId() != null)
               Material(
                   color: state.offline
                       ? const Color(0xFFFFF3D6)
@@ -81,15 +80,19 @@ class _OfflineShellState extends State<OfflineShell>
                       child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12),
                           child: Row(children: [
+                            if (state.offline) ...[
+                              const Icon(Icons.cloud_off_outlined, size: 20),
+                              const SizedBox(width: 10),
+                            ],
                             Expanded(
                                 child: Text(
                                     confirmDiscard
                                         ? 'Discard all unsynced responses? Refresh the inbox afterwards.'
                                         : state.syncing
                                             ? 'Syncing responses…'
-                                            : '${widget.showDebugControls ? state.forced ? 'Offline mode' : state.offline ? 'Offline · saved data' : 'Online' : 'Responses waiting to sync'}'
+                                            : '${state.offline ? 'Offline · Saved data remains available' : widget.showDebugControls ? 'Online' : 'Responses waiting to sync'}'
                                                 '${state.pending > 0 ? ' · ${state.pending} pending' : ''}'
-                                                '${state.error == null ? '' : '\n${state.error}'}',
+                                                '${state.offline || state.error == null ? '' : '\n${state.error}'}',
                                     style: const TextStyle(fontSize: 12))),
                             if (state.pending > 0) ...[
                               IconButton(

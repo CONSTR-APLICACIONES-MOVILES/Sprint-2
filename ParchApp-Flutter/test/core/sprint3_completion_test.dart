@@ -119,15 +119,15 @@ void main() {
     expect(pending.measurementVersion, 1);
     expect(await repo.createActivity(pending), 'created-document');
   });
-  testWidgets('saved time is shown explicitly for a stale offline snapshot',
+  testWidgets('offline snapshot shows only the requested compact label',
       (tester) async {
     await tester.pumpWidget(MaterialApp(
         home: Scaffold(
             body: DataFreshnessBanner(
                 freshness: DataFreshness(
                     offline: true, cachedAt: DateTime.utc(2020, 1, 1, 16))))));
-    expect(find.textContaining('1/1/2020 at 11:00'), findsOneWidget);
-    expect(find.textContaining('May be out of date'), findsOneWidget);
+    expect(find.text('Offline copy'), findsOneWidget);
+    expect(find.textContaining('May be out of date'), findsNothing);
   });
   testWidgets('insights distinguish empty denominators, read errors and retry',
       (tester) async {
