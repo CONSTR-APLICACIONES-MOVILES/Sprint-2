@@ -5,6 +5,7 @@ import '../../domain/use_cases/estimate_response_time.dart';
 import '../../domain/use_cases/forecast_activity_weather.dart';
 import '../../domain/use_cases/manage_active_groups.dart';
 import 'active_groups_state.dart';
+import '../../domain/use_cases/activity_timing.dart';
 
 class ActiveGroupsViewModel extends ValueNotifier<ActiveGroupsState> {
   final ManageActiveGroups _groups;
@@ -35,7 +36,7 @@ class ActiveGroupsViewModel extends ValueNotifier<ActiveGroupsState> {
     _emit(value.copyWith(isLoading: true));
     try {
       final estimates = _estimate?.loadEstimates();
-      final items = await _groups.load();
+      final items = ActivityTiming.byUpcoming(await _groups.load(), _now());
       if (estimates != null) _responseTimes = await estimates;
       _emit(value.copyWith(
           groups: items, estimates: _estimatesFor(items), isLoading: false));
@@ -70,7 +71,7 @@ class ActiveGroupsViewModel extends ValueNotifier<ActiveGroupsState> {
     if (_disposed || value.isLoading || value.isUpdating) return false;
     _emit(value.copyWith(isUpdating: true));
     try {
-      final items = await operation();
+      final items = ActivityTiming.byUpcoming(await operation(), _now());
       if (_disposed) return false;
       _emit(value.copyWith(
           groups: items, estimates: _estimatesFor(items), isUpdating: false));

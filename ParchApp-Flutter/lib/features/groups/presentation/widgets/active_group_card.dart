@@ -3,6 +3,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../domain/entities/active_group.dart';
 import '../../domain/entities/response_time_estimate.dart';
 import '../../domain/entities/weather_forecast.dart';
+import '../../domain/use_cases/activity_timing.dart';
 
 class ActiveGroupCard extends StatelessWidget {
   final ActiveGroup group;
@@ -98,6 +99,15 @@ class ActiveGroupCard extends StatelessWidget {
                     style: const TextStyle(
                         fontSize: 12, color: AppColors.textPrimary)),
               ),
+              if (_timing != null) ...[
+                const SizedBox(width: 8),
+                Text(_timing!,
+                    key: const ValueKey('activity-timing'),
+                    style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w800,
+                        color: _soon ? AppColors.warning : AppColors.primary)),
+              ],
             ]),
             if (group.hasProgress) ...[
               const SizedBox(height: 12),
@@ -124,8 +134,9 @@ class ActiveGroupCard extends StatelessWidget {
                   valueColor: const AlwaysStoppedAnimation(AppColors.warning),
                 ),
               ),
-              if (estimate != null && !group.activityAttendance)
-                _ResponseTimeHint(group, estimate!),
+              estimate != null
+                  ? _ResponseTimeHint(group, estimate!)
+                  : const _ResponseTimeLearning(),
             ],
             if (weather != null) _WeatherHint(weather!),
             const SizedBox(height: 14),
@@ -174,6 +185,11 @@ class ActiveGroupCard extends StatelessWidget {
           style: const TextStyle(fontSize: 12.5)),
     );
   }
+
+  String? get _timing =>
+      ActivityTiming.label(group.activityStartsAt, DateTime.now());
+
+  bool get _soon => ActivityTiming.isSoon(group.activityStartsAt, DateTime.now());
 
   Color get _primaryButtonColor => switch (group.primaryAction) {
         GroupAction.voteRsvp => AppColors.success,
@@ -256,10 +272,8 @@ class _ResponseTimeHint extends StatelessWidget {
   Widget build(BuildContext context) {
     final complete = group.progressCurrent! >= group.progressTotal!;
     final text = switch (estimate.kind) {
-      EstimateKind.allResponded =>
-        'Groups of ${estimate.groupSize} usually all reply within ~${estimate.durationLabel}',
-      EstimateKind.perResponse =>
-        'Members of groups of ${estimate.groupSize} usually reply in ~${estimate.durationLabel}',
+      EstimateKind.allResponded => 'All reply in ~${estimate.durationLabel}',
+      EstimateKind.perResponse => 'Each replies in ~${estimate.durationLabel}',
     };
     final expectedAt = group.invitationSentAt?.add(estimate.duration);
     final late = expectedAt != null && DateTime.now().isAfter(expectedAt);
@@ -268,8 +282,8 @@ class _ResponseTimeHint extends StatelessWidget {
         : estimate.kind != EstimateKind.allResponded
             ? null
             : late
-                ? 'Taking longer than usual — a reminder may help'
-                : 'Everyone should have replied by ${TimeOfDay.fromDateTime(expectedAt).format(context)}';
+                ? 'Slower than usual · send a reminder'
+                : 'Expected by ${TimeOfDay.fromDateTime(expectedAt).format(context)}';
 
     return Padding(
       padding: const EdgeInsets.only(top: 8),
@@ -297,6 +311,23 @@ class _ResponseTimeHint extends StatelessWidget {
       ]),
     );
   }
+}
+
+class _ResponseTimeLearning extends StatelessWidget {
+  const _ResponseTimeLearning();
+
+  @override
+  Widget build(BuildContext context) => const Padding(
+        padding: EdgeInsets.only(top: 8),
+        child: Row(children: [
+          Icon(Icons.insights_outlined,
+              size: 14, color: AppColors.textSecondary),
+          SizedBox(width: 6),
+          Text('Reply estimate coming soon',
+              key: ValueKey('bq5-learning'),
+              style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+        ]),
+      );
 }
 
 class _WeatherHint extends StatelessWidget {
