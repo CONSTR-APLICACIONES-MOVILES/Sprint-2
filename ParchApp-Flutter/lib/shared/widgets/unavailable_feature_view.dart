@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../app/router/app_routes.dart';
 import 'parch_navigation_bar.dart';
+import 'parch_app_bar.dart';
 
 /// A registered destination for modules that do not yet have an implementation.
 class UnavailableFeatureView extends StatelessWidget {
@@ -20,7 +21,7 @@ class UnavailableFeatureView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: Text(title)),
+        appBar: ParchAppBar(title: title, showBack: true),
         body: SafeArea(
             child: Center(
                 child: SingleChildScrollView(

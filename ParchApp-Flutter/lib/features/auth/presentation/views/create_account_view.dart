@@ -15,7 +15,9 @@ import '../widgets/google_account_picker_card.dart';
 
 class CreateAccountView extends StatefulWidget {
   final CreateAccountViewModel viewModel;
-  const CreateAccountView({super.key, required this.viewModel});
+  final bool googleEnabled;
+  const CreateAccountView(
+      {super.key, required this.viewModel, this.googleEnabled = true});
 
   @override
   State<CreateAccountView> createState() => _CreateAccountViewState();
@@ -63,7 +65,13 @@ class _CreateAccountViewState extends State<CreateAccountView> {
     if (ModalRoute.of(context)?.isCurrent != true) return;
     if (state.status == AuthStatus.authenticated &&
         previous.status != AuthStatus.authenticated) {
-      context.go(AppRoutes.home);
+      final destination = GoRouterState.of(context).uri.queryParameters['from'];
+      context.go(destination != null &&
+              (destination.startsWith('/join/') ||
+                  destination.startsWith('/activities/') ||
+                  destination.startsWith('/groups/'))
+          ? destination
+          : AppRoutes.home);
     } else if (state.message != null &&
         (state.message != previous.message ||
             state.status != previous.status)) {
@@ -172,10 +180,14 @@ class _CreateAccountViewState extends State<CreateAccountView> {
               // ==============================
 
               GoogleAuthButton(
-                onPressed:
-                    isLoading ? null : widget.viewModel.continueWithGoogle,
+                onPressed: isLoading || !widget.googleEnabled
+                    ? null
+                    : widget.viewModel.continueWithGoogle,
               ),
 
+              if (!widget.googleEnabled)
+                const Text(
+                    'Google sign-in requires provider configuration. Use email and password.'),
               if (suggestedGoogleAccount != null) ...[
                 const SizedBox(height: 16),
                 GoogleAccountPickerCard(

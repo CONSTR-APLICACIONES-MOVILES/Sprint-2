@@ -6,8 +6,7 @@ import '../models/google_calendar_event_model.dart';
 import 'google_calendar_auth_data_source.dart';
 import 'google_calendar_data_source.dart';
 
-class GoogleCalendarApiDataSource
-    implements GoogleCalendarDataSource {
+class GoogleCalendarApiDataSource implements GoogleCalendarDataSource {
   final GoogleCalendarAuthDataSource authDataSource;
 
   const GoogleCalendarApiDataSource({
@@ -16,31 +15,25 @@ class GoogleCalendarApiDataSource
 
   @override
   Future<List<GoogleCalendarEventModel>> importEvents() async {
-    final authorization =
-        await authDataSource.getCalendarAuthorization();
+    final authorization = await authDataSource.getCalendarAuthorization();
 
     final client = authorization.authClient(
       scopes: GoogleCalendarAuthDataSource.calendarScopes,
     );
 
     try {
-      final calendarApi =
-          google_calendar.CalendarApi(client);
+      final calendarApi = google_calendar.CalendarApi(client);
 
-      final importedEvents =
-          <GoogleCalendarEventModel>[];
+      final importedEvents = <GoogleCalendarEventModel>[];
 
       String? pageToken;
 
-      final timeMin =
-          DateTime(2026, 1, 1).toUtc();
+      final timeMin = DateTime(2026, 1, 1).toUtc();
 
-      final timeMax =
-          DateTime(2027, 1, 1).toUtc();
+      final timeMax = DateTime(2027, 1, 1).toUtc();
 
       do {
-        final response =
-            await calendarApi.events.list(
+        final response = await calendarApi.events.list(
           'primary',
           timeMin: timeMin,
           timeMax: timeMax,
@@ -51,9 +44,7 @@ class GoogleCalendarApiDataSource
           pageToken: pageToken,
         );
 
-        final events =
-            response.items ??
-                const <google_calendar.Event>[];
+        final events = response.items ?? const <google_calendar.Event>[];
 
         debugPrint(
           'GOOGLE API REAL: ${events.length} events received',
@@ -69,8 +60,7 @@ class GoogleCalendarApiDataSource
         }
 
         for (final event in events) {
-          final converted =
-              _toModel(event);
+          final converted = _toModel(event);
 
           if (converted != null) {
             importedEvents.add(
@@ -79,15 +69,11 @@ class GoogleCalendarApiDataSource
           }
         }
 
-        pageToken =
-            response.nextPageToken;
-      } while (
-          pageToken != null &&
-          pageToken.isNotEmpty);
+        pageToken = response.nextPageToken;
+      } while (pageToken != null && pageToken.isNotEmpty);
 
       importedEvents.sort(
-        (first, second) =>
-            first.start.compareTo(
+        (first, second) => first.start.compareTo(
           second.start,
         ),
       );
@@ -112,21 +98,15 @@ class GoogleCalendarApiDataSource
 
     final id = event.id;
 
-    if (id == null ||
-        id.trim().isEmpty) {
+    if (id == null || id.trim().isEmpty) {
       return null;
     }
 
-    final start =
-        event.start?.dateTime ??
-            event.start?.date;
+    final start = event.start?.dateTime ?? event.start?.date;
 
-    final end =
-        event.end?.dateTime ??
-            event.end?.date;
+    final end = event.end?.dateTime ?? event.end?.date;
 
-    if (start == null ||
-        end == null) {
+    if (start == null || end == null) {
       return null;
     }
 
@@ -134,41 +114,31 @@ class GoogleCalendarApiDataSource
       return null;
     }
 
-    final rawTitle =
-        event.summary?.trim();
+    final rawTitle = event.summary?.trim();
 
     final title =
-        rawTitle == null ||
-                rawTitle.isEmpty
-            ? 'Untitled event'
-            : rawTitle;
+        rawTitle == null || rawTitle.isEmpty ? 'Untitled event' : rawTitle;
 
     return GoogleCalendarEventModel(
       id: id,
       title: title,
-      description:
-          _cleanOptionalText(
+      description: _cleanOptionalText(
         event.description,
       ),
-      location:
-          _cleanOptionalText(
+      location: _cleanOptionalText(
         event.location,
       ),
-      start:
-          start.toLocal(),
-      end:
-          end.toLocal(),
+      start: start.toLocal(),
+      end: end.toLocal(),
     );
   }
 
   String? _cleanOptionalText(
     String? value,
   ) {
-    final cleaned =
-        value?.trim();
+    final cleaned = value?.trim();
 
-    if (cleaned == null ||
-        cleaned.isEmpty) {
+    if (cleaned == null || cleaned.isEmpty) {
       return null;
     }
 

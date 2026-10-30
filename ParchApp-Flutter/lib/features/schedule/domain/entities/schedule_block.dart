@@ -37,7 +37,6 @@ class ScheduleBlock {
     DateTime candidateStart,
     DateTime candidateEnd,
   ) {
-    return candidateStart.isBefore(end) &&
-        candidateEnd.isAfter(start);
+    return candidateStart.isBefore(end) && candidateEnd.isAfter(start);
   }
 }

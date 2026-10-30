@@ -1,1231 +1,456 @@
+import '../../../../shared/widgets/parch_visuals.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/router/app_routes.dart';
-import '../../../../shared/widgets/parch_navigation_bar.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/widgets/parch_app_bar.dart';
+import '../../../../shared/widgets/parch_navigation_bar.dart';
+import '../../../activities/domain/entities/activity_summary.dart';
 import '../../../activities/presentation/view_models/activity_list_view_model.dart';
+import '../../../alerts/presentation/view_models/alerts_state.dart';
+import '../../../groups/presentation/view_models/active_groups_state.dart';
+import '../../../profile/domain/entities/profile_user.dart';
+import 'home_preview_view.dart';
+import '../../../../shared/widgets/data_freshness_banner.dart';
 
-const _cobalt = AppColors.primary;
-const _emerald = AppColors.success;
-const _background = Color(0xFFF8FAFE);
-const _ink = Color(0xFF0F172A);
-const _muted = Color(0xFF64748B);
-const _border = Color(0xFFE2E8F0);
-const _blueTint = Color(0xFFEEF4FF);
-const _greenTint = Color(0xFFECFDF5);
-
-/// Presentation-only dashboard preview. Replace the sample values and action
-/// placeholders with injected HomeViewModel state and commands when available.
 class HomeView extends StatelessWidget {
   final ActivityListState? activityState;
-  final VoidCallback? onRefreshActivities;
-  final String? demoStudySessionId;
+  final ActiveGroupsState? groupsState;
+  final AlertsState? alertsState;
+  final ProfileUser? profile;
+  final String? profileError;
+  final bool profileLoading;
+  final Future<void> Function()? onRefreshActivities;
+  final VoidCallback? onManageStatus;
+  final String? demoStudySessionId, userName, userInitials;
+  final int? groupCount;
   const HomeView(
       {super.key,
       this.activityState,
+      this.groupsState,
+      this.alertsState,
+      this.profile,
+      this.profileError,
+      this.profileLoading = false,
       this.onRefreshActivities,
-      this.demoStudySessionId});
-
-  static const _inviteLink = 'parchapp.me/u/alex-k26';
-  static const _studyTitle = 'Study Session: Linear Algebra & Calculus';
-  static const _soccerTitle = '5-a-side Soccer & Social';
+      this.onManageStatus,
+      this.demoStudySessionId,
+      this.userName,
+      this.userInitials,
+      this.groupCount});
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeData(
-      useMaterial3: true,
-      textTheme: Theme.of(context).textTheme,
-      scaffoldBackgroundColor: _background,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: _cobalt,
-        brightness: Brightness.light,
-      ).copyWith(
-        primary: _cobalt,
-        onPrimary: Colors.white,
-        secondary: _emerald,
-        onSecondary: _ink,
-        surface: Colors.white,
-        onSurface: _ink,
-      ),
-      filledButtonTheme: FilledButtonThemeData(
-        style: FilledButton.styleFrom(
-          backgroundColor: _cobalt,
-          foregroundColor: Colors.white,
-          minimumSize: const Size(0, 48),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-        ),
-      ),
-      outlinedButtonTheme: OutlinedButtonThemeData(
-        style: OutlinedButton.styleFrom(
-          foregroundColor: _cobalt,
-          minimumSize: const Size(0, 48),
-          side: const BorderSide(color: _border),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-        ),
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: _background,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: _border),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: _border),
-        ),
-      ),
-    );
-
-    return Theme(
-      data: theme,
-      child: Builder(
-        builder: (context) => Scaffold(
-          appBar: _buildAppBar(context),
-          body: SafeArea(
-            top: false,
-            bottom: false,
-            child: SingleChildScrollView(
-              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 112),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 600),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _buildGreeting(context),
-                      const SizedBox(height: 20),
-                      _buildInviteCard(context),
-                      const SizedBox(height: 16),
-                      _buildQuickStatus(context),
-                      const SizedBox(height: 24),
-                      _sectionHeading(
-                        activityState == null
-                            ? "Today's Plans"
-                            : 'Your Activities',
-                        count: activityState == null
-                            ? '2'
-                            : '${activityState!.activities.length}',
-                        trailing: TextButton.icon(
-                          onPressed: () => _onCalendarTapped(context),
-                          icon: const Icon(Icons.calendar_month_outlined,
-                              size: 16),
-                          label: const Text('View calendar'),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      if (activityState != null) ...[
-                        if (activityState!.loading)
-                          const LinearProgressIndicator(),
-                        if (activityState!.error != null)
-                          Text(activityState!.error!),
-                        if (!activityState!.loading &&
-                            activityState!.activities.isEmpty &&
-                            activityState!.error == null)
-                          const Text('No activities in your groups yet.'),
-                        for (final activity in activityState!.activities) ...[
-                          _buildPlanCard(context,
-                              title: activity.title,
-                              time: '${activity.date} ${activity.time}'
-                                      .trim()
-                                      .isEmpty
-                                  ? 'Not scheduled'
-                                  : '${activity.date} ${activity.time}',
-                              location: activity.location,
-                              confirmed: activity.confirmed,
-                              activityId: activity.id),
-                          const SizedBox(height: 12),
-                        ],
-                        TextButton(
-                            onPressed: activityState!.loading
-                                ? null
-                                : onRefreshActivities,
-                            child: const Text('Refresh activities')),
-                      ] else ...[
-                        _buildPlanCard(
-                          context,
-                          title: _studyTitle,
-                          time: '4:00 PM – 6:00 PM',
-                          location: 'Central Library • Room 302',
-                          confirmed: true,
-                        ),
-                        const SizedBox(height: 12),
-                        _buildPlanCard(
-                          context,
-                          title: _soccerTitle,
-                          time: 'Friday, 7:30 PM',
-                          location: 'Campus Sports Center',
-                          confirmed: false,
-                        ),
-                      ],
-                      const SizedBox(height: 24),
-                      _sectionHeading(
-                        'Your Active Groups',
-                        trailing: TextButton(
-                          onPressed: () => _onAllGroupsTapped(context),
-                          child: const Text('View all (5)'),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      _buildGroups(context),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          floatingActionButton: FloatingActionButton.extended(
-            onPressed: () => _onNewActivity(context),
-            backgroundColor: _cobalt,
-            foregroundColor: Colors.white,
-            icon: const Icon(Icons.add),
-            label: const Text('New Activity'),
-          ),
-          bottomNavigationBar: const ParchNavigationBar(),
-        ),
-      ),
-    );
-  }
-
-  PreferredSizeWidget _buildAppBar(BuildContext context) {
-    return AppBar(
-      automaticallyImplyLeading: false,
-      backgroundColor: _background,
-      surfaceTintColor: Colors.transparent,
-      scrolledUnderElevation: 0,
-      titleSpacing: 16,
-      title: Row(
-        children: [
-          Image.asset(
-            'assets/images/parchapp_logo.png',
-            width: 32,
-            height: 32,
-            excludeFromSemantics: true,
-            errorBuilder: (_, __, ___) => const Icon(
-              Icons.people_alt_rounded,
-              color: _cobalt,
-              size: 30,
-            ),
-          ),
-          const SizedBox(width: 8),
-          const Flexible(
-            child: Text(
-              'ParchApp',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                  color: _cobalt, fontSize: 18, fontWeight: FontWeight.w800),
-            ),
-          ),
-        ],
-      ),
-      actions: [
-        IconButton(
-          tooltip: 'Search',
-          onPressed: () => _onSearch(context),
-          icon: const Icon(Icons.search_rounded),
-        ),
-        IconButton(
-          tooltip: 'Notifications',
-          onPressed: () => _onNotifications(context),
-          icon: const Badge(
-            smallSize: 7,
-            backgroundColor: Color(0xFFF43F5E),
-            child: Icon(Icons.notifications_none_rounded),
-          ),
-        ),
-        IconButton(
-          tooltip: 'Profile',
-          onPressed: () => _onProfile(context),
-          icon: const CircleAvatar(
-            radius: 17,
-            backgroundColor: _cobalt,
-            child: Text('AK',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                )),
-          ),
-        ),
-        const SizedBox(width: 4),
-      ],
-    );
-  }
-
-  Widget _buildGreeting(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Hello, Alex! 👋',
-                  style: TextStyle(
-                    color: _ink,
-                    fontSize: 25,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.7,
-                  )),
-              SizedBox(height: 6),
-              Text.rich(
-                TextSpan(children: [
-                  TextSpan(text: 'You have '),
-                  TextSpan(
-                      text: '2 active plans',
-                      style: TextStyle(
-                        color: _cobalt,
-                        fontWeight: FontWeight.w700,
-                      )),
-                  TextSpan(text: ' today'),
-                ]),
-                style: TextStyle(color: _muted, fontSize: 13),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 8),
-        ActionChip(
-          avatar: const Icon(Icons.circle, size: 9, color: _emerald),
-          label: const Text('FREE',
-              style: TextStyle(
-                color: Color(0xFF047857),
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-              )),
-          backgroundColor: _greenTint,
-          side: const BorderSide(color: Color(0xFFA7F3D0)),
-          onPressed: () => _onQuickStatusTapped(context),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildInviteCard(BuildContext context) {
-    return _surface(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _iconTile(Icons.share_outlined),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Invite Friends to Sync',
-                        style: TextStyle(fontWeight: FontWeight.w800)),
-                    SizedBox(height: 5),
-                    Text(
-                      'Share your link so classmates can connect and sync calendars in seconds',
-                      style:
-                          TextStyle(color: _muted, fontSize: 12, height: 1.5),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.fromLTRB(12, 4, 4, 4),
-            decoration: BoxDecoration(
-              color: _background,
-              border: Border.all(color: _border),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Row(children: [
-              const Icon(Icons.link, size: 18, color: _muted),
-              const SizedBox(width: 8),
-              const Expanded(
-                  child: Text(
-                _inviteLink,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 12, color: _muted),
-              )),
-              IconButton.filled(
-                tooltip: 'Copy link',
-                onPressed: () => _onCopyInvite(context),
-                icon: const Icon(Icons.copy_outlined, size: 18),
-              ),
-              IconButton(
-                tooltip: 'Share invite link',
-                onPressed: () => _onShare(context),
-                icon: const Icon(Icons.ios_share_rounded, size: 18),
-              ),
-            ]),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuickStatus(BuildContext context) {
-    return _surface(
-      color: _cobalt,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            alignment: WrapAlignment.spaceBetween,
-            children: [
-              Row(mainAxisSize: MainAxisSize.min, children: [
-                _iconTile(Icons.bolt_rounded,
-                    foreground: Colors.white,
-                    background: const Color(0x33FFFFFF)),
-                const SizedBox(width: 10),
-                const Flexible(
-                    child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('QUICK STATUS',
-                        style: TextStyle(
-                          color: Color(0xFFBFDBFE),
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 1,
-                        )),
-                    SizedBox(height: 4),
-                    Text('Available Now',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 19,
-                          fontWeight: FontWeight.w800,
-                        )),
-                  ],
-                )),
-              ]),
-              _pill('Live Sync',
-                  foreground: Colors.white,
-                  background: const Color(0x33FFFFFF),
-                  icon: Icons.circle,
-                  iconColor: _emerald),
-            ],
-          ),
-          const SizedBox(height: 18),
-          LayoutBuilder(builder: (context, constraints) {
-            final stacked = constraints.maxWidth < 280 ||
-                MediaQuery.textScalerOf(context).scale(14) > 20;
-            final tiles = [
-              _statusTile(context, 'FREE UNTIL', '4:00 PM'),
-              _statusTile(context, 'NEXT ACTIVITY', 'Library Study'),
-            ];
-            if (stacked) {
-              return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    tiles[0],
-                    const SizedBox(height: 10),
-                    tiles[1],
-                  ]);
-            }
-            return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Expanded(child: tiles[0]),
-              const SizedBox(width: 10),
-              Expanded(child: tiles[1]),
-            ]);
-          }),
-          const SizedBox(height: 14),
-          FilledButton(
-            style: FilledButton.styleFrom(
-                backgroundColor: Colors.white, foregroundColor: _cobalt),
-            onPressed: () => _onCompareAvailability(context),
-            child: const Row(children: [
-              Icon(Icons.bolt_rounded, size: 20),
-              SizedBox(width: 8),
-              Expanded(
-                  child: Text('Compare Availability with Group',
-                      style: TextStyle(
-                          fontSize: 12, fontWeight: FontWeight.w800))),
-              SizedBox(width: 8),
-              Icon(Icons.arrow_forward_rounded, size: 18),
-            ]),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _statusTile(BuildContext context, String label, String value) {
-    return Material(
-      color: const Color(0x1FFFFFFF),
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () => _onQuickStatusTapped(context),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child:
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              Expanded(
-                  child: Text(label,
-                      style: const TextStyle(
-                        color: Color(0xFFBFDBFE),
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                      ))),
-              const Icon(Icons.edit_outlined,
-                  color: Color(0xFFBFDBFE), size: 14),
-            ]),
-            const SizedBox(height: 7),
-            Text(value,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                )),
-          ]),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPlanCard(
-    BuildContext context, {
-    required String title,
-    required String time,
-    required String location,
-    required bool confirmed,
-    String? activityId,
-  }) {
-    void openDetails() async {
-      if (activityId != null) {
-        await context.push(AppRoutes.studySession(activityId));
-        onRefreshActivities?.call();
-      } else {
-        _onPlanTapped(context,
-            title: title, time: time, location: location, confirmed: confirmed);
-      }
+    if (demoStudySessionId != null) {
+      return HomePreviewView(demoStudySessionId: demoStudySessionId);
     }
-
-    return _surface(
-      onTap: openDetails,
-      accented: !confirmed,
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Row(children: [
-          Expanded(
-              child: Align(
-            alignment: Alignment.centerLeft,
-            child: _pill(
-              activityId != null
-                  ? (confirmed ? 'Confirmed' : 'Proposed')
-                  : confirmed
-                      ? 'Confirmed • 4/4 ready'
-                      : 'Voting pending • 3/6',
-              foreground: confirmed ? const Color(0xFF047857) : _cobalt,
-              background: confirmed ? _greenTint : _blueTint,
-              icon: confirmed ? Icons.check_rounded : Icons.schedule_rounded,
-            ),
-          )),
-          if (activityId == null)
-            IconButton(
-              tooltip: 'Options for $title',
-              onPressed: () => _onPlanOptions(context, title),
-              icon: const Icon(Icons.more_vert, color: _muted),
-            ),
-        ]),
-        const SizedBox(height: 4),
-        Text(title,
-            style: const TextStyle(
-              color: _ink,
-              fontSize: 16,
-              height: 1.35,
-              fontWeight: FontWeight.w800,
-            )),
-        const SizedBox(height: 14),
-        _info(Icons.schedule_outlined, time),
-        const SizedBox(height: 8),
-        _info(Icons.location_on_outlined, location),
-        const SizedBox(height: 16),
-        if (activityId == null)
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(
-              value: confirmed ? 1 : 0.5,
-              minHeight: 6,
-              color: confirmed ? _emerald : _cobalt,
-              backgroundColor: const Color(0xFFF1F5F9),
-              semanticsLabel: confirmed
-                  ? 'Four of four participants ready'
-                  : 'Three of six participants have voted',
-            ),
-          ),
-        const SizedBox(height: 14),
-        if (activityId != null)
-          Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                  onPressed: openDetails, child: const Text('Details')))
-        else if (confirmed)
-          Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 12,
-            runSpacing: 8,
-            children: [
-              _buildAvatars(),
-              TextButton(onPressed: openDetails, child: const Text('Details')),
-            ],
-          )
-        else
-          Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 12,
-            runSpacing: 8,
-            children: [
-              const Text('Joining?',
-                  style: TextStyle(color: _muted, fontWeight: FontWeight.w700)),
-              Wrap(spacing: 8, runSpacing: 8, children: [
-                FilledButton.icon(
-                  style: FilledButton.styleFrom(
-                      backgroundColor: _emerald, foregroundColor: _ink),
-                  onPressed: () => _onRsvp(context, 'Going'),
-                  icon: const Icon(Icons.check, size: 16),
-                  label: const Text('Going'),
-                ),
-                OutlinedButton(
-                  onPressed: () => _onRsvp(context, 'Maybe'),
-                  child: const Text('Maybe'),
-                ),
-              ]),
-            ],
-          ),
-      ]),
+    final activities = activityState,
+        groups = groupsState,
+        alerts = alertsState;
+    final unread = profile?.preferences.invitationBadges == false
+        ? null
+        : alerts != null && !alerts.isLoading && alerts.error == null
+            ? alerts.unreadCount
+            : null;
+    return Scaffold(
+      appBar: ParchAppBar(
+          initials: profile?.initials ?? userInitials,
+          unreadCount: unread,
+          onReturn: onRefreshActivities),
+      body: SafeArea(
+          top: false,
+          bottom: false,
+          child: RefreshIndicator(
+              onRefresh: onRefreshActivities ?? () async {},
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(16, 18, 16, 112),
+                child: Center(
+                    child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 600),
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text(
+                                  'Hello, ${profile?.name ?? userName ?? 'there'}! 👋',
+                                  style: const TextStyle(
+                                      fontSize: 25,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppColors.textPrimary)),
+                              const SizedBox(height: 4),
+                              const Text('Make time for your people.'),
+                              const SizedBox(height: 20),
+                              if (profile != null) ...[
+                                _card(context,
+                                    icon: Icons.share_outlined,
+                                    title: 'Invite Friends to Sync',
+                                    subtitle:
+                                        'Share your profile with people in your groups.',
+                                    action: 'Share profile',
+                                    onTap: () => _open(context,
+                                        '/share/profile/${Uri.encodeComponent(profile!.id)}')),
+                                const SizedBox(height: 16),
+                              ],
+                              _quickStatus(context),
+                              if (profile != null)
+                                DataFreshnessBanner(
+                                    freshness: profile!.freshness),
+                              if (profileError != null) _retry(profileError!),
+                              const SizedBox(height: 22),
+                              _heading(
+                                  context,
+                                  'Your Activities',
+                                  'View calendar',
+                                  () => context.go(AppRoutes.schedule)),
+                              if (activities?.loading == true)
+                                const LinearProgressIndicator(
+                                    semanticsLabel: 'Loading activities'),
+                              if (activities?.error != null)
+                                _retry(activities!.error!),
+                              if (activities != null &&
+                                  activities.activities.isNotEmpty)
+                                DataFreshnessBanner(
+                                    freshness:
+                                        activities.activities.first.freshness),
+                              if (activities != null &&
+                                  !activities.loading &&
+                                  activities.error == null)
+                                Text(
+                                    '${activities.activities.length} activities in your groups'),
+                              const SizedBox(height: 12),
+                              if (activities == null)
+                                const Text('Activities unavailable.')
+                              else if (!activities.loading &&
+                                  activities.error == null &&
+                                  activities.activities.isEmpty)
+                                _card(context,
+                                    icon: Icons.event_outlined,
+                                    title: 'No activities in your groups yet.',
+                                    subtitle: 'Start a plan with your group.',
+                                    action: 'New Activity',
+                                    onTap: () => _open(
+                                        context, AppRoutes.createActivity)),
+                              for (final activity in activities?.activities ??
+                                  <ActivitySummary>[])
+                                Padding(
+                                    padding: const EdgeInsets.only(bottom: 14),
+                                    child: _activity(context, activity)),
+                              const SizedBox(height: 18),
+                              ParchSurface(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 4),
+                                  child: ListTile(
+                                      contentPadding: EdgeInsets.zero,
+                                      leading: const Icon(Icons.mail_outline,
+                                          color: AppColors.primary),
+                                      title: const Text('Your invitations',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 13)),
+                                      subtitle: Text(
+                                          alerts?.isLoading == true
+                                              ? 'Loading invitations…'
+                                              : alerts?.error != null
+                                                  ? 'Unable to refresh invitations.'
+                                                  : unread == null
+                                                      ? 'Open your inbox to view invitations.'
+                                                      : unread == 0
+                                                          ? 'You are all caught up.'
+                                                          : '$unread unread alerts in your inbox',
+                                          style: const TextStyle(fontSize: 11)),
+                                      trailing: const Icon(Icons.chevron_right,
+                                          color: AppColors.primary),
+                                      onTap: () =>
+                                          _open(context, AppRoutes.alerts))),
+                              if (alerts?.error != null) _retry(alerts!.error!),
+                              const SizedBox(height: 24),
+                              _heading(
+                                  context,
+                                  'Your Active Groups',
+                                  'View all',
+                                  () => context.go(AppRoutes.groups)),
+                              if (groups?.isLoading == true)
+                                const LinearProgressIndicator(
+                                    semanticsLabel: 'Loading groups'),
+                              if (groups?.error != null) _retry(groups!.error!),
+                              if (groups == null)
+                                const Text('Groups unavailable.')
+                              else if (!groups.isLoading &&
+                                  groups.error == null &&
+                                  groups.groups.isEmpty)
+                                const Text('No active groups yet.'),
+                              if (groups != null)
+                                for (final group in groups.groups)
+                                  Padding(
+                                      padding:
+                                          const EdgeInsets.only(bottom: 12),
+                                      child: _card(context,
+                                          icon: Icons.groups_outlined,
+                                          title: group.name,
+                                          subtitle:
+                                              '${group.memberCount} members',
+                                          description: group.activityAttendance
+                                              ? '${group.detail} · ${group.statusText}'
+                                              : group.detail.isEmpty
+                                                  ? null
+                                                  : group.detail,
+                                          action: 'View group',
+                                          onTap: () => _open(
+                                              context,
+                                              AppRoutes.groupDetails(
+                                                  group.id)))),
+                            ]))),
+              ))),
+      floatingActionButton: FloatingActionButton.extended(
+          onPressed: () => _open(context, AppRoutes.createActivity),
+          icon: const Icon(Icons.add),
+          label: const Text('New Activity')),
+      bottomNavigationBar: const ParchNavigationBar(),
     );
   }
 
-  Widget _buildAvatars() {
-    const initials = ['MK', 'SR', 'JD', '+1'];
-    const colors = [Color(0xFF60A5FA), Color(0xFF6366F1), _emerald, _cobalt];
-    return Semantics(
-      label: 'Four participants',
-      child: ExcludeSemantics(
-          child: SizedBox(
-        width: 108,
-        height: 34,
-        child: Stack(children: [
-          for (var index = 0; index < initials.length; index++)
-            Positioned(
-              left: index * 24,
-              child: Container(
-                width: 34,
-                height: 34,
-                alignment: Alignment.center,
+  Widget _quickStatus(BuildContext context) => Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+            color: AppColors.primary,
+            borderRadius: BorderRadius.circular(26),
+            boxShadow: const [
+              BoxShadow(
+                  color: Color(0x240047BA),
+                  blurRadius: 18,
+                  offset: Offset(0, 7))
+            ]),
+        child:
+            Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Container(
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: colors[index],
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
-                ),
-                child: Text(initials[index],
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                    )),
-              ),
-            ),
-        ]),
-      )),
-    );
-  }
-
-  Widget _buildGroups(BuildContext context) {
-    return LayoutBuilder(builder: (context, constraints) {
-      final stacked = constraints.maxWidth < 320 ||
-          MediaQuery.textScalerOf(context).scale(14) > 20;
-      final width =
-          stacked ? constraints.maxWidth : (constraints.maxWidth - 12) / 2;
-      return Wrap(spacing: 12, runSpacing: 12, children: [
-        SizedBox(
-            width: width,
-            child: _groupCard(context,
-                title: 'Engineering 2026',
-                subtitle: '28 members',
-                icon: Icons.school_outlined,
-                action: 'Open chat',
-                engineering: true)),
-        SizedBox(
-            width: width,
-            child: _groupCard(context,
-                title: 'Roomies Main St',
-                subtitle: '4 members • 1 plan',
-                icon: Icons.home_outlined,
-                action: 'View status',
-                engineering: false)),
-      ]);
-    });
-  }
-
-  Widget _groupCard(
-    BuildContext context, {
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required String action,
-    required bool engineering,
-  }) {
-    return _surface(
-      onTap: () => _onGroupTapped(context, title, subtitle),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              _iconTile(icon,
-                  foreground: engineering ? _cobalt : const Color(0xFF9333EA),
-                  background:
-                      engineering ? _blueTint : const Color(0xFFF3E8FF)),
-              if (engineering)
-                const Text('10m ago',
-                    style: TextStyle(color: _muted, fontSize: 10)),
-            ]),
-        const SizedBox(height: 12),
-        Text(title,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800)),
-        const SizedBox(height: 5),
-        Text(subtitle, style: const TextStyle(color: _muted, fontSize: 11)),
-        const SizedBox(height: 8),
-        TextButton(
-          onPressed: () => _onGroupTapped(context, title, subtitle),
-          child: Text('$action →'),
-        ),
-      ]),
-    );
-  }
-
-  Widget _sectionHeading(String title,
-      {required Widget trailing, String? count}) {
-    return Wrap(
-      alignment: WrapAlignment.spaceBetween,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: 8,
-      runSpacing: 4,
-      children: [
-        Wrap(
-            spacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              Text(title,
-                  style: const TextStyle(
-                      color: _ink, fontSize: 17, fontWeight: FontWeight.w800)),
-              if (count != null)
-                _pill(count, foreground: _cobalt, background: _blueTint),
-            ]),
-        trailing,
-      ],
-    );
-  }
-
-  Widget _surface(
-      {required Widget child,
-      Color color = Colors.white,
-      VoidCallback? onTap,
-      bool accented = false}) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: color == _cobalt
-                ? const Color(0x240047BA)
-                : const Color(0x080F172A),
-            blurRadius: 20,
-            offset: const Offset(0, 6),
-          )
-        ],
-      ),
-      child: Material(
-        color: color,
-        clipBehavior: Clip.antiAlias,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-          side: BorderSide(
-              color: color == _cobalt ? _cobalt : const Color(0xFFF1F5F9)),
-        ),
-        child: InkWell(
-          onTap: onTap,
-          child: Container(
-            decoration: accented
-                ? const BoxDecoration(
-                    border: Border(left: BorderSide(color: _cobalt, width: 4)),
-                  )
-                : null,
-            padding: const EdgeInsets.all(16),
-            child: child,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _iconTile(IconData icon,
-      {Color foreground = _cobalt, Color background = _blueTint}) {
-    return Container(
-      width: 40,
-      height: 40,
-      decoration: BoxDecoration(
-          color: background, borderRadius: BorderRadius.circular(13)),
-      child: Icon(icon, color: foreground, size: 21),
-    );
-  }
-
-  Widget _pill(String label,
-      {required Color foreground,
-      required Color background,
-      IconData? icon,
-      Color? iconColor}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-          color: background, borderRadius: BorderRadius.circular(30)),
-      child: Text.rich(
-        TextSpan(children: [
-          if (icon != null)
-            WidgetSpan(
-              alignment: PlaceholderAlignment.middle,
-              child: Padding(
-                padding: const EdgeInsets.only(right: 5),
-                child: Icon(icon, size: 12, color: iconColor ?? foreground),
-              ),
-            ),
-          TextSpan(text: label),
-        ]),
-        style: TextStyle(
-            color: foreground, fontSize: 11, fontWeight: FontWeight.w700),
-      ),
-    );
-  }
-
-  Widget _info(IconData icon, String text) {
-    return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Icon(icon, color: _cobalt, size: 17),
-      const SizedBox(width: 8),
-      Expanded(
-          child: Text(text,
-              style:
-                  const TextStyle(color: _muted, fontSize: 12, height: 1.5))),
-    ]);
-  }
-
-  Future<void> _showSheet(BuildContext context, String title,
-      List<Widget> Function(BuildContext sheetContext) content) async {
-    await showModalBottomSheet<void>(
-      context: context,
-      useSafeArea: true,
-      isScrollControlled: true,
-      showDragHandle: true,
-      backgroundColor: Colors.white,
-      constraints: BoxConstraints(
-          maxWidth: 600, maxHeight: MediaQuery.sizeOf(context).height * 0.9),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      clipBehavior: Clip.antiAlias,
-      builder: (sheetContext) => SafeArea(
-        top: false,
-        child: SingleChildScrollView(
-          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-          padding: EdgeInsets.fromLTRB(
-              20, 0, 20, 24 + MediaQuery.viewInsetsOf(sheetContext).bottom),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(children: [
-                Expanded(
-                    child: Text(title,
-                        style: const TextStyle(
-                          color: _ink,
-                          fontSize: 20,
+                    color: Colors.white.withValues(alpha: .17),
+                    borderRadius: BorderRadius.circular(14)),
+                child: const Icon(Icons.bolt_rounded, color: Colors.white)),
+            const SizedBox(width: 12),
+            Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                  const Text('QUICK STATUS',
+                      style: TextStyle(
+                          color: Color(0xFFC5DCFF),
+                          fontSize: 11,
                           fontWeight: FontWeight.w800,
-                        ))),
-                IconButton(
-                    tooltip: 'Close',
-                    onPressed: () => Navigator.of(sheetContext).pop(),
-                    icon: const Icon(Icons.close)),
-              ]),
-              const SizedBox(height: 16),
-              ...content(sheetContext),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _onQuickStatusTapped(BuildContext context) {
-    var freeUntil = '4:00 PM';
-    var nextActivity = 'Library Study';
-    _showSheet(
-        context,
-        'Update Availability & Status',
-        (sheetContext) => [
-              StatefulBuilder(
-                  builder: (context, setSheetState) => Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                          letterSpacing: .7)),
+                  Text(
+                      profileLoading
+                          ? 'Loading your status…'
+                          : profile == null
+                              ? 'Status unavailable.'
+                              : profile!.effectiveStatus ==
+                                      AvailabilityStatus.active
+                                  ? 'Available Now'
+                                  : profile!.effectiveStatus.label,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800)),
+                ]))
+          ]),
+          const SizedBox(height: 12),
+          Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: .10),
+                  borderRadius: BorderRadius.circular(14),
+                  border:
+                      Border.all(color: Colors.white.withValues(alpha: .16))),
+              child: Row(children: [
+                Expanded(
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Free Until',
-                              style: TextStyle(fontWeight: FontWeight.w700)),
-                          const SizedBox(height: 8),
-                          Wrap(spacing: 8, runSpacing: 8, children: [
-                            for (final time in [
-                              '3:00 PM',
-                              '4:00 PM',
-                              '5:00 PM',
-                              '6:00 PM'
-                            ])
-                              ChoiceChip(
-                                  label: Text(time),
-                                  selected: freeUntil == time,
-                                  onSelected: (_) =>
-                                      setSheetState(() => freeUntil = time)),
-                          ]),
-                          const SizedBox(height: 12),
-                          TextFormField(
-                            key: ValueKey('time-$freeUntil'),
-                            initialValue: freeUntil,
-                            decoration: const InputDecoration(
-                                labelText: 'Custom time',
-                                hintText: 'e.g. 4:30 PM'),
-                            onChanged: (value) => freeUntil = value,
-                          ),
-                          const SizedBox(height: 20),
-                          const Text('Next Activity',
-                              style: TextStyle(fontWeight: FontWeight.w700)),
-                          const SizedBox(height: 8),
-                          Wrap(spacing: 8, runSpacing: 8, children: [
-                            for (final activity in [
-                              'Library Study',
-                              'Linear Algebra',
-                              'Gym Workout',
-                              'Group Project'
-                            ])
-                              ChoiceChip(
-                                  label: Text(activity),
-                                  selected: nextActivity == activity,
-                                  onSelected: (_) => setSheetState(
-                                      () => nextActivity = activity)),
-                          ]),
-                          const SizedBox(height: 12),
-                          TextFormField(
-                            key: ValueKey('activity-$nextActivity'),
-                            initialValue: nextActivity,
-                            decoration: const InputDecoration(
-                                labelText: 'Activity name'),
-                            onChanged: (value) => nextActivity = value,
-                          ),
-                        ],
-                      )),
-              const SizedBox(height: 24),
-              FilledButton.icon(
-                icon: const Icon(Icons.check),
-                label: const Text('Save Changes'),
-                onPressed: () {
-                  Navigator.of(sheetContext).pop();
-                  _onUpdateStatus(context, freeUntil, nextActivity);
-                },
-              ),
-            ]);
-  }
+                      const Text('STATUS DURATION',
+                          style: TextStyle(
+                              color: Color(0xFFC5DCFF),
+                              fontWeight: FontWeight.w700,
+                              fontSize: 10)),
+                      const SizedBox(height: 4),
+                      Text(
+                          profile?.statusExpiresAt == null
+                              ? 'No expiration set'
+                              : 'Until ${profile!.statusExpiresAt!.toUtc().subtract(const Duration(hours: 5)).toString().substring(11, 16)} · Bogotá',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13)),
+                    ])),
+                IconButton(
+                    tooltip: 'Manage status',
+                    onPressed: onManageStatus ??
+                        () => _open(context, AppRoutes.profile),
+                    icon: const Icon(Icons.edit_outlined,
+                        color: Colors.white, size: 19))
+              ])),
+          const SizedBox(height: 10),
+          FilledButton.icon(
+              style: FilledButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: AppColors.primary,
+                  minimumSize: const Size(0, 46)),
+              onPressed: () => _open(context, AppRoutes.schedule),
+              icon: const Icon(Icons.bolt, size: 18),
+              label: const Text('Compare availability')),
+          const SizedBox(height: 8),
+          const Text(
+              'Profile status · Calendar availability is compared separately.',
+              style: TextStyle(color: Color(0xFFD6E5FF), fontSize: 10)),
+        ]),
+      );
 
-  void _onPlanTapped(BuildContext context,
-      {required String title,
-      required String time,
-      required String location,
-      required bool confirmed}) {
-    if (title == _studyTitle && demoStudySessionId != null) {
-      context.push(AppRoutes.studySession(demoStudySessionId!));
-      return;
-    }
-    _showSheet(
-        context,
-        'Plan Details',
-        (sheetContext) => [
-              _pill(
-                  confirmed ? 'Confirmed • 4/4 ready' : 'Voting pending • 3/6',
-                  foreground: confirmed ? const Color(0xFF047857) : _cobalt,
-                  background: confirmed ? _greenTint : _blueTint),
-              const SizedBox(height: 16),
-              Text(title,
+  Widget _activity(BuildContext context, ActivitySummary activity) {
+    final total = activity.attendance['total'] ?? 0,
+        accepted = activity.attendance['accepted'] ?? 0;
+    return InkWell(
+        onTap: () => _open(context, AppRoutes.studySession(activity.id)),
+        borderRadius: BorderRadius.circular(22),
+        child: ParchSurface(
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+              Align(
+                  alignment: Alignment.centerLeft,
+                  child: ParchPill(
+                      activity.cancelled
+                          ? 'Cancelled'
+                          : activity.confirmed
+                              ? 'Confirmed'
+                              : 'Proposed',
+                      color: activity.cancelled
+                          ? AppColors.error
+                          : activity.confirmed
+                              ? AppColors.success
+                              : AppColors.warning,
+                      icon: activity.cancelled
+                          ? Icons.cancel_outlined
+                          : Icons.check_circle_outline)),
+              const SizedBox(height: 14),
+              Text(activity.title,
                   style: const TextStyle(
-                      fontSize: 20, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 16),
-              _info(Icons.schedule, time),
+                      color: AppColors.textPrimary,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800)),
               const SizedBox(height: 12),
-              _info(Icons.location_on_outlined, location),
-              const SizedBox(height: 24),
-              FilledButton.icon(
-                onPressed: () {
-                  Navigator.of(sheetContext).pop();
-                  // TODO: Forward the calendar action to HomeViewModel.
-                  _showMessage(context, 'Calendar sync is coming soon.');
-                },
-                icon: const Icon(Icons.event_available_outlined),
-                label: const Text('Add to Calendar'),
-              ),
-            ]);
-  }
-
-  void _onCalendarTapped(BuildContext context) {
-    _showSheet(
-        context,
-        'Calendar & Sync',
-        (sheetContext) => [
-              _info(Icons.schedule, '4:00 PM – 6:00 PM'),
+              _logistic(Icons.schedule, _timeLabel(activity)),
               const SizedBox(height: 8),
-              const Text(_studyTitle),
-              const SizedBox(height: 8),
-              _info(Icons.location_on_outlined, 'Central Library • Room 302'),
-              const SizedBox(height: 24),
-              _pill('Free Availability Block',
-                  foreground: const Color(0xFF047857), background: _greenTint),
-              const SizedBox(height: 8),
-              const Text('6:00 PM – 7:30 PM • 1h 30m free'),
-              const SizedBox(height: 24),
-              FilledButton(
-                onPressed: () {
-                  Navigator.of(sheetContext).pop();
-                  context.go('/schedule');
-                },
-                child: const Text('Open schedule'),
-              ),
-            ]);
+              _logistic(
+                  Icons.location_on_outlined,
+                  activity.location.isEmpty
+                      ? 'Location not set'
+                      : activity.location),
+              if (total > 0) ...[
+                const SizedBox(height: 16),
+                ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: LinearProgressIndicator(
+                        value: accepted / total,
+                        minHeight: 5,
+                        color: AppColors.success,
+                        backgroundColor: AppColors.blueTint)),
+                const SizedBox(height: 8),
+                Text(
+                    '$accepted accepted · ${activity.attendance['maybe'] ?? 0} maybe · ${activity.attendance['declined'] ?? 0} declined',
+                    style: const TextStyle(fontSize: 12))
+              ],
+              Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                      onPressed: () =>
+                          _open(context, AppRoutes.studySession(activity.id)),
+                      child: const Text('View activity'))),
+            ])));
   }
 
-  Future<void> _onCompareAvailability(BuildContext context) async {
-    var createPlan = false;
-    await _showSheet(
-        context,
-        'Group Availability',
-        (sheetContext) => [
-              const Text('Best Mutual Match',
-                  style: TextStyle(fontWeight: FontWeight.w800)),
-              const SizedBox(height: 12),
-              _pill('4/4 Free',
-                  foreground: const Color(0xFF047857),
-                  background: _greenTint,
-                  icon: Icons.check),
-              const SizedBox(height: 16),
-              const Text('6:00 PM – 7:30 PM',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 8),
-              const Text('Everyone is out of classes and free before dinner.',
-                  style: TextStyle(color: _muted)),
-              const SizedBox(height: 24),
-              FilledButton.icon(
-                onPressed: () {
-                  createPlan = true;
-                  Navigator.of(sheetContext).pop();
-                },
-                icon: const Icon(Icons.add),
-                label: const Text('Schedule Plan in Free Slot'),
-              ),
-            ]);
-    if (createPlan && context.mounted) _onNewActivity(context);
+  Widget _logistic(IconData icon, String text) =>
+      Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Icon(icon, size: 17, color: AppColors.primary),
+        const SizedBox(width: 8),
+        Expanded(child: Text(text, style: const TextStyle(fontSize: 13)))
+      ]);
+  Future<void> _open(BuildContext context, String route) async {
+    await context.push(route);
+    if (context.mounted) await onRefreshActivities?.call();
   }
 
-  void _onGroupTapped(BuildContext context, String title, String subtitle) {
-    _showSheet(
-        context,
-        title,
-        (sheetContext) => [
-              Text(subtitle, style: const TextStyle(color: _muted)),
-              const SizedBox(height: 20),
-              const Text('Recent Shared Status',
-                  style: TextStyle(fontWeight: FontWeight.w800)),
-              const SizedBox(height: 8),
-              Text(title == 'Engineering 2026'
-                  ? 'Linear Algebra midterm study planned for Central Library Room 302 at 4:00 PM.'
-                  : '5-a-side Soccer & Social at Campus Sports Center.'),
-              const SizedBox(height: 24),
-              OutlinedButton.icon(
-                onPressed: () {
-                  Navigator.of(sheetContext).pop();
-                  // TODO: Forward the availability request to HomeViewModel.
-                  _showMessage(
-                      context, 'Availability requests are coming soon.');
-                },
-                icon: const Icon(Icons.bolt),
-                label: const Text('Ping Availability'),
-              ),
-              const SizedBox(height: 8),
-              FilledButton(
-                onPressed: () {
-                  Navigator.of(sheetContext).pop();
-                  // TODO: Navigate to the group's chat when its route exists.
-                  _showMessage(context, 'Group chat is coming soon.');
-                },
-                child: const Text('Open Chat'),
-              ),
-            ]);
+  String _timeLabel(ActivitySummary activity) {
+    if (activity.startsAt != null && activity.endsAt != null) {
+      final start =
+              activity.startsAt!.toUtc().subtract(const Duration(hours: 5)),
+          end = activity.endsAt!.toUtc().subtract(const Duration(hours: 5));
+      String time(DateTime v) =>
+          '${v.hour.toString().padLeft(2, '0')}:${v.minute.toString().padLeft(2, '0')}';
+      return '${start.day}/${start.month}/${start.year} · ${time(start)} – ${time(end)} · Bogotá';
+    }
+    final proposed = '${activity.date} ${activity.time}'.trim();
+    return proposed.isEmpty ? 'Not scheduled' : 'Proposed time: $proposed';
   }
 
-  void _onAllGroupsTapped(BuildContext context) {
-    _showSheet(
-        context,
-        'All Active Groups (5)',
-        (sheetContext) => [
-              const ListTile(
-                  leading: Icon(Icons.school_outlined, color: _cobalt),
-                  title: Text('Engineering 2026'),
-                  subtitle: Text('28 members • 10m ago')),
-              const ListTile(
-                  leading: Icon(Icons.home_outlined, color: Color(0xFF9333EA)),
-                  title: Text('Roomies Main St'),
-                  subtitle: Text('4 members • 1 plan')),
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: () {
-                  Navigator.of(sheetContext).pop();
-                  context.go('/groups');
-                },
-                child: const Text('Open groups'),
-              ),
-            ]);
-  }
-
-  Future<void> _onNewActivity(BuildContext context) async {
-    await context.push(AppRoutes.createActivity);
-    if (context.mounted) onRefreshActivities?.call();
-  }
-
-  void _onPlanOptions(BuildContext context, String title) {
-    _showSheet(
-        context,
-        'Activity Options',
-        (sheetContext) => [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
-              const SizedBox(height: 12),
-              for (final option in [
-                (Icons.share_outlined, 'Share Plan with Friends'),
-                (Icons.notifications_outlined, 'Set Alert Reminder'),
-                (Icons.close_rounded, 'Leave / Cancel RSVP'),
-              ])
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Icon(option.$1, color: _cobalt),
-                  title: Text(option.$2),
-                  onTap: () {
-                    Navigator.of(sheetContext).pop();
-                    // TODO: Forward the selected action to HomeViewModel.
-                    _showMessage(context, '${option.$2} is coming soon.');
-                  },
-                ),
-            ]);
-  }
-
-  void _onShare(BuildContext context) {
-    _showSheet(
-        context,
-        'Share Sync Link',
-        (sheetContext) => [
-              const SelectableText('https://$_inviteLink'),
-              const SizedBox(height: 16),
-              for (final option in [
-                (Icons.chat_outlined, 'WhatsApp'),
-                (Icons.sms_outlined, 'Messages'),
-                (Icons.copy_outlined, 'Copy Link'),
-                (Icons.qr_code_rounded, 'QR Code'),
-              ])
-                ListTile(
-                  leading: Icon(option.$1, color: _cobalt),
-                  title: Text(option.$2),
-                  onTap: () {
-                    Navigator.of(sheetContext).pop();
-                    // TODO: Forward sharing to an injected presentation action.
-                    _showMessage(
-                        context, '${option.$2} sharing is coming soon.');
-                  },
-                ),
-            ]);
-  }
-
-  void _onSearch(BuildContext context) {
-    _showSheet(
-        context,
-        'Search',
-        (sheetContext) => [
-              TextField(
-                autofocus: true,
-                textInputAction: TextInputAction.search,
-                decoration: const InputDecoration(
-                    hintText: 'Search plans, classmates, groups...',
-                    prefixIcon: Icon(Icons.search)),
-                onSubmitted: (query) {
-                  Navigator.of(sheetContext).pop();
-                  // TODO: Forward query to HomeViewModel.
-                  _showMessage(context, 'Search is coming soon.');
-                },
-              ),
-            ]);
-  }
-
-  void _onNotifications(BuildContext context) {
-    context.go(AppRoutes.alerts);
-  }
-
-  void _onProfile(BuildContext context) {
-    _showSheet(
-        context,
-        'Student Profile',
-        (_) => [
-              const Center(
-                  child: CircleAvatar(
-                radius: 32,
-                backgroundColor: _cobalt,
-                child: Text('AK',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
+  Widget _retry(String message) => Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(message, style: const TextStyle(color: AppColors.error)),
+        TextButton(onPressed: onRefreshActivities, child: const Text('Retry'))
+      ]));
+  Widget _heading(BuildContext context, String title, String action,
+          VoidCallback onTap) =>
+      Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 12,
+              children: [
+                Text(title,
+                    style: const TextStyle(
+                        fontSize: 18,
+                        color: AppColors.textPrimary,
                         fontWeight: FontWeight.w800)),
-              )),
-              const SizedBox(height: 16),
-              const Text('Alex Kuprev',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 6),
-              const Text('Computer Science • Class of 2026',
-                  textAlign: TextAlign.center, style: TextStyle(color: _muted)),
-            ]);
-  }
-
-  void _onUpdateStatus(
-      BuildContext context, String freeUntil, String nextActivity) {
-    // TODO: HomeViewModel.updateStatus(freeUntil, nextActivity).
-    _showMessage(context, 'Status updates are coming soon.');
-  }
-
-  void _onRsvp(BuildContext context, String response) {
-    // TODO: HomeViewModel.respondToPlan(response).
-    _showMessage(context, 'RSVP updates are coming soon.');
-  }
-
-  void _onCopyInvite(BuildContext context) {
-    // TODO: Forward clipboard interaction to an injected presentation action.
-    _showMessage(context, 'Invite link copying is coming soon.');
-  }
-
-  void _showMessage(BuildContext context, String message) {
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
-  }
+                TextButton(onPressed: onTap, child: Text(action))
+              ]));
+  Widget _card(BuildContext context,
+          {required IconData icon,
+          required String title,
+          required String subtitle,
+          required String action,
+          required VoidCallback onTap,
+          String? description}) =>
+      ParchSurface(
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                  color: AppColors.blueTint,
+                  borderRadius: BorderRadius.circular(14)),
+              child: Icon(icon, color: AppColors.primary, size: 21)),
+          const SizedBox(width: 12),
+          Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                Text(title,
+                    style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w800)),
+                const SizedBox(height: 4),
+                Text(subtitle)
+              ]))
+        ]),
+        if (description != null)
+          Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: Text(description)),
+        Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(onPressed: onTap, child: Text(action))),
+      ]));
 }

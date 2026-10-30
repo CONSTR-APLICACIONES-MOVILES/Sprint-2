@@ -11,14 +11,37 @@ class ManageStudySession {
 
   Future<StudySession?> load(String id) => _repository.getById(id);
 
+  Future<ActivityDraft?> pendingPublication() async {
+    final repository = _repository;
+    return repository is PublicationRecoveryRepository
+        ? (repository as PublicationRecoveryRepository).pendingPublication()
+        : null;
+  }
+
   Future<List<ActivityGroup>> listGroups() => _repository.listGroups();
 
   Future<String> createActivity(ActivityDraft draft) =>
       _repository.createActivity(draft.validated());
 
-  Future<StudySession> updateDetails(String id, ActivityDraft draft) async {
+  Future<StudySession> updateDetails(String id, ActivityDraft draft,
+      {String? expectedVersion}) async {
     final data = draft.validated();
     final session = await _editable(id);
+    if (expectedVersion != null && expectedVersion != session.version) {
+      if (session.title == data.title &&
+          session.description == data.description &&
+          session.location == data.location &&
+          session.locationDetails == data.locationDetails &&
+          session.category == data.category &&
+          session.status == data.status &&
+          session.groupId == data.groupId &&
+          session.legacyDate == data.date &&
+          session.legacyTime == data.time) {
+        return session;
+      }
+      throw const SessionFailure(
+          'This activity changed. Reload before editing.');
+    }
     if (data.groupId != session.groupId) {
       throw const SessionFailure('The activity group cannot be changed.');
     }
@@ -34,6 +57,8 @@ class ManageStudySession {
         title: data.title,
         description: data.description,
         location: data.location,
+        locationDetails: data.locationDetails,
+        clearLocationDetails: data.locationDetails == null,
         category: data.category,
         status: data.status,
         legacyDate: data.date,
@@ -119,9 +144,18 @@ class ManageStudySession {
     ]));
   }
 
-  Future<StudySession> cancel(String id) async {
-    final session = await _editable(id);
-    if (!session.supportsDetailsEditing) {
+  Future<StudySession> cancel(String id, {String? expectedVersion}) async {
+    final session = await load(id);
+    if (session == null) throw const SessionFailure('Session not found.');
+    if (!session.canOrganize) {
+      throw const SessionFailure('Only the organizer can cancel.');
+    }
+    if (session.cancelled) return session;
+    if (expectedVersion != null && expectedVersion != session.version) {
+      throw const SessionFailure(
+          'This activity changed. Reload before cancelling.');
+    }
+    if (!session.supportsCancellation) {
       throw const SessionFailure('Cancellation is not supported.');
     }
     return _repository.save(session.copyWith(cancelled: true));

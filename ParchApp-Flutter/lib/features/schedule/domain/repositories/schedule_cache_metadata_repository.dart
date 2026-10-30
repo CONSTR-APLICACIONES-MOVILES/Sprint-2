@@ -1,5 +1,4 @@
-abstract interface class
-    ScheduleCacheMetadataRepository {
+abstract interface class ScheduleCacheMetadataRepository {
   Future<DateTime?> getLastUpdated(
     DateTime day,
   );

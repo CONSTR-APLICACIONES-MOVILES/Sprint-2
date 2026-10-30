@@ -1,4 +1,6 @@
+import '../../../../core/domain/data_freshness.dart';
 import '../../domain/entities/activity_summary.dart';
+import '../../domain/entities/activity_location.dart';
 import '../../domain/entities/study_session.dart';
 import '../../domain/entities/slot_recommendation.dart';
 
@@ -8,6 +10,9 @@ class ActivityModel {
 
   StudySession toEntity(String? uid) => StudySession(
         id: data['id'] as String,
+        freshness: DataFreshness.fromMap(data),
+        version: data['version'] as String? ?? '',
+        cancelled: data['cancelled'] == true,
         title: data['title'] as String,
         description: data['description'] as String? ?? '',
         startsAt: _instant(data['startTime']),
@@ -18,6 +23,8 @@ class ActivityModel {
         legacyTime: data['time'] as String? ?? '',
         status: data['status'] as String,
         location: data['location'] as String? ?? '',
+        locationDetails: ActivityLocation.fromMap(data['locationDetails'],
+            expectedLabel: data['location'] as String? ?? ''),
         room: '',
         reminder: '',
         canOrganize: uid != null && uid == data['createdBy'],
@@ -38,20 +45,35 @@ class ActivityModel {
       StudyParticipant(
           person['name'] as String,
           person['initials'] as String? ?? '',
-          'Group RSVP: ${person['groupRsvpStatus']}',
-          'Availability: ${person['availability']}',
+          '',
+          switch (person['activityRsvpStatus']) {
+            'accepted' => 'Accepted',
+            'maybe' => 'Maybe',
+            'declined' => 'Declined',
+            _ => 'No response',
+          },
+          id: person['id'] as String?,
+          response: person['activityRsvpStatus'] as String?,
           leader: person['id'] == data['createdBy']);
 
   static DateTime? _instant(Object? value) =>
       value == null ? null : DateTime.parse(value as String);
 
   ActivitySummary toSummary() => ActivitySummary(
-      id: data['id'] as String,
-      title: data['title'] as String,
-      location: data['location'] as String? ?? '',
-      date: data['date'] as String? ?? '',
-      time: data['time'] as String? ?? '',
-      confirmed: data['status'] == 'CONFIRMED');
+          freshness: DataFreshness.fromMap(data),
+          id: data['id'] as String,
+          title: data['title'] as String,
+          location: data['location'] as String? ?? '',
+          date: data['date'] as String? ?? '',
+          time: data['time'] as String? ?? '',
+          confirmed: data['status'] == 'CONFIRMED',
+          cancelled: data['cancelled'] == true,
+          startsAt: _instant(data['startTime']),
+          endsAt: _instant(data['endTime']),
+          attendance: {
+            for (final entry in (data['attendance'] as Map? ?? {}).entries)
+              entry.key as String: (entry.value as num).toInt()
+          });
 }
 
 class RecommendationsModel {

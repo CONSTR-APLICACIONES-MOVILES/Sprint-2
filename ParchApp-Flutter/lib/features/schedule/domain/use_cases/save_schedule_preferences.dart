@@ -1,8 +1,7 @@
 import '../repositories/schedule_preferences_repository.dart';
 
 class SaveSchedulePreferences {
-  final SchedulePreferencesRepository
-      _repository;
+  final SchedulePreferencesRepository _repository;
 
   const SaveSchedulePreferences(
     this._repository,

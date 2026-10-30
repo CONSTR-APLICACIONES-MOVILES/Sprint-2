@@ -1,3 +1,6 @@
+import 'dart:async';
+import '../widgets/presence_settings_sheets.dart';
+import '../../../../shared/widgets/parch_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/router/app_routes.dart';
@@ -9,7 +12,7 @@ import '../view_models/profile_view_model.dart';
 import '../widgets/profile_cards.dart';
 import '../widgets/profile_menu_tile.dart';
 import '../widgets/profile_sheets.dart';
-import '../../domain/entities/photo_source.dart';
+import '../../../../shared/widgets/data_freshness_banner.dart';
 
 const _surface = Color(0xFFF8FAFE);
 
@@ -22,10 +25,20 @@ class ProfileView extends StatefulWidget {
 }
 
 class _ProfileViewState extends State<ProfileView> {
+  Timer? _expiryTimer;
+  @override
+  void dispose() {
+    _expiryTimer?.cancel();
+    super.dispose();
+  }
+
   @override
   void initState() {
     super.initState();
     widget.viewModel.load();
+    _expiryTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
@@ -39,19 +52,10 @@ class _ProfileViewState extends State<ProfileView> {
         valueListenable: widget.viewModel,
         builder: (context, state, _) => Scaffold(
           backgroundColor: _surface,
-          appBar: AppBar(
-            automaticallyImplyLeading: false,
-            titleSpacing: 16,
-            backgroundColor: _surface,
-            surfaceTintColor: Colors.transparent,
-            title: const Text('ParchApp',
-                style: TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 20)),
-          ),
+          appBar: ParchAppBar(
+              showBack: true, isProfile: true, initials: state.user?.initials),
           body: SafeArea(top: false, bottom: false, child: _body(state)),
-          bottomNavigationBar: const ParchNavigationBar(selectedIndex: 3),
+          bottomNavigationBar: const ParchNavigationBar(),
         ),
       );
 
@@ -86,6 +90,7 @@ class _ProfileViewState extends State<ProfileView> {
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
         children: [
           if (state.isUpdating) const LinearProgressIndicator(minHeight: 2),
+          DataFreshnessBanner(freshness: user.freshness),
           _header(user),
           if (state.error != null)
             Padding(
@@ -108,14 +113,37 @@ class _ProfileViewState extends State<ProfileView> {
                 ProfileAcademicCard(user: user),
                 const SizedBox(height: 12),
                 ProfileStatsRow(user: user),
+                const ProfileSectionLabel('Planning insights'),
+                ProfileMenuGroup(children: [
+                  ProfileMenuTile(
+                      icon: Icons.insights_outlined,
+                      title: 'Comparison & confirmation',
+                      subtitle: 'Measured coordination outcomes',
+                      onTap: () => context.push('/insights/coordination'))
+                ]),
                 const ProfileSectionLabel('Availability & schedule'),
                 ProfileMenuGroup(children: [
                   ProfileMenuTile(
                       icon: Icons.calendar_month_outlined,
-                      title: 'Edit Availability',
-                      subtitle: 'Fixed class hours & free time blocks',
-                      onTap: () => context.push(AppRoutes.schedule)),
+                      title: 'Calendar & availability',
+                      subtitle: 'Import your calendar and compare free time',
+                      onTap: () => context.push('/calendar')),
                 ]),
+                const ProfileSectionLabel('Privacy & preferences'),
+                ProfileMenuGroup(children: [
+                  ProfileMenuTile(
+                      icon: Icons.privacy_tip_outlined,
+                      title: 'Privacy & preferences',
+                      subtitle:
+                          'Calendar sharing, Close friends and invitation badges',
+                      onTap: () {
+                        if (!state.isUpdating) _settings(user);
+                      }),
+                ]),
+                OutlinedButton(
+                    onPressed: () => context
+                        .push('/share/profile/${Uri.encodeComponent(user.id)}'),
+                    child: const Text('Share my profile')),
                 const ProfileSectionLabel('Community & groups'),
                 ProfileMenuGroup(children: [
                   ProfileMenuTile(
@@ -151,13 +179,7 @@ class _ProfileViewState extends State<ProfileView> {
   }
 
   Widget _header(ProfileUser user) => Row(children: [
-        if (context.canPop())
-          IconButton(
-              tooltip: 'Back',
-              onPressed: () => context.pop(),
-              icon: const Icon(Icons.arrow_back))
-        else
-          const SizedBox(width: 48),
+        const SizedBox(width: 48),
         const Expanded(
           child: Column(children: [
             Text('My Profile',
@@ -179,12 +201,20 @@ class _ProfileViewState extends State<ProfileView> {
       ]);
 
   Future<void> _changeStatus(ProfileUser user) async {
-    final status = await showProfileSheet<AvailabilityStatus>(context,
-        child: AvailabilitySheet(current: user.status));
-    if (!mounted || status == null || status == user.status) return;
-    if (await widget.viewModel.changeStatus(status)) {
-      _message('Availability updated');
-    }
+    await showProfileSheet<bool>(context,
+        child: PresenceSheet(
+            user: user,
+            onSave: (status, expiry, visibility) => widget.viewModel
+                .setPresence(status, expiry, visibility, ownerId: user.id)));
+  }
+
+  Future<void> _settings(ProfileUser user) async {
+    await showProfileSheet<bool>(context,
+        child: PrivacySettingsSheet(
+            user: user,
+            getPeers: widget.viewModel.getPeers,
+            onSave: (preferences) => widget.viewModel
+                .setPreferences(preferences, ownerId: user.id)));
   }
 
   Future<void> _edit(ProfileUser user) async {
@@ -196,8 +226,8 @@ class _ProfileViewState extends State<ProfileView> {
     }
   }
 
-    Future<void> _changePhoto(PhotoSource source) async {
-    if (await widget.viewModel.changePhoto(source)) {
+  Future<void> _changePhoto() async {
+    if (await widget.viewModel.changePhoto()) {
       _message('Profile photo updated');
     }
   }

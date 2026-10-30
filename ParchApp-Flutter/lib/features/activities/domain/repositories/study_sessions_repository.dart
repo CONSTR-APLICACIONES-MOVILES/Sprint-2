@@ -17,3 +17,7 @@ abstract interface class StudySessionsRepository {
       {int? durationMinutes});
   Future<void> recordRecommendationShown(RecommendationEvent event);
 }
+
+abstract interface class PublicationRecoveryRepository {
+  Future<ActivityDraft?> pendingPublication();
+}

@@ -1,86 +1,45 @@
+import 'expansion_dependencies.dart';
 import 'package:go_router/go_router.dart';
-
 import '../../core/analytics/firebase_analytics_service.dart';
-import '../../features/groups/data/repositories/firestore_response_time_insights_repository.dart';
-
 import '../router/app_router.dart';
-import '../router/app_routes.dart';
-
-import 'activities_dependencies.dart';
-import 'alerts_dependencies.dart';
 import 'auth_dependencies.dart';
-import 'firebase_dependencies.dart';
-import 'groups_dependencies.dart';
+import 'alerts_dependencies.dart';
+import 'activities_dependencies.dart';
 import 'profile_dependencies.dart';
 import 'schedule_dependencies.dart';
+import 'groups_dependencies.dart';
+import 'firebase_dependencies.dart';
+import '../router/app_routes.dart';
 
-GoRouter createAppRouter(
-  FirebaseDependencies firebase,
-) {
+GoRouter createAppRouter(FirebaseDependencies firebase) {
   final auth =
-      AuthDependencies.firebase(
-    firebase.auth,
-  );
-
+      AuthDependencies.firebase(firebase.auth, profiles: firebase.mobile);
   return AppRouter.create(
     auth,
-
-    alertsDependencies:
-        AlertsDependencies.mock(
-      includeActivityPreviews: false,
-    ),
-
-    activitiesDependencies:
-        ActivitiesDependencies.firebase(
-      firebase,
-    ),
-
-    // Schedule now uses the real Firebase/Google Calendar flow.
-    scheduleDependencies:
-        ScheduleDependencies.firebase(
-      firebase,
-    ),
-
+    expansions: ExpansionDependencies.firebase(firebase),
+    alertsDependencies: AlertsDependencies.firebase(firebase),
+    activitiesDependencies: ActivitiesDependencies.firebase(firebase),
+    scheduleDependencies: ScheduleDependencies.firebase(firebase),
     profileDependencies:
-        ProfileDependencies.mock(
-      authRepository: auth.repository,
+        ProfileDependencies.firebase(firebase, authRepository: auth.repository),
+    groupsDependencies: GroupsDependencies.firebase(
+      firebase,
+      analytics: FirebaseAnalyticsService(),
     ),
-
-    groupsDependencies:
-        GroupsDependencies.mock(
-      insights:
-          FirestoreResponseTimeInsightsRepository(
-        firebase.firestore,
-      ),
-      analytics:
-          FirebaseAnalyticsService(),
-    ),
-
-    initialLocation:
-        firebase.auth.currentUser == null
-            ? AppRoutes.welcome
-            : AppRoutes.home,
-
+    // A saved account is offered on Sign-In and explicitly confirmed by the user.
+    initialLocation: AppRoutes.signIn,
     redirect: (context, state) {
       final public = [
         AppRoutes.welcome,
         AppRoutes.signIn,
-        AppRoutes.createAccount,
+        AppRoutes.createAccount
       ];
-
       if (firebase.auth.currentUser == null &&
-          !public.contains(
-            state.matchedLocation,
-          )) {
+          !public.contains(state.matchedLocation)) {
         return Uri(
-          path: AppRoutes.signIn,
-          queryParameters: {
-            'from':
-                state.uri.toString(),
-          },
-        ).toString();
+            path: AppRoutes.signIn,
+            queryParameters: {'from': state.uri.toString()}).toString();
       }
-
       return null;
     },
   );

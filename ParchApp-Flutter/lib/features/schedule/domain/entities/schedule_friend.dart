@@ -30,9 +30,8 @@ class ScheduleFriend {
       name: name ?? this.name,
       fullName: fullName ?? this.fullName,
       initials: initials ?? this.initials,
-      distanceMeters: clearDistance
-          ? null
-          : distanceMeters ?? this.distanceMeters,
+      distanceMeters:
+          clearDistance ? null : distanceMeters ?? this.distanceMeters,
     );
   }
 }

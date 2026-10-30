@@ -1,4 +1,7 @@
+import '../../../../shared/widgets/data_freshness_banner.dart';
+import '../../../../shared/widgets/parch_visuals.dart';
 import 'package:flutter/material.dart';
+import '../widgets/activity_location_preview.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -110,8 +113,9 @@ class _StudySessionViewState extends State<StudySessionView> {
           builder: (sheetContext) => ActivityForm(
               viewModel: editor,
               onSaved: (id) => Navigator.of(sheetContext).pop(id)));
-      if (saved != null && mounted) {
-        await widget.viewModel.refreshDetails(savedMessage: 'Changes saved.');
+      if (mounted) {
+        await widget.viewModel.refreshDetails(
+            savedMessage: saved == null ? '' : 'Changes saved.');
       }
     } finally {
       editor.dispose();
@@ -147,10 +151,16 @@ class _StudySessionViewState extends State<StudySessionView> {
                 tooltip: 'Back',
                 onPressed: _back,
                 icon: const Icon(Icons.arrow_back)),
-            title: const Text('ParchApp',
-                style: TextStyle(
-                    color: AppColors.primary, fontWeight: FontWeight.w800)),
+            title: const ParchBrand(),
             actions: [
+              IconButton(
+                  tooltip: 'Refresh activity',
+                  onPressed: state.saving || state.refreshing
+                      ? null
+                      : () => state.session == null
+                          ? widget.viewModel.load()
+                          : widget.viewModel.refreshDetails(savedMessage: ''),
+                  icon: const Icon(Icons.refresh)),
               IconButton(
                   tooltip: 'Alerts',
                   onPressed: () => context.push(AppRoutes.alerts),
@@ -170,7 +180,7 @@ class _StudySessionViewState extends State<StudySessionView> {
                     color: Colors.white,
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
                     child: Row(children: [
-                      if (state.session!.supportsDetailsEditing)
+                      if (state.session!.supportsCancellation)
                         Expanded(
                             child: OutlinedButton(
                                 onPressed: state.saving ||
@@ -182,7 +192,7 @@ class _StudySessionViewState extends State<StudySessionView> {
                                     foregroundColor: AppColors.error,
                                     minimumSize: const Size(0, 48)),
                                 child: const Text('Cancel'))),
-                      if (state.session!.supportsDetailsEditing)
+                      if (state.session!.supportsCancellation)
                         const SizedBox(width: 12),
                       Expanded(
                           flex: 2,
@@ -201,6 +211,19 @@ class _StudySessionViewState extends State<StudySessionView> {
                                   textAlign: TextAlign.center))),
                     ]),
                   )),
+            if (state.session != null &&
+                !state.session!.canOrganize &&
+                !state.session!.cancelled)
+              TextButton(
+                  onPressed: () async {
+                    await context
+                        .push(AppRoutes.activityInvitation(state.session!.id));
+                    if (mounted) {
+                      await widget.viewModel
+                          .refreshDetails(savedMessage: 'Response saved.');
+                    }
+                  },
+                  child: const Text('View invitation & RSVP')),
             const ParchNavigationBar(selectedIndex: 2),
           ]),
         ),
@@ -264,6 +287,9 @@ class _StudySessionViewState extends State<StudySessionView> {
                         padding: const EdgeInsets.only(bottom: 12),
                         child: Text(state.error!,
                             style: const TextStyle(color: AppColors.error))),
+                  DataFreshnessBanner(freshness: session.freshness),
+                  ActivityCover(category: session.category),
+                  const SizedBox(height: 16),
                   Wrap(spacing: 8, runSpacing: 8, children: [
                     Chip(
                         avatar: Icon(
@@ -292,22 +318,47 @@ class _StudySessionViewState extends State<StudySessionView> {
                         Text(session.title,
                             style: const TextStyle(
                                 fontSize: 26,
+                                color: AppColors.textPrimary,
                                 fontWeight: FontWeight.w800,
                                 height: 1.15)),
-                        const SizedBox(height: 12),
-                        Text(session.description,
-                            style: const TextStyle(
-                                color: AppColors.textSecondary)),
+                        if (session.description.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          Text(session.description,
+                              style: const TextStyle(
+                                  color: AppColors.textSecondary)),
+                        ],
                         const SizedBox(height: 20),
                         _info(Icons.calendar_month_outlined, date),
                         const SizedBox(height: 12),
                         _info(Icons.schedule, time),
+                        if (session.location.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          _info(Icons.location_on_outlined, session.location),
+                        ],
                         if (session.startsAt == null &&
                             (session.legacyDate.isNotEmpty ||
                                 session.legacyTime.isNotEmpty))
                           Text(
                               'Original plan: ${session.legacyDate} ${session.legacyTime}'),
                       ])),
+                  if (!widget.isDemo)
+                    Wrap(spacing: 8, runSpacing: 8, children: [
+                      OutlinedButton(
+                          onPressed: () => context.push(
+                              '/activities/${Uri.encodeComponent(session.id)}/materials'),
+                          child: const Text('Checklist, resources & calendar')),
+                      if (session.canOrganize)
+                        OutlinedButton(
+                            onPressed: () async {
+                              await context.push(
+                                  '/activities/${Uri.encodeComponent(session.id)}/suggested-times');
+                              if (mounted) {
+                                await widget.viewModel
+                                    .refreshDetails(savedMessage: '');
+                              }
+                            },
+                            child: const Text('Suggested Times')),
+                    ]),
                   if (session.canOrganize)
                     RecommendedSlotsCard(
                       state: state,
@@ -339,47 +390,54 @@ class _StudySessionViewState extends State<StudySessionView> {
                                   style: const TextStyle(
                                       fontWeight: FontWeight.w600)),
                               const SizedBox(height: 16),
-                              Container(
-                                  padding: const EdgeInsets.all(20),
-                                  decoration: BoxDecoration(
-                                      color: const Color(0xFFEFF4FF),
-                                      borderRadius: BorderRadius.circular(16)),
-                                  child: Column(children: [
-                                    const Icon(Icons.local_library_outlined,
-                                        size: 48, color: AppColors.primary),
-                                    const SizedBox(height: 12),
-                                    Text(session.location,
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.w700)),
-                                    const Text('Campus location preview',
-                                        textAlign: TextAlign.center)
-                                  ])),
+                              if (session.locationDetails != null)
+                                ActivityLocationPreview(
+                                    location: session.locationDetails!,
+                                    offline: session.freshness.offline)
+                              else
+                                Container(
+                                    padding: const EdgeInsets.all(20),
+                                    decoration: BoxDecoration(
+                                        color: const Color(0xFFEFF4FF),
+                                        borderRadius:
+                                            BorderRadius.circular(16)),
+                                    child: Column(children: [
+                                      const Icon(Icons.local_library_outlined,
+                                          size: 48, color: AppColors.primary),
+                                      const SizedBox(height: 12),
+                                      Text(session.location,
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.w700)),
+                                      const Text('Campus location preview',
+                                          textAlign: TextAlign.center)
+                                    ])),
                               const SizedBox(height: 12),
-                              Wrap(spacing: 12, runSpacing: 8, children: [
-                                TextButton.icon(
-                                    onPressed: () => _sheet(
-                                        'Campus Walking Route',
-                                        const Text(
-                                            'Walking directions require a connected maps provider. No live location is being read.')),
-                                    icon: const Icon(Icons.directions_walk),
-                                    label: const Text('Route')),
-                                TextButton.icon(
-                                    onPressed: () => _sheet(
-                                        'Study room',
-                                        Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(session.location),
-                                              Text(session.room),
-                                              const SizedBox(height: 16),
-                                              const Text(
-                                                  'Room reservations and access codes are not connected.')
-                                            ])),
-                                    icon:
-                                        const Icon(Icons.meeting_room_outlined),
-                                    label: const Text('View room')),
-                              ]),
+                              if (widget.isDemo)
+                                Wrap(spacing: 12, runSpacing: 8, children: [
+                                  TextButton.icon(
+                                      onPressed: () => _sheet(
+                                          'Campus Walking Route',
+                                          const Text(
+                                              'Walking directions require a connected maps provider. No live location is being read.')),
+                                      icon: const Icon(Icons.directions_walk),
+                                      label: const Text('Route')),
+                                  TextButton.icon(
+                                      onPressed: () => _sheet(
+                                          'Study room',
+                                          Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(session.location),
+                                                Text(session.room),
+                                                const SizedBox(height: 16),
+                                                const Text(
+                                                    'Room reservations and access codes are not connected.')
+                                              ])),
+                                      icon: const Icon(
+                                          Icons.meeting_room_outlined),
+                                      label: const Text('View room')),
+                                ]),
                             ])),
                   if (session.topics.isNotEmpty)
                     SessionCard(
@@ -419,14 +477,21 @@ class _StudySessionViewState extends State<StudySessionView> {
                       title: 'Participants (${session.participants.length})',
                       icon: Icons.people_outline,
                       trailing: IconButton(
-                          tooltip: 'Invite classmate',
+                          tooltip: widget.isDemo
+                              ? 'Invite classmate'
+                              : 'Share activity',
                           onPressed: blocked
                               ? null
-                              : () => _sheet(
-                                  'Invite Classmate',
-                                  const Text(
-                                      'Invitations will be available when the backend is connected. No invitation has been sent.')),
-                          icon: const Icon(Icons.person_add_alt)),
+                              : !widget.isDemo
+                                  ? () => context.push(
+                                      '/share/activity/${Uri.encodeComponent(session.id)}')
+                                  : () => _sheet(
+                                      'Invite Classmate',
+                                      const Text(
+                                          'Invitations will be available when the backend is connected. No invitation has been sent.')),
+                          icon: Icon(widget.isDemo
+                              ? Icons.person_add_alt
+                              : Icons.share_outlined)),
                       child: Column(children: [
                         for (final person in session.participants)
                           ListTile(
@@ -436,21 +501,27 @@ class _StudySessionViewState extends State<StudySessionView> {
                                 child: Text(person.initials)),
                             title: Text(
                                 '${person.name}${person.leader ? ' • Leader' : ''}'),
-                            subtitle:
-                                Text('${person.program}\n${person.status}'),
-                            isThreeLine: true,
-                            onTap: () => _sheet(
-                                person.name,
-                                Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(person.program),
-                                      Text(person.status),
-                                      const SizedBox(height: 16),
-                                      const Text(
-                                          'Direct messages are not connected yet.'),
-                                    ])),
+                            subtitle: Text(person.program.isEmpty
+                                ? person.status
+                                : '${person.program}\n${person.status}'),
+                            isThreeLine: person.program.isNotEmpty,
+                            onTap: !widget.isDemo
+                                ? person.id == null
+                                    ? null
+                                    : () => context.push(
+                                        '/people/${Uri.encodeComponent(person.id!)}')
+                                : () => _sheet(
+                                    person.name,
+                                    Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(person.program),
+                                          Text(person.status),
+                                          const SizedBox(height: 16),
+                                          const Text(
+                                              'Direct messages are not connected yet.'),
+                                        ])),
                           )
                       ])),
                   if (session.resources.isNotEmpty ||

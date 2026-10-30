@@ -5,8 +5,7 @@ import '../../domain/repositories/schedule_cache_metadata_repository.dart';
 
 class LocalScheduleCacheMetadataRepository
     implements ScheduleCacheMetadataRepository {
-  static const String _keyPrefix =
-      'schedule_cache_last_updated';
+  static const String _keyPrefix = 'schedule_cache_last_updated';
 
   final FirebaseAuth _auth;
 
@@ -16,13 +15,10 @@ class LocalScheduleCacheMetadataRepository
     required FirebaseAuth auth,
     SharedPreferencesAsync? preferences,
   })  : _auth = auth,
-        _preferences =
-            preferences ??
-                SharedPreferencesAsync();
+        _preferences = preferences ?? SharedPreferencesAsync();
 
   String get _uid {
-    final user =
-        _auth.currentUser;
+    final user = _auth.currentUser;
 
     if (user == null) {
       throw StateError(
@@ -37,15 +33,13 @@ class LocalScheduleCacheMetadataRepository
   String _key(
     DateTime day,
   ) {
-    final normalized =
-        DateTime(
+    final normalized = DateTime(
       day.year,
       day.month,
       day.day,
     );
 
-    final dayKey =
-        '${normalized.year}-'
+    final dayKey = '${normalized.year}-'
         '${normalized.month.toString().padLeft(2, '0')}-'
         '${normalized.day.toString().padLeft(2, '0')}';
 
@@ -56,8 +50,7 @@ class LocalScheduleCacheMetadataRepository
   Future<DateTime?> getLastUpdated(
     DateTime day,
   ) async {
-    final value =
-        await _preferences.getString(
+    final value = await _preferences.getString(
       _key(day),
     );
 

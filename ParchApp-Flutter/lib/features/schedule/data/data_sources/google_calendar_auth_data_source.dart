@@ -1,34 +1,35 @@
-import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import '../../../../core/auth/google_sign_in_session.dart';
 
 class GoogleCalendarAuthDataSource {
-  static const String _iosClientId =
-      '632049552762-f4kvc3h556t9ijsq36hnn3kk4d62g2od.apps.googleusercontent.com';
-
   static const List<String> calendarScopes = [
-    'https://www.googleapis.com/auth/calendar.events.readonly',
+    'https://www.googleapis.com/auth/calendar.freebusy',
   ];
 
   final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
 
   bool _initialized = false;
+  GoogleSignInAccount? _account;
+
+  Future<Map<String, String>> authorizationHeaders() async {
+    final account = _account;
+    if (account == null) throw StateError('Authorize Google Calendar first.');
+    final headers = await account.authorizationClient
+        .authorizationHeaders(calendarScopes, promptIfNecessary: true);
+    if (headers == null) throw StateError('Calendar access was not granted.');
+    return headers;
+  }
+
+  Future<GoogleSignInClientAuthorization> getCalendarAuthorization() async {
+    final account = await authorizeCalendar();
+    return account.authorizationClient.authorizeScopes(
+        const ['https://www.googleapis.com/auth/calendar.events.readonly']);
+  }
 
   Future<void> initialize() async {
-    if (_initialized) {
-      return;
-    }
+    if (_initialized) return;
 
-    String? clientId;
-
-    if (!kIsWeb &&
-        (defaultTargetPlatform == TargetPlatform.iOS ||
-            defaultTargetPlatform == TargetPlatform.macOS)) {
-      clientId = _iosClientId;
-    }
-
-    await _googleSignIn.initialize(
-      clientId: clientId,
-    );
+    await GoogleSignInSession.initialize();
 
     _initialized = true;
   }
@@ -36,27 +37,8 @@ class GoogleCalendarAuthDataSource {
   Future<GoogleSignInAccount> authorizeCalendar() async {
     await initialize();
 
-    final account = await _googleSignIn.authenticate();
-
-    final existingAuthorization =
-        await account.authorizationClient.authorizationForScopes(
-      calendarScopes,
-    );
-
-    if (existingAuthorization == null) {
-      await account.authorizationClient.authorizeScopes(
-        calendarScopes,
-      );
-    }
-
-    return account;
-  }
-
-  Future<GoogleSignInClientAuthorization>
-      getCalendarAuthorization() async {
-    await initialize();
-
-    final account = await _googleSignIn.authenticate();
+    final GoogleSignInAccount account = await _googleSignIn.authenticate();
+    _account = account;
 
     final existingAuthorization =
         await account.authorizationClient.authorizationForScopes(
@@ -64,11 +46,13 @@ class GoogleCalendarAuthDataSource {
     );
 
     if (existingAuthorization != null) {
-      return existingAuthorization;
+      return account;
     }
 
-    return account.authorizationClient.authorizeScopes(
+    await account.authorizationClient.authorizeScopes(
       calendarScopes,
     );
+
+    return account;
   }
 }

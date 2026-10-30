@@ -21,9 +21,28 @@ abstract final class AppTheme {
 
     return ThemeData(
       useMaterial3: true,
+      fontFamily: 'Inter',
       colorScheme: scheme,
       scaffoldBackgroundColor: AppColors.background,
       textTheme: AppTypography.textTheme,
+      dividerColor: AppColors.outlineSoft,
+      inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: AppColors.outlineSoft)),
+          enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: AppColors.outlineSoft)),
+          focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide:
+                  const BorderSide(color: AppColors.primary, width: 1.5))),
+      floatingActionButtonTheme: const FloatingActionButtonThemeData(
+          backgroundColor: AppColors.primary, foregroundColor: Colors.white),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           minimumSize:
@@ -31,7 +50,8 @@ abstract final class AppTheme {
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           textStyle: AppTypography.textTheme.labelLarge,
-          shape: const StadiumBorder(),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -42,7 +62,8 @@ abstract final class AppTheme {
           backgroundColor: AppColors.surface,
           side: const BorderSide(color: AppColors.border),
           textStyle: AppTypography.textTheme.labelLarge,
-          shape: const StadiumBorder(),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
       ),
     );

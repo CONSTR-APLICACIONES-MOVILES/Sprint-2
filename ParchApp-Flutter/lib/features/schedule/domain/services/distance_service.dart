@@ -13,31 +13,25 @@ class DistanceService {
     UserLocation a,
     UserLocation b,
   ) {
-    const earthRadiusMeters =
-        6371000.0;
+    const earthRadiusMeters = 6371000.0;
 
-    final lat1 =
-        _degreesToRadians(
+    final lat1 = _degreesToRadians(
       a.latitude,
     );
 
-    final lat2 =
-        _degreesToRadians(
+    final lat2 = _degreesToRadians(
       b.latitude,
     );
 
-    final deltaLatitude =
-        _degreesToRadians(
+    final deltaLatitude = _degreesToRadians(
       b.latitude - a.latitude,
     );
 
-    final deltaLongitude =
-        _degreesToRadians(
+    final deltaLongitude = _degreesToRadians(
       b.longitude - a.longitude,
     );
 
-    final haversine =
-        math.sin(
+    final haversine = math.sin(
               deltaLatitude / 2,
             ) *
             math.sin(
@@ -52,8 +46,7 @@ class DistanceService {
               deltaLongitude / 2,
             );
 
-    final angularDistance =
-        2 *
+    final angularDistance = 2 *
         math.atan2(
           math.sqrt(haversine),
           math.sqrt(
@@ -61,15 +54,12 @@ class DistanceService {
           ),
         );
 
-    return earthRadiusMeters *
-        angularDistance;
+    return earthRadiusMeters * angularDistance;
   }
 
   double _degreesToRadians(
     double degrees,
   ) {
-    return degrees *
-        math.pi /
-        180;
+    return degrees * math.pi / 180;
   }
 }

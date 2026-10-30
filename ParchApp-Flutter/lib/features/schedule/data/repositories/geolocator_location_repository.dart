@@ -1,10 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../../domain/entities/user_location.dart';
 import '../../domain/repositories/location_repository.dart';
 
-class GeolocatorLocationRepository
-    implements LocationRepository {
+class GeolocatorLocationRepository implements LocationRepository {
   const GeolocatorLocationRepository();
 
   @override
@@ -13,8 +13,7 @@ class GeolocatorLocationRepository
     // 1. Verify that device location services are enabled
     // ==============================================================
 
-    final serviceEnabled =
-        await Geolocator.isLocationServiceEnabled();
+    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
 
     if (!serviceEnabled) {
       throw StateError(
@@ -27,16 +26,14 @@ class GeolocatorLocationRepository
     // 2. Check permissions
     // ==============================================================
 
-    var permission =
-        await Geolocator.checkPermission();
+    var permission = await Geolocator.checkPermission();
 
     // ==============================================================
     // 3. Ask permission if necessary
     // ==============================================================
 
     if (permission == LocationPermission.denied) {
-      permission =
-          await Geolocator.requestPermission();
+      permission = await Geolocator.requestPermission();
     }
 
     if (permission == LocationPermission.denied) {
@@ -45,8 +42,7 @@ class GeolocatorLocationRepository
       );
     }
 
-    if (permission ==
-        LocationPermission.deniedForever) {
+    if (permission == LocationPermission.deniedForever) {
       throw StateError(
         'Location permission is permanently denied. '
         'Enable it from the device settings.',
@@ -57,26 +53,21 @@ class GeolocatorLocationRepository
     // 4. Obtain current device position
     // ==============================================================
 
-    final position =
-        await Geolocator.getCurrentPosition(
-      locationSettings:
-          const LocationSettings(
-        accuracy:
-            LocationAccuracy.high,
+    final position = await Geolocator.getCurrentPosition(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
       ),
     );
 
-    print(
+    debugPrint(
       'GPS -> '
       'latitude=${position.latitude}, '
       'longitude=${position.longitude}',
     );
 
     return UserLocation(
-      latitude:
-          position.latitude,
-      longitude:
-          position.longitude,
+      latitude: position.latitude,
+      longitude: position.longitude,
     );
   }
 }

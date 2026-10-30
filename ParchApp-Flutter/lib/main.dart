@@ -8,7 +8,8 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
     final firebase = await FirebaseDependencies.initialize();
-    runApp(ParchApp(router: createAppRouter(firebase)));
+    runApp(
+        ParchApp(router: createAppRouter(firebase), offline: firebase.mobile));
   } catch (error, stack) {
     debugPrint('ParchApp initialization failed: $error');
     debugPrintStack(stackTrace: stack);

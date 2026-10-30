@@ -1,3 +1,4 @@
+import '../../../../shared/widgets/parch_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/router/app_routes.dart';
@@ -19,6 +20,19 @@ class ActiveGroupsView extends StatefulWidget {
 }
 
 class _ActiveGroupsViewState extends State<ActiveGroupsView> {
+  String _query = "";
+  final _search = TextEditingController();
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  Future<void> _open(String route) async {
+    await context.push(route);
+    if (mounted) await widget.viewModel.load();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -37,38 +51,11 @@ class _ActiveGroupsViewState extends State<ActiveGroupsView> {
         valueListenable: widget.viewModel,
         builder: (context, state, _) => Scaffold(
           backgroundColor: _surface,
-          appBar: AppBar(
-            automaticallyImplyLeading: false,
-            titleSpacing: 16,
-            backgroundColor: _surface,
-            surfaceTintColor: Colors.transparent,
-            title: Row(children: [
-              if (context.canPop())
-                IconButton(
-                    tooltip: 'Back',
-                    onPressed: () => context.pop(),
-                    icon: const Icon(Icons.arrow_back)),
-              const Text('Active Groups',
-                  style: TextStyle(
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 20)),
-              const SizedBox(width: 8),
-              if (state.groups.isNotEmpty)
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-                  decoration: BoxDecoration(
-                      color: const Color(0xFFE6EEFF),
-                      borderRadius: BorderRadius.circular(20)),
-                  child: Text('${state.groups.length}',
-                      style: const TextStyle(
-                          color: AppColors.primary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800)),
-                ),
-            ]),
-          ),
+          appBar: const ParchAppBar(title: 'Groups'),
+          floatingActionButton: FloatingActionButton.extended(
+              onPressed: () => _open(AppRoutes.createGroup),
+              icon: const Icon(Icons.add),
+              label: const Text('Create Group')),
           body: SafeArea(top: false, bottom: false, child: _body(state)),
           bottomNavigationBar: const ParchNavigationBar(selectedIndex: 1),
         ),
@@ -87,6 +74,9 @@ class _ActiveGroupsViewState extends State<ActiveGroupsView> {
             const Icon(Icons.groups_outlined,
                 size: 48, color: AppColors.primary),
             const SizedBox(height: 16),
+            TextButton(
+                onPressed: () => _open(AppRoutes.groupInvitations),
+                child: const Text('Group invitations')),
             Text(state.error ?? 'No active groups yet',
                 textAlign: TextAlign.center),
             TextButton(
@@ -96,13 +86,16 @@ class _ActiveGroupsViewState extends State<ActiveGroupsView> {
       );
     }
 
-    final visible = state.visibleGroups;
+    final visible = state.visibleGroups
+        .where(
+            (g) => g.name.toLowerCase().contains(_query.trim().toLowerCase()))
+        .toList();
 
     return RefreshIndicator(
       onRefresh: widget.viewModel.load,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 112),
         children: [
           if (state.isUpdating) const LinearProgressIndicator(minHeight: 2),
           Center(
@@ -112,6 +105,16 @@ class _ActiveGroupsViewState extends State<ActiveGroupsView> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const SizedBox(height: 4),
+                  TextField(
+                      controller: _search,
+                      decoration: const InputDecoration(
+                          labelText: 'Search your groups',
+                          prefixIcon: Icon(Icons.search)),
+                      onChanged: (v) => setState(() => _query = v)),
+                  TextButton.icon(
+                      onPressed: () => _open(AppRoutes.groupInvitations),
+                      icon: const Icon(Icons.mail_outline),
+                      label: const Text('Group invitations')),
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(children: [
@@ -157,22 +160,30 @@ class _ActiveGroupsViewState extends State<ActiveGroupsView> {
                         const Text('No groups match this filter.',
                             textAlign: TextAlign.center),
                         TextButton(
-                            onPressed: () => widget.viewModel
-                                .setFilter(GroupsFilter.all),
-                            child: const Text('Clear filter')),
+                            onPressed: () => setState(() {
+                                  _query = "";
+                                  _search.clear();
+                                  widget.viewModel.setFilter(GroupsFilter.all);
+                                }),
+                            child: const Text('Clear search and filter')),
                       ]),
                     )
                   else
                     for (final group in visible)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 14),
-                        child: ActiveGroupCard(
-                          key: ValueKey(group.id),
-                          group: group,
-                          estimate: state.estimateFor(group),
-                          busy: state.isUpdating,
-                          onAction: (action) => _handleAction(group, action),
-                        ),
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              ActiveGroupCard(
+                                key: ValueKey(group.id),
+                                group: group,
+                                estimate: state.estimateFor(group),
+                                busy: state.isUpdating,
+                                onAction: (action) =>
+                                    _handleAction(group, action),
+                              )
+                            ]),
                       ),
                 ],
               ),
@@ -185,9 +196,18 @@ class _ActiveGroupsViewState extends State<ActiveGroupsView> {
 
   Future<void> _handleAction(ActiveGroup group, GroupAction action) async {
     switch (action) {
+      case GroupAction.viewDetails:
+        await _open(AppRoutes.groupDetails(group.id));
       case GroupAction.viewSchedule:
-        context.push(AppRoutes.schedule);
+        context.push(Uri(
+            path: AppRoutes.schedule,
+            queryParameters: {'groupId': group.id}).toString());
       case GroupAction.voteRsvp:
+        if (group.activityAttendance && group.invitationId != null) {
+          await context.push(AppRoutes.activityInvitation(group.invitationId!));
+          if (mounted) await widget.viewModel.load();
+          return;
+        }
         if (await widget.viewModel.confirmRsvp(group)) {
           _message('RSVP confirmed for ${group.name}');
         }

@@ -1,3 +1,5 @@
+import '../../domain/entities/planning_context.dart';
+import '../../domain/entities/activity_location.dart';
 import 'package:firebase_core/firebase_core.dart';
 import '../../domain/entities/activity_summary.dart';
 import '../../domain/entities/activity_draft.dart';
@@ -9,37 +11,86 @@ import '../data_sources/activity_data_source.dart';
 import '../models/activity_model.dart';
 
 class FirebaseStudySessionsRepository
-    implements StudySessionsRepository, ActivityCatalog {
+    implements
+        StudySessionsRepository,
+        ActivityCatalog,
+        PublicationRecoveryRepository {
   final ActivityDataSource _source;
   final Map<String, Future<void>> _presentations = {};
   final Map<String, RecommendationEvent> _displayed = {};
   FirebaseStudySessionsRepository(this._source);
 
   @override
+  Future<ActivityDraft?> pendingPublication() async {
+    final source = _source;
+    if (source is! PublicationRecoveryDataSource) return null;
+    final data =
+        await (source as PublicationRecoveryDataSource).pendingPublication();
+    if (data == null) return null;
+    final fields = Map<String, dynamic>.from(data['fields'] as Map);
+    return ActivityDraft(
+        groupId: data['groupId'] as String,
+        title: fields['title'] as String,
+        description: fields['description'] as String? ?? '',
+        location: fields['location'] as String? ?? '',
+        locationDetails: ActivityLocation.fromMap(fields['locationDetails'],
+            expectedLabel: fields['location'] as String? ?? ''),
+        category: fields['category'] as String? ?? 'study',
+        status: fields['status'] as String? ?? 'PROPOSED',
+        date: fields['date'] as String? ?? '',
+        time: fields['time'] as String? ?? '',
+        requestId: data['requestId'] as String,
+        measurementVersion: data['measurementVersion'] as int?,
+        comparison:
+            data['comparisonId'] == null && data['comparisonEvidenceId'] != null
+                ? CreationComparison.fromMap(data)
+                : null,
+        startsAt: data['startTime'] == null
+            ? null
+            : DateTime.parse(data['startTime'] as String),
+        endsAt: data['endTime'] == null
+            ? null
+            : DateTime.parse(data['endTime'] as String),
+        planning: data['comparisonId'] == null
+            ? null
+            : PlanningContext.fromMap(data));
+  }
+
+  @override
   Future<List<ActivityGroup>> listGroups() => _request(() async => [
         for (final group in await _source.listGroups())
           ActivityGroup(
-              group['id'] as String, group['name'] as String? ?? 'Group'),
+              group['id'] as String, group['name'] as String? ?? 'Group',
+              members: {
+                for (final member in group['members'] as List? ?? [])
+                  member['id'] as String: member['name'] as String? ?? ''
+              }),
       ]);
 
   @override
   Future<String> createActivity(ActivityDraft draft) => _request(() {
         final data = draft.validated();
-        return _source.createActivity({
-          'groupId': data.groupId,
-          'title': data.title,
-          'description': data.description,
-          'category': data.category,
-          'location': data.location,
-          'status': data.status,
-          'date': data.date,
-          'time': data.time
-        });
+        if (data.requestId == null) {
+          throw const SessionFailure('Missing publication key.');
+        }
+        return _source.createActivity(data.publication(data.requestId!));
       });
 
   Future<T> _request<T>(Future<T> Function() action) async {
     try {
       return await action();
+    } on StateError catch (error) {
+      if (error.message.toString().contains('requires a connection')) {
+        throw const SessionFailure(
+            'This action requires a connection. Reconnect and retry.',
+            code: 'unavailable');
+      }
+      if (error.message.toString().contains('persist this publication')) {
+        throw const SessionFailure(
+            'Unable to store the draft. No publication was sent. Check local storage and retry.',
+            code: 'local-storage');
+      }
+      rethrow;
     } on FirebaseException catch (error) {
       throw SessionFailure(
           switch (error.code) {
@@ -47,10 +98,13 @@ class FirebaseStudySessionsRepository
             'permission-denied' =>
               'You do not have permission to manage this activity.',
             'not-found' => 'This activity or recommendation no longer exists.',
-            'failed-precondition' =>
-              'This slot is no longer available. Search for new recommendations.',
+            'aborted' => 'This activity changed. Reload it before saving.',
+            'already-exists' =>
+              'This publication key was already used with different details.',
+            'failed-precondition' => error.message ??
+                'This activity or slot changed. Reload it and try again.',
             'invalid-argument' =>
-              'Choose a valid time today in Bogotá (15–720 minutes).',
+              'Check the activity details and use a valid interval in Bogotá (15–720 minutes).',
             _ => 'Unable to reach the activity service. Please try again.',
           },
           code: error.code);
@@ -124,7 +178,6 @@ class FirebaseStudySessionsRepository
       if (session.startsAt != current.startsAt ||
           session.endsAt != current.endsAt ||
           session.room != current.room ||
-          session.cancelled != current.cancelled ||
           session.topics.isNotEmpty ||
           session.resources.isNotEmpty ||
           session.reminder != current.reminder) {
@@ -137,21 +190,28 @@ class FirebaseStudySessionsRepository
               description: session.description,
               category: session.category,
               status: session.status,
-              location: session.location)
+              location: session.location,
+              locationDetails: session.locationDetails)
           .validated();
-      // Only contract-supported metadata is writable here. Never include
-      // ownership, membership, canonical times or recommendation analytics.
-      await _request(() => _source.updateActivity(session.id, {
-            'title': session.title,
-            'description': session.description,
-            'category': session.category,
-            'location': session.location,
-            'status': session.status,
-            if (session.startsAt == null) ...{
-              'date': session.legacyDate,
-              'time': session.legacyTime,
-            },
-          }));
+      if (session.cancelled != current.cancelled) {
+        await _request(() => _source.call('cancelActivity',
+            {'activityId': session.id, 'expectedVersion': session.version}));
+      } else {
+        await _request(() => _source.call('updateActivityDetails', {
+              'activityId': session.id,
+              'expectedVersion': session.version,
+              'fields': {
+                'title': session.title,
+                'description': session.description,
+                'category': session.category,
+                'location': session.location,
+                'locationDetails': session.locationDetails?.toMap(),
+                'status': session.status,
+                'date': session.legacyDate,
+                'time': session.legacyTime
+              },
+            }));
+      }
       return session;
     }
     if (event.type == RecommendationEventType.shown ||

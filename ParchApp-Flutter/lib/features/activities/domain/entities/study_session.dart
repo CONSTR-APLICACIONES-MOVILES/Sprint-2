@@ -1,3 +1,6 @@
+import '../../../../core/domain/data_freshness.dart';
+import 'activity_location.dart';
+
 class StudyTopic {
   final String id;
   final String title;
@@ -15,8 +18,9 @@ class StudyParticipant {
   final String program;
   final String status;
   final bool leader;
+  final String? id, response;
   const StudyParticipant(this.name, this.initials, this.program, this.status,
-      {this.leader = false});
+      {this.leader = false, this.id, this.response});
 }
 
 class StudyResource {
@@ -26,7 +30,11 @@ class StudyResource {
 }
 
 class StudySession {
+  final ActivityLocation? locationDetails;
   final String id;
+  final DataFreshness freshness;
+  final String version;
+  final bool supportsCancellation;
   final String title;
   final String description;
   final DateTime? startsAt;
@@ -58,12 +66,16 @@ class StudySession {
       required this.startsAt,
       required this.endsAt,
       required this.location,
+      this.locationDetails,
       required this.room,
       required this.reminder,
       required List<StudyTopic> topics,
       required List<StudyParticipant> participants,
       required List<StudyResource> resources,
       this.cancelled = false,
+      this.version = '',
+      this.freshness = const DataFreshness(),
+      this.supportsCancellation = true,
       this.durationMinutes,
       this.timeZone = '',
       this.legacyDate = '',
@@ -84,8 +96,11 @@ class StudySession {
 
   StudySession copyWith(
           {String? title,
+          String? version,
           String? description,
           String? location,
+          ActivityLocation? locationDetails,
+          bool clearLocationDetails = false,
           String? category,
           String? status,
           String? legacyDate,
@@ -97,11 +112,17 @@ class StudySession {
           List<StudyTopic>? topics}) =>
       StudySession(
           id: id,
+          freshness: freshness,
+          version: version ?? this.version,
+          supportsCancellation: supportsCancellation,
           title: title ?? this.title,
           description: description ?? this.description,
           startsAt: startsAt ?? this.startsAt,
           endsAt: endsAt ?? this.endsAt,
           location: location ?? this.location,
+          locationDetails: clearLocationDetails
+              ? null
+              : locationDetails ?? this.locationDetails,
           room: room ?? this.room,
           reminder: reminder,
           topics: topics ?? this.topics,

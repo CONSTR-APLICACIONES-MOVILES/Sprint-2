@@ -12,6 +12,12 @@ class AvailabilityService {
     int endHour = 18,
     Duration step = const Duration(minutes: 30),
   }) {
+    if (duration <= Duration.zero || step <= Duration.zero) {
+      throw ArgumentError('Duration and step must be positive.');
+    }
+    if (startHour < 0 || endHour > 24 || startHour >= endHour) {
+      throw ArgumentError('Choose an hour range within one day.');
+    }
     final dayStart = DateTime(
       day.year,
       day.month,

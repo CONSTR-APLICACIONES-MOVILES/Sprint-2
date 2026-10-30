@@ -52,7 +52,7 @@ class AlertCard extends StatelessWidget {
           alertsBlueTint
         ),
       AlertKind.timeChanged => (
-          'TIME SHIFTED',
+          alert.authoritative ? 'ACTIVITY UPDATE' : 'TIME SHIFTED',
           Icons.swap_horiz,
           const Color(0xFF6746F5),
           const Color(0xFFF3E8FF)
@@ -72,6 +72,18 @@ class AlertCard extends StatelessWidget {
     };
     final accented =
         alert.kind == AlertKind.overlap || alert.kind == AlertKind.reminder;
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      if (alert.pendingSync)
+        const Padding(
+            padding: EdgeInsets.only(bottom: 4),
+            child: Text('Response saved on this device · Pending sync',
+                style: TextStyle(fontSize: 12))),
+      _buildCard(context, label, icon, color, tint, accented),
+    ]);
+  }
+
+  Widget _buildCard(BuildContext context, String label, IconData icon,
+      Color color, Color tint, bool accented) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -272,46 +284,57 @@ class AlertCard extends StatelessWidget {
   Widget _secondary(String label, AlertResponse response) => TextButton(
       onPressed: busy ? null : () => onRespond(response), child: Text(label));
 
-  List<Widget> _actions() => switch (alert.kind) {
-        AlertKind.overlap => [
-            _primary('1-Tap Create Activity', onCreateActivity,
-                icon: Icons.add_circle),
-            _secondary('Dismiss', AlertResponse.dismissed)
-          ],
-        AlertKind.friendRequest => [
-            _primary('Accept', () => onRespond(AlertResponse.accepted),
-                icon: Icons.person_add_alt_1),
-            _secondary('Decline', AlertResponse.declined),
-            IconButton(
-                tooltip: 'View Carlos profile',
-                onPressed: busy ? null : onProfile,
-                icon:
-                    const Icon(Icons.account_circle, color: AppColors.primary)),
-          ],
-        AlertKind.reminder => [
-            _primary("I'm on my way", () => onRespond(AlertResponse.onMyWay),
-                icon: Icons.directions_walk),
-            TextButton(
-                onPressed: onDetails,
-                child: Text(
-                    alert.studySessionId == null ? 'View Map' : 'View session'))
-          ],
-        AlertKind.invitation => [
-            _primary('Accept', () => onRespond(AlertResponse.accepted),
-                icon: Icons.check),
-            _secondary('Maybe', AlertResponse.maybe),
-            _secondary('Decline', AlertResponse.declined)
-          ],
-        AlertKind.timeChanged => [
-            _primary('Acknowledge', () => onRespond(AlertResponse.acknowledged))
-          ],
-        AlertKind.digest => [
-            _primary('Review Now', onDetails, icon: Icons.checklist),
-            _secondary('Dismiss', AlertResponse.dismissed)
-          ],
-        AlertKind.groupInvite => [
-            _primary('Join Group', () => onRespond(AlertResponse.joined)),
-            _secondary('Decline', AlertResponse.declined)
-          ],
-      };
+  List<Widget> _actions() => alert.authoritative &&
+          alert.kind != AlertKind.invitation
+      ? [
+          _primary(
+              alert.kind == AlertKind.groupInvite
+                  ? 'Review group invitation'
+                  : 'View activity',
+              onDetails)
+        ]
+      : switch (alert.kind) {
+          AlertKind.overlap => [
+              _primary('1-Tap Create Activity', onCreateActivity,
+                  icon: Icons.add_circle),
+              _secondary('Dismiss', AlertResponse.dismissed)
+            ],
+          AlertKind.friendRequest => [
+              _primary('Accept', () => onRespond(AlertResponse.accepted),
+                  icon: Icons.person_add_alt_1),
+              _secondary('Decline', AlertResponse.declined),
+              IconButton(
+                  tooltip: 'View Carlos profile',
+                  onPressed: busy ? null : onProfile,
+                  icon: const Icon(Icons.account_circle,
+                      color: AppColors.primary)),
+            ],
+          AlertKind.reminder => [
+              _primary("I'm on my way", () => onRespond(AlertResponse.onMyWay),
+                  icon: Icons.directions_walk),
+              TextButton(
+                  onPressed: onDetails,
+                  child: Text(alert.studySessionId == null
+                      ? 'View Map'
+                      : 'View session'))
+            ],
+          AlertKind.invitation => [
+              _primary('Accept', () => onRespond(AlertResponse.accepted),
+                  icon: Icons.check),
+              _secondary('Maybe', AlertResponse.maybe),
+              _secondary('Decline', AlertResponse.declined)
+            ],
+          AlertKind.timeChanged => [
+              _primary(
+                  'Acknowledge', () => onRespond(AlertResponse.acknowledged))
+            ],
+          AlertKind.digest => [
+              _primary('Review Now', onDetails, icon: Icons.checklist),
+              _secondary('Dismiss', AlertResponse.dismissed)
+            ],
+          AlertKind.groupInvite => [
+              _primary('Join Group', () => onRespond(AlertResponse.joined)),
+              _secondary('Decline', AlertResponse.declined)
+            ],
+        };
 }

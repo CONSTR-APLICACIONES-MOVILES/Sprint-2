@@ -13,10 +13,7 @@ class DurationInputService {
   /// 1h30
   /// 1h 30m
   int? parse(String input) {
-    var value = input
-        .trim()
-        .toLowerCase()
-        .replaceAll(' ', '');
+    var value = input.trim().toLowerCase().replaceAll(' ', '');
 
     if (value.isEmpty) {
       return null;
@@ -59,10 +56,7 @@ class DurationInputService {
       final hours = int.tryParse(parts[0]);
       final minutes = int.tryParse(parts[1]);
 
-      if (hours == null ||
-          minutes == null ||
-          minutes < 0 ||
-          minutes >= 60) {
+      if (hours == null || minutes == null || minutes < 0 || minutes >= 60) {
         return null;
       }
 
@@ -101,13 +95,9 @@ class DurationInputService {
         );
       }
 
-      final minutes = minutePart.isEmpty
-          ? 0
-          : int.tryParse(minutePart);
+      final minutes = minutePart.isEmpty ? 0 : int.tryParse(minutePart);
 
-      if (minutes == null ||
-          minutes < 0 ||
-          minutes >= 60) {
+      if (minutes == null || minutes < 0 || minutes >= 60) {
         return null;
       }
 
@@ -120,8 +110,7 @@ class DurationInputService {
   }
 
   int? _validate(int minutes) {
-    if (minutes < minMinutes ||
-        minutes > maxMinutes) {
+    if (minutes < minMinutes || minutes > maxMinutes) {
       return null;
     }
 

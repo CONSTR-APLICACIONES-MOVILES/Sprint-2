@@ -4,6 +4,7 @@ import '../../domain/use_cases/manage_study_session.dart';
 import '../../domain/entities/slot_recommendation.dart';
 import '../../domain/use_cases/get_recommended_slots.dart';
 import 'activity_editor_view_model.dart';
+import '../../domain/repositories/places_source.dart';
 
 enum SessionLoadStatus { loading, ready, notFound, error }
 
@@ -67,6 +68,7 @@ class StudySessionState {
 }
 
 class StudySessionViewModel extends ValueNotifier<StudySessionState> {
+  final PlacesSource? places;
   final ManageStudySession _sessions;
   final String sessionId;
   final GetRecommendedSlots? _recommendations;
@@ -84,6 +86,7 @@ class StudySessionViewModel extends ValueNotifier<StudySessionState> {
   bool _loading = false;
   StudySessionViewModel(this._sessions, this.sessionId,
       {GetRecommendedSlots? recommendations,
+      this.places,
       this.autoLoadRecommendations = true,
       this.refreshAfterDecision = false})
       : _recommendations = recommendations,
@@ -94,7 +97,8 @@ class StudySessionViewModel extends ValueNotifier<StudySessionState> {
   }
 
   ActivityEditorViewModel createDetailsEditor() =>
-      ActivityEditorViewModel(_sessions, session: value.session);
+      ActivityEditorViewModel(_sessions,
+          session: value.session, places: places);
 
   Future<void> load() async {
     if (_disposed ||
@@ -276,7 +280,8 @@ class StudySessionViewModel extends ValueNotifier<StudySessionState> {
 
   Future<bool> toggleTopic(String id) =>
       _save(() => _sessions.toggleTopic(sessionId, id));
-  Future<bool> cancel() => _save(() => _sessions.cancel(sessionId));
+  Future<bool> cancel() => _save(() =>
+      _sessions.cancel(sessionId, expectedVersion: value.session?.version));
   Future<bool> update(
       {required String title,
       required String room,
@@ -353,7 +358,7 @@ class StudySessionViewModel extends ValueNotifier<StudySessionState> {
       _emit(value.copyWith(
           refreshing: false,
           refreshError:
-              '$savedMessage Activity details could not be refreshed.'));
+              '${savedMessage.isEmpty ? '' : '$savedMessage '}Activity details could not be refreshed.'));
     }
   }
 

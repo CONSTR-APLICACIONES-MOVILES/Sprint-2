@@ -1,3 +1,5 @@
+import '../../../../shared/widgets/data_freshness_banner.dart';
+import '../../../../shared/widgets/parch_app_bar.dart';
 import '../../../../shared/widgets/parch_navigation_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -48,52 +50,12 @@ class _AlertsViewState extends State<AlertsView> {
         valueListenable: widget.viewModel,
         builder: (context, state, _) => Scaffold(
           backgroundColor: alertsSurface,
-          appBar: AppBar(
-            automaticallyImplyLeading: false,
-            titleSpacing: 16,
-            backgroundColor: alertsSurface,
-            surfaceTintColor: Colors.transparent,
-            title: Row(children: [
-              Image.asset('assets/images/parchapp_logo.png',
-                  width: 32, height: 32, excludeFromSemantics: true),
-              const SizedBox(width: 8),
-              const Flexible(
-                  child: Text('ParchApp',
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 20))),
-            ]),
-            actions: [
-              IconButton(
-                  tooltip: 'Search alerts',
-                  onPressed: () =>
-                      setState(() => _searchVisible = !_searchVisible),
-                  icon: const Icon(Icons.search)),
-              IconButton(
-                  tooltip: 'Mark all alerts read',
-                  onPressed: state.isUpdating ||
-                          state.isLoading ||
-                          state.unreadCount == 0
-                      ? null
-                      : _markRead,
-                  icon: Badge(
-                      isLabelVisible: state.unreadCount > 0,
-                      backgroundColor: const Color(0xFFBA1A1A),
-                      child: const Icon(Icons.notifications))),
-              IconButton(
-                  tooltip: 'Your profile',
-                  onPressed: () => showAlertsSheet<void>(context,
-                      child: const AlertProfileSheet(friendRequest: false)),
-                  icon: const CircleAvatar(
-                      radius: 18,
-                      backgroundColor: AppColors.primary,
-                      child:
-                          Icon(Icons.person, color: Colors.white, size: 22))),
-              const SizedBox(width: 4),
-            ],
-          ),
+          appBar: ParchAppBar(
+              showBack: true,
+              isAlerts: true,
+              unreadCount: state.error == null && !state.isLoading
+                  ? state.unreadCount
+                  : null),
           body: SafeArea(
               top: false,
               bottom: false,
@@ -111,6 +73,7 @@ class _AlertsViewState extends State<AlertsView> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
+                                DataFreshnessBanner(freshness: state.freshness),
                                 Wrap(
                                     alignment: WrapAlignment.spaceBetween,
                                     crossAxisAlignment:
@@ -160,6 +123,13 @@ class _AlertsViewState extends State<AlertsView> {
                                               size: 18),
                                           label: const Text('Mark read')),
                                     ]),
+                                Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: IconButton(
+                                        tooltip: 'Search alerts',
+                                        onPressed: () => setState(() =>
+                                            _searchVisible = !_searchVisible),
+                                        icon: const Icon(Icons.search))),
                                 const Text('Stay updated & coordinate quickly',
                                     style: TextStyle(
                                         color: Color(0xFF43474E),
@@ -385,6 +355,15 @@ class _AlertsViewState extends State<AlertsView> {
     }
     final updated = await widget.viewModel.respond(alert, response);
     if (updated) {
+      final pending = widget.viewModel.value.alerts
+              .where((a) => a.id == alert.id)
+              .firstOrNull
+              ?.pendingSync ==
+          true;
+      if (pending) {
+        _message('Response saved on this device. Waiting to sync.');
+        return;
+      }
       _message(switch (response) {
         AlertResponse.accepted => 'Request accepted',
         AlertResponse.maybe => 'Response saved: Maybe',
@@ -409,9 +388,17 @@ class _AlertsViewState extends State<AlertsView> {
     await context.push(AppRoutes.createActivity);
   }
 
-  void _details(AppAlert alert) {
+  Future<void> _details(AppAlert alert) async {
+    if (alert.groupId != null) {
+      await context.push(AppRoutes.groupInvitations);
+      if (mounted) await widget.viewModel.load();
+      return;
+    }
     if (alert.studySessionId != null) {
-      context.push(AppRoutes.studySession(alert.studySessionId!));
+      await context.push(alert.kind == AlertKind.invitation
+          ? AppRoutes.activityInvitation(alert.studySessionId!)
+          : AppRoutes.studySession(alert.studySessionId!));
+      if (mounted) await widget.viewModel.load();
       return;
     }
     showAlertsSheet<void>(context,

@@ -7,8 +7,7 @@ import '../../domain/repositories/schedule_preferences_repository.dart';
 
 class LocalSchedulePreferencesRepository
     implements SchedulePreferencesRepository {
-  static const String _keyPrefix =
-      'schedule_quick_durations_';
+  static const String _keyPrefix = 'schedule_quick_durations_';
 
   static const int _minimumMinutes = 5;
   static const int _maximumMinutes = 240;
@@ -21,8 +20,7 @@ class LocalSchedulePreferencesRepository
     required FirebaseAuth auth,
     SharedPreferencesAsync? preferences,
   })  : _auth = auth,
-        _preferences =
-            preferences ?? SharedPreferencesAsync();
+        _preferences = preferences ?? SharedPreferencesAsync();
 
   // ================================================================
   // CURRENT USER
@@ -41,7 +39,6 @@ class LocalSchedulePreferencesRepository
     return user.uid;
   }
 
- 
   // LOCAL KEY
   //
   // Each Firebase user gets their own local preference.
@@ -51,13 +48,10 @@ class LocalSchedulePreferencesRepository
   // schedule_quick_durations_abc123
   // schedule_quick_durations_xyz789
   //
- 
 
   String get _storageKey {
     return '$_keyPrefix$_currentUserId';
   }
-
- 
 
   @override
   Future<SchedulePreferences> getPreferences() async {
@@ -69,13 +63,9 @@ class LocalSchedulePreferencesRepository
       'Loading preferences for $uid',
     );
 
-    final storedValues =
-        await _preferences.getStringList(
+    final storedValues = await _preferences.getStringList(
       key,
     );
-
-  
-   
 
     if (storedValues == null) {
       debugPrint(
@@ -122,8 +112,7 @@ class LocalSchedulePreferencesRepository
         minutes,
       );
 
-      if (durations.length ==
-          _maximumFavorites) {
+      if (durations.length == _maximumFavorites) {
         break;
       }
     }
@@ -138,8 +127,6 @@ class LocalSchedulePreferencesRepository
     );
   }
 
- 
-
   @override
   Future<void> saveQuickDurations(
     List<int> quickDurationsMinutes,
@@ -151,13 +138,11 @@ class LocalSchedulePreferencesRepository
     final uid = _currentUserId;
     final key = _storageKey;
 
-    final valuesToStore =
-        quickDurationsMinutes
-            .map(
-              (minutes) =>
-                  minutes.toString(),
-            )
-            .toList();
+    final valuesToStore = quickDurationsMinutes
+        .map(
+          (minutes) => minutes.toString(),
+        )
+        .toList();
 
     debugPrint(
       'SCHEDULE PREFS LOCAL -> '
@@ -177,20 +162,16 @@ class LocalSchedulePreferencesRepository
     );
   }
 
- 
-
   bool _isValidDuration(
     int minutes,
   ) {
-    return minutes >= _minimumMinutes &&
-        minutes <= _maximumMinutes;
+    return minutes >= _minimumMinutes && minutes <= _maximumMinutes;
   }
 
   void _validateQuickDurations(
     List<int> durations,
   ) {
-    if (durations.length >
-        _maximumFavorites) {
+    if (durations.length > _maximumFavorites) {
       throw ArgumentError(
         'A maximum of '
         '$_maximumFavorites quick durations '
@@ -198,8 +179,7 @@ class LocalSchedulePreferencesRepository
       );
     }
 
-    if (durations.toSet().length !=
-        durations.length) {
+    if (durations.toSet().length != durations.length) {
       throw ArgumentError(
         'Quick durations cannot '
         'contain duplicates.',

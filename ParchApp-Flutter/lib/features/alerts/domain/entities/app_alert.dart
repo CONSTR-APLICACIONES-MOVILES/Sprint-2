@@ -29,7 +29,11 @@ class AppAlert {
   final String timeLabel;
   final bool isRead;
   final AlertResponse? response;
-  final String? studySessionId;
+  final String? studySessionId, groupId;
+  final bool authoritative;
+  final DateTime? invitationSentAt;
+  final int? groupSize;
+  final bool pendingSync;
 
   const AppAlert(
       {required this.id,
@@ -40,20 +44,32 @@ class AppAlert {
       required this.timeLabel,
       this.isRead = false,
       this.response,
-      this.studySessionId});
+      this.studySessionId,
+      this.groupId,
+      this.authoritative = false,
+      this.invitationSentAt,
+      this.groupSize,
+      this.pendingSync = false});
 
   bool get isPriority =>
       kind == AlertKind.reminder || kind == AlertKind.invitation;
   bool get isResolved => response != null;
 
-  AppAlert copyWith({bool? isRead, AlertResponse? response}) => AppAlert(
-      id: id,
-      kind: kind,
-      period: period,
-      title: title,
-      description: description,
-      timeLabel: timeLabel,
-      isRead: isRead ?? this.isRead,
-      response: response ?? this.response,
-      studySessionId: studySessionId);
+  AppAlert copyWith(
+          {bool? isRead, AlertResponse? response, bool? pendingSync}) =>
+      AppAlert(
+          id: id,
+          kind: kind,
+          period: period,
+          title: title,
+          description: description,
+          timeLabel: timeLabel,
+          isRead: isRead ?? this.isRead,
+          response: response ?? this.response,
+          studySessionId: studySessionId,
+          groupId: groupId,
+          authoritative: authoritative,
+          invitationSentAt: invitationSentAt,
+          groupSize: groupSize,
+          pendingSync: pendingSync ?? this.pendingSync);
 }

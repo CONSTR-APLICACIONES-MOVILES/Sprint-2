@@ -32,10 +32,19 @@ async function main() {
     account = await request(`${authUrl}signInWithPassword?key=emulator`, {email, password, returnSecureToken: true});
   }
   const base = `http://127.0.0.1:8080/v1/projects/${project}/databases/(default)/documents`;
+  const memberEmail = 'participant@parchapp.test';
+  let participant;
+  try {
+    participant = await request(`${authUrl}signUp?key=emulator`, {email: memberEmail, password, returnSecureToken: true});
+  } catch (error) {
+    if (!error.message.includes('EMAIL_EXISTS')) throw error;
+    participant = await request(`${authUrl}signInWithPassword?key=emulator`, {email: memberEmail, password, returnSecureToken: true});
+  }
   const group = await request(`${base}/groups`, {fields: fields({
     name: 'Flutter integration group', icon: '📚', planTitle: '',
-    members: [{id: account.localId, name: 'Emulator Organizer', initials: 'EO', busy: [], preferredStart: 600, preferredEnd: 1200}],
-    memberIds: [account.localId], goingIds: [], maybeIds: [], pendingInvites: [],
+    members: [{id: account.localId, name: 'Emulator Organizer', initials: 'EO', busy: [], preferredStart: 600, preferredEnd: 1200},
+      {id: participant.localId, name: 'Emulator Participant', initials: 'EP', busy: []}],
+    memberIds: [account.localId, participant.localId], goingIds: [], maybeIds: [], pendingInvites: [],
   })}, true);
   const activity = await request(`${base}/activities`, {fields: {
     ...fields({groupId: group.name.split('/').pop(), createdBy: account.localId,
@@ -43,7 +52,8 @@ async function main() {
       category: 'study', date: '', time: '', location: 'Library', status: 'PROPOSED'}),
     createdAt: {timestampValue: new Date().toISOString()},
   }}, true);
-  const fixture = {EMULATOR_ACTIVITY_ID: activity.name.split('/').pop(), EMULATOR_EMAIL: email, EMULATOR_PASSWORD: password};
+  const fixture = {EMULATOR_ACTIVITY_ID: activity.name.split('/').pop(), EMULATOR_EMAIL: email, EMULATOR_PASSWORD: password,
+    EMULATOR_MEMBER_EMAIL: memberEmail};
   const destination = path.join(__dirname, '..', 'build', 'emulator_fixture.json');
   fs.mkdirSync(path.dirname(destination), {recursive: true});
   fs.writeFileSync(destination, JSON.stringify(fixture, null, 2));

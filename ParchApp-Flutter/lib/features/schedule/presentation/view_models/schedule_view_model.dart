@@ -1,3 +1,5 @@
+import '../../../activities/domain/entities/planning_context.dart';
+import 'schedule_defaults.dart';
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -16,65 +18,57 @@ import '../../domain/use_cases/save_schedule_preferences.dart';
 
 import 'schedule_state.dart';
 
-class ScheduleViewModel
-    extends ValueNotifier<ScheduleState> {
+class ScheduleViewModel extends ValueNotifier<ScheduleState> {
   final ManageSchedule _schedule;
 
-  final AuthorizeGoogleCalendar
-      _authorizeGoogleCalendar;
+  final AuthorizeGoogleCalendar _authorizeGoogleCalendar;
 
-  final ImportGoogleCalendar
-      _importGoogleCalendar;
+  final ImportGoogleCalendar _importGoogleCalendar;
 
-  final GetSchedulePreferences
-      _getSchedulePreferences;
+  final GetSchedulePreferences? _providedGetPreferences;
+  final _demoPreferences = MemorySchedulePreferencesRepository();
+  GetSchedulePreferences get _getSchedulePreferences =>
+      _providedGetPreferences ?? GetSchedulePreferences(_demoPreferences);
 
-  final SaveSchedulePreferences
-      _saveSchedulePreferences;
+  final SaveSchedulePreferences? _providedSavePreferences;
+  SaveSchedulePreferences get _saveSchedulePreferences =>
+      _providedSavePreferences ?? SaveSchedulePreferences(_demoPreferences);
 
-  final ConnectivityService
-      _connectivityService;
+  final ConnectivityService _connectivityService;
 
-  final ScheduleCacheMetadataRepository
-      _cacheMetadataRepository;
+  final ScheduleCacheMetadataRepository _cacheMetadataRepository;
 
-  StreamSubscription<bool>?
-      _connectivitySubscription;
+  StreamSubscription<bool>? _connectivitySubscription;
 
-  bool _connectivityMonitoringStarted =
-      false;
+  bool _connectivityMonitoringStarted = false;
 
   bool _disposed = false;
+  int _requestVersion = 0;
+  final bool calendarImportEnabled;
+  final bool Function()? isOffline;
 
   ScheduleViewModel(
     this._schedule,
     this._importGoogleCalendar, {
-    required AuthorizeGoogleCalendar
-        authorizeGoogleCalendar,
-    required GetSchedulePreferences
-        getSchedulePreferences,
-    required SaveSchedulePreferences
-        saveSchedulePreferences,
-    required ConnectivityService
-        connectivityService,
-    required ScheduleCacheMetadataRepository
-        cacheMetadataRepository,
+    required AuthorizeGoogleCalendar authorizeGoogleCalendar,
+    GetSchedulePreferences? getSchedulePreferences,
+    SaveSchedulePreferences? saveSchedulePreferences,
+    ConnectivityService? connectivityService,
+    ScheduleCacheMetadataRepository? cacheMetadataRepository,
     DateTime? initialDay,
-  })  : _authorizeGoogleCalendar =
-            authorizeGoogleCalendar,
-        _getSchedulePreferences =
-            getSchedulePreferences,
-        _saveSchedulePreferences =
-            saveSchedulePreferences,
-        _connectivityService =
-            connectivityService,
+    this.calendarImportEnabled = true,
+    this.isOffline,
+  })  : _authorizeGoogleCalendar = authorizeGoogleCalendar,
+        _providedGetPreferences = getSchedulePreferences,
+        _providedSavePreferences = saveSchedulePreferences,
+        _connectivityService = connectivityService ?? DemoConnectivityService(),
         _cacheMetadataRepository =
-            cacheMetadataRepository,
+            cacheMetadataRepository ?? MemoryScheduleCacheMetadataRepository(),
         super(
           ScheduleState(
             selectedDay: _dateOnly(
               initialDay ??
-                  DateTime.now(),
+                  DateTime.now().toUtc().subtract(const Duration(hours: 5)),
             ),
           ),
         );
@@ -83,13 +77,49 @@ class ScheduleViewModel
   // INITIAL LOAD
   // ===================================================================
 
+  Future<CreationComparison?> prepareProposal() async {
+    final selected = value, version = _requestVersion;
+    if (selected.status != ScheduleLoadStatus.ready) {
+      throw StateError('Refresh the comparison first.');
+    }
+    final result = await _schedule.prepareProposalComparison(
+        selected.selectedDay, selected.selectedFriendIds.toList()..sort());
+    if (_disposed || version != _requestVersion) {
+      throw StateError('The comparison changed. Compare again.');
+    }
+    return result;
+  }
+
+  Future<PlanningContext> preparePlan({String? groupId}) async {
+    final selected = value;
+    final slot = selected.selectedSlot;
+    if (slot == null || selected.status != ScheduleLoadStatus.ready) {
+      throw StateError('Select a current common slot first.');
+    }
+    final version = _requestVersion;
+    DateTime instant(DateTime wall) =>
+        DateTime.utc(wall.year, wall.month, wall.day, wall.hour, wall.minute)
+            .add(const Duration(hours: 5));
+    final result = await _schedule.validatePlanningSlot(PlanningContext(
+        start: instant(slot.start),
+        end: instant(slot.end),
+        participantIds: selected.selectedFriendIds.toList()..sort(),
+        sourceSlotId: slot.id,
+        groupId: groupId));
+    if (_disposed ||
+        version != _requestVersion ||
+        value.selectedSlot?.id != slot.id) {
+      throw StateError('The comparison changed. Select a slot again.');
+    }
+    return result;
+  }
+
   Future<void> load() async {
     _startConnectivityMonitoring();
 
     _emit(
       value.copyWith(
-        status:
-            ScheduleLoadStatus.loading,
+        status: ScheduleLoadStatus.loading,
         clearError: true,
       ),
     );
@@ -109,16 +139,13 @@ class ScheduleViewModel
     DateTime? lastUpdated;
 
     try {
-      lastUpdated =
-          await _cacheMetadataRepository
-              .getLastUpdated(
+      lastUpdated = await _cacheMetadataRepository.getLastUpdated(
         value.selectedDay,
       );
 
       _emit(
         value.copyWith(
-          scheduleLastUpdatedAt:
-              lastUpdated,
+          scheduleLastUpdatedAt: lastUpdated,
         ),
       );
     } catch (error, stackTrace) {
@@ -146,8 +173,7 @@ class ScheduleViewModel
         'Loading friends...',
       );
 
-      final friends =
-          await _schedule.loadFriends();
+      final friends = await _schedule.loadFriends();
 
       debugPrint(
         'SCHEDULE VM -> '
@@ -158,26 +184,24 @@ class ScheduleViewModel
       // 2. REMOVE INVALID OLD SELECTIONS
       // -------------------------------------------------------------
 
-      final validFriendIds =
-          friends
-              .map(
-                (friend) => friend.id,
-              )
-              .toSet();
+      final validFriendIds = friends
+          .map(
+            (friend) => friend.id,
+          )
+          .toSet();
 
-      final selectedFriendIds =
-          value.selectedFriendIds
-              .where(
-                validFriendIds.contains,
-              )
-              .toList();
+      final selectedFriendIds = value.selectedFriendIds
+          .where(
+            validFriendIds.contains,
+          )
+          .toList();
 
       _emit(
         value.copyWith(
-          friends:
-              friends,
-          selectedFriendIds:
-              selectedFriendIds,
+          friends: friends,
+          selectedFriendIds: selectedFriendIds.isEmpty
+              ? friends.take(2).map((friend) => friend.id).toList()
+              : selectedFriendIds,
         ),
       );
 
@@ -187,7 +211,7 @@ class ScheduleViewModel
       // Failure here must not break Schedule.
       // -------------------------------------------------------------
 
-      await loadNearbyFriends();
+      if (_schedule.supportsLocation) await loadNearbyFriends();
 
       // -------------------------------------------------------------
       // 4. CURRENT DAY
@@ -204,26 +228,18 @@ class ScheduleViewModel
         '$stackTrace',
       );
 
-      final hasConnection =
-          await _safeHasConnection();
+      final hasConnection = await _safeHasConnection();
 
       // -------------------------------------------------------------
       // FIRST USE + OFFLINE + NO CACHE
       // -------------------------------------------------------------
 
-      if (!hasConnection &&
-          lastUpdated == null) {
+      if (!hasConnection && lastUpdated == null) {
         _emit(
           value.copyWith(
-            status:
-                ScheduleLoadStatus.error,
-
-            connectivityStatus:
-                ScheduleConnectivityStatus
-                    .offlineNoCache,
-
-            error:
-                'You are offline and there is no '
+            status: ScheduleLoadStatus.error,
+            connectivityStatus: ScheduleConnectivityStatus.offlineNoCache,
+            error: 'You are offline and there is no '
                 'saved schedule available yet. '
                 'Connect to the internet and retry.',
           ),
@@ -238,11 +254,8 @@ class ScheduleViewModel
 
       _emit(
         value.copyWith(
-          status:
-              ScheduleLoadStatus.error,
-
-          error:
-              _friendlyConnectivityError(
+          status: ScheduleLoadStatus.error,
+          error: _friendlyConnectivityError(
             error,
           ),
         ),
@@ -266,10 +279,8 @@ class ScheduleViewModel
 
     _emit(
       value.copyWith(
-        isRefreshing:
-            true,
-        clearError:
-            true,
+        isRefreshing: true,
+        clearError: true,
       ),
     );
 
@@ -278,8 +289,7 @@ class ScheduleViewModel
     } finally {
       _emit(
         value.copyWith(
-          isRefreshing:
-              false,
+          isRefreshing: false,
         ),
       );
     }
@@ -294,18 +304,14 @@ class ScheduleViewModel
       return;
     }
 
-    _connectivityMonitoringStarted =
-        true;
+    _connectivityMonitoringStarted = true;
 
     debugPrint(
       'SCHEDULE CONNECTIVITY -> '
       'Starting monitoring',
     );
 
-    _connectivitySubscription =
-        _connectivityService
-            .connectionChanges
-            .listen(
+    _connectivitySubscription = _connectivityService.connectionChanges.listen(
       (connected) async {
         debugPrint(
           'SCHEDULE CONNECTIVITY -> '
@@ -320,9 +326,7 @@ class ScheduleViewModel
           DateTime? lastUpdated;
 
           try {
-            lastUpdated =
-                await _cacheMetadataRepository
-                    .getLastUpdated(
+            lastUpdated = await _cacheMetadataRepository.getLastUpdated(
               value.selectedDay,
             );
           } catch (error) {
@@ -332,16 +336,11 @@ class ScheduleViewModel
             );
           }
 
-          if (value.status ==
-              ScheduleLoadStatus.ready) {
+          if (value.status == ScheduleLoadStatus.ready) {
             _emit(
               value.copyWith(
-                connectivityStatus:
-                    ScheduleConnectivityStatus
-                        .cached,
-
-                scheduleLastUpdatedAt:
-                    lastUpdated,
+                connectivityStatus: ScheduleConnectivityStatus.cached,
+                scheduleLastUpdatedAt: lastUpdated,
               ),
             );
           }
@@ -353,8 +352,7 @@ class ScheduleViewModel
         // CONNECTION RECOVERED
         // -----------------------------------------------------------
 
-        if (value.connectivityStatus !=
-            ScheduleConnectivityStatus.online) {
+        if (value.connectivityStatus != ScheduleConnectivityStatus.online) {
           debugPrint(
             'SCHEDULE CONNECTIVITY -> '
             'Connection restored. '
@@ -384,17 +382,10 @@ class ScheduleViewModel
 
       _emit(
         value.copyWith(
-          nearbyFriendsStatus:
-              NearbyFriendsStatus.ready,
-
-          nearbyFriends:
-              const [],
-
-          nearbyFriendsMessage:
-              'No friends available.',
-
-          clearCurrentLocation:
-              true,
+          nearbyFriendsStatus: NearbyFriendsStatus.ready,
+          nearbyFriends: const [],
+          nearbyFriendsMessage: 'No friends available.',
+          clearCurrentLocation: true,
         ),
       );
 
@@ -403,14 +394,9 @@ class ScheduleViewModel
 
     _emit(
       value.copyWith(
-        nearbyFriendsStatus:
-            NearbyFriendsStatus.loading,
-
-        nearbyFriends:
-            const [],
-
-        clearNearbyFriendsMessage:
-            true,
+        nearbyFriendsStatus: NearbyFriendsStatus.loading,
+        nearbyFriends: const [],
+        clearNearbyFriendsMessage: true,
       ),
     );
 
@@ -429,11 +415,8 @@ class ScheduleViewModel
       // 4. keeps nearby friends
       // -------------------------------------------------------------
 
-      final result =
-          await _schedule
-              .loadNearbyFriends(
-        friends:
-            value.friends,
+      final result = await _schedule.loadNearbyFriends(
+        friends: value.friends,
       );
 
       debugPrint(
@@ -449,8 +432,7 @@ class ScheduleViewModel
         'nearby friends',
       );
 
-      for (final friend
-          in result.nearbyFriends) {
+      for (final friend in result.nearbyFriends) {
         debugPrint(
           'NEARBY VM -> '
           '${friend.name}: '
@@ -460,19 +442,12 @@ class ScheduleViewModel
 
       _emit(
         value.copyWith(
-          nearbyFriendsStatus:
-              NearbyFriendsStatus.ready,
-
-          nearbyFriends:
-              result.nearbyFriends,
-
-          currentLocation:
-              result.currentLocation,
-
-          nearbyFriendsMessage:
-              result.nearbyFriends.isEmpty
-                  ? 'No friends nearby.'
-                  : '${result.nearbyFriends.length} nearby friends.',
+          nearbyFriendsStatus: NearbyFriendsStatus.ready,
+          nearbyFriends: result.nearbyFriends,
+          currentLocation: result.currentLocation,
+          nearbyFriendsMessage: result.nearbyFriends.isEmpty
+              ? 'No friends nearby.'
+              : '${result.nearbyFriends.length} nearby friends.',
         ),
       );
     } catch (error, stackTrace) {
@@ -491,19 +466,12 @@ class ScheduleViewModel
 
       _emit(
         value.copyWith(
-          nearbyFriendsStatus:
-              NearbyFriendsStatus.error,
-
-          nearbyFriends:
-              const [],
-
-          nearbyFriendsMessage:
-              _friendlyLocationError(
+          nearbyFriendsStatus: NearbyFriendsStatus.error,
+          nearbyFriends: const [],
+          nearbyFriendsMessage: _friendlyLocationError(
             error,
           ),
-
-          clearCurrentLocation:
-              true,
+          clearCurrentLocation: true,
         ),
       );
     }
@@ -514,8 +482,13 @@ class ScheduleViewModel
   // ===================================================================
 
   Future<void> importGoogleCalendar() async {
-    if (value.calendarImportStatus ==
-        CalendarImportStatus.importing) {
+    if (!calendarImportEnabled) {
+      _emit(value.copyWith(
+          calendarImportStatus: CalendarImportStatus.error,
+          calendarImportMessage: 'Google Calendar import is not configured.'));
+      return;
+    }
+    if (value.calendarImportStatus == CalendarImportStatus.importing) {
       return;
     }
 
@@ -523,8 +496,7 @@ class ScheduleViewModel
     // GOOGLE CALENDAR REQUIRES INTERNET
     // ---------------------------------------------------------------
 
-    final hasConnection =
-        await _safeHasConnection();
+    final hasConnection = await _safeHasConnection();
 
     if (!hasConnection) {
       debugPrint(
@@ -534,11 +506,8 @@ class ScheduleViewModel
 
       _emit(
         value.copyWith(
-          calendarImportStatus:
-              CalendarImportStatus.error,
-
-          calendarImportMessage:
-              'Google Calendar import requires '
+          calendarImportStatus: CalendarImportStatus.error,
+          calendarImportMessage: 'Google Calendar import requires '
               'an internet connection.',
         ),
       );
@@ -548,37 +517,15 @@ class ScheduleViewModel
 
     _emit(
       value.copyWith(
-        calendarImportStatus:
-            CalendarImportStatus.importing,
-
-        calendarImportMessage:
-            'Importing Google Calendar...',
+        calendarImportStatus: CalendarImportStatus.importing,
+        calendarImportMessage: 'Importing Google Calendar...',
       ),
     );
 
     try {
-      // -------------------------------------------------------------
-      // IMPORTANT:
-      //
-      // We intentionally do NOT call
-      // _authorizeGoogleCalendar() here.
-      //
-      // The import flow already handles the authorization process
-      // in the existing architecture.
-      // -------------------------------------------------------------
-
-      debugPrint(
-        'SCHEDULE VM -> '
-        'Authorizing Google Calendar...',
-      );
-
-      debugPrint(
-        'SCHEDULE VM -> '
-        'Importing Google Calendar...',
-      );
-
-      final count =
-          await _importGoogleCalendar();
+      await _authorizeGoogleCalendar();
+      if (_disposed) return;
+      final count = await _importGoogleCalendar();
 
       debugPrint(
         'SCHEDULE VM -> '
@@ -588,11 +535,8 @@ class ScheduleViewModel
 
       _emit(
         value.copyWith(
-          calendarImportStatus:
-              CalendarImportStatus.imported,
-
-          calendarImportMessage:
-              '$count Google Calendar events imported.',
+          calendarImportStatus: CalendarImportStatus.imported,
+          calendarImportMessage: '$count Google Calendar events imported.',
         ),
       );
 
@@ -619,11 +563,8 @@ class ScheduleViewModel
 
       _emit(
         value.copyWith(
-          calendarImportStatus:
-              CalendarImportStatus.error,
-
-          calendarImportMessage:
-              _friendlyConnectivityError(
+          calendarImportStatus: CalendarImportStatus.error,
+          calendarImportMessage: _friendlyConnectivityError(
             error,
           ),
         ),
@@ -635,57 +576,13 @@ class ScheduleViewModel
   // DAY SELECTION
   // ===================================================================
 
-  Future<void> selectDay(
-    DateTime day,
-  ) async {
-    final normalized =
-        _dateOnly(
-      day,
-    );
-
-    if (_sameDay(
-      normalized,
-      value.selectedDay,
-    )) {
-      return;
-    }
-
-    debugPrint(
-      'SCHEDULE VM -> '
-      'Selected day: $normalized',
-    );
-
-    DateTime? lastUpdated;
-
-    try {
-      lastUpdated =
-          await _cacheMetadataRepository
-              .getLastUpdated(
-        normalized,
-      );
-    } catch (error) {
-      debugPrint(
-        'SCHEDULE CACHE -> '
-        'Unable to read metadata: $error',
-      );
-    }
-
-    _emit(
-      value.copyWith(
-        selectedDay:
-            normalized,
-
-        scheduleLastUpdatedAt:
-            lastUpdated,
-
-        clearSelectedSlot:
-            true,
-
-        clearError:
-            true,
-      ),
-    );
-
+  Future<void> selectDay(DateTime day) async {
+    if (_disposed) return;
+    _emit(value.copyWith(
+        selectedDay: _dateOnly(day),
+        clearSelectedSlot: true,
+        clearError: true,
+        clearScheduleLastUpdatedAt: true));
     await _refreshDay();
   }
 
@@ -693,17 +590,13 @@ class ScheduleViewModel
   // SCHEDULE PREFERENCES / QUICK DURATIONS
   // ===================================================================
 
-  Future<void>
-      loadSchedulePreferences() async {
+  Future<void> loadSchedulePreferences() async {
     try {
-      final preferences =
-          await _getSchedulePreferences();
+      final preferences = await _getSchedulePreferences();
 
       _emit(
         value.copyWith(
-          quickDurationsMinutes:
-              preferences
-                  .quickDurationsMinutes,
+          quickDurationsMinutes: preferences.quickDurationsMinutes,
         ),
       );
 
@@ -733,16 +626,14 @@ class ScheduleViewModel
   Future<void> addQuickDuration(
     int minutes,
   ) async {
-    if (minutes < 5 ||
-        minutes > 240) {
+    if (minutes < 5 || minutes > 240) {
       throw ArgumentError(
         'Duration must be between '
         '5 and 240 minutes.',
       );
     }
 
-    final previous =
-        List<int>.from(
+    final previous = List<int>.from(
       value.quickDurationsMinutes,
     );
 
@@ -768,8 +659,7 @@ class ScheduleViewModel
 
     _emit(
       value.copyWith(
-        quickDurationsMinutes:
-            updated,
+        quickDurationsMinutes: updated,
       ),
     );
 
@@ -780,8 +670,7 @@ class ScheduleViewModel
     } catch (error, stackTrace) {
       _emit(
         value.copyWith(
-          quickDurationsMinutes:
-              previous,
+          quickDurationsMinutes: previous,
         ),
       );
 
@@ -801,28 +690,23 @@ class ScheduleViewModel
   Future<void> removeQuickDuration(
     int minutes,
   ) async {
-    final previous =
-        List<int>.from(
+    final previous = List<int>.from(
       value.quickDurationsMinutes,
     );
 
-    final updated =
-        previous
-            .where(
-              (item) =>
-                  item != minutes,
-            )
-            .toList();
+    final updated = previous
+        .where(
+          (item) => item != minutes,
+        )
+        .toList();
 
-    if (updated.length ==
-        previous.length) {
+    if (updated.length == previous.length) {
       return;
     }
 
     _emit(
       value.copyWith(
-        quickDurationsMinutes:
-            updated,
+        quickDurationsMinutes: updated,
       ),
     );
 
@@ -833,8 +717,7 @@ class ScheduleViewModel
     } catch (error, stackTrace) {
       _emit(
         value.copyWith(
-          quickDurationsMinutes:
-              previous,
+          quickDurationsMinutes: previous,
         ),
       );
 
@@ -855,16 +738,14 @@ class ScheduleViewModel
     required int oldMinutes,
     required int newMinutes,
   }) async {
-    if (newMinutes < 5 ||
-        newMinutes > 240) {
+    if (newMinutes < 5 || newMinutes > 240) {
       throw ArgumentError(
         'Duration must be between '
         '5 and 240 minutes.',
       );
     }
 
-    final previous =
-        List<int>.from(
+    final previous = List<int>.from(
       value.quickDurationsMinutes,
     );
 
@@ -886,37 +767,23 @@ class ScheduleViewModel
       );
     }
 
-    final updated =
-        previous
-            .map(
-              (minutes) =>
-                  minutes ==
-                          oldMinutes
-                      ? newMinutes
-                      : minutes,
-            )
-            .toList();
+    final updated = previous
+        .map(
+          (minutes) => minutes == oldMinutes ? newMinutes : minutes,
+        )
+        .toList();
 
-    final wasSelected =
-        value.meetingDuration.inMinutes ==
-            oldMinutes;
+    final wasSelected = value.meetingDuration.inMinutes == oldMinutes;
 
     _emit(
       value.copyWith(
-        quickDurationsMinutes:
-            updated,
-
-        meetingDuration:
-            wasSelected
-                ? Duration(
-                    minutes:
-                        newMinutes,
-                  )
-                : value
-                    .meetingDuration,
-
-        clearSelectedSlot:
-            wasSelected,
+        quickDurationsMinutes: updated,
+        meetingDuration: wasSelected
+            ? Duration(
+                minutes: newMinutes,
+              )
+            : value.meetingDuration,
+        clearSelectedSlot: wasSelected,
       ),
     );
 
@@ -931,20 +798,13 @@ class ScheduleViewModel
     } catch (error, stackTrace) {
       _emit(
         value.copyWith(
-          quickDurationsMinutes:
-              previous,
-
-          meetingDuration:
-              wasSelected
-                  ? Duration(
-                      minutes:
-                          oldMinutes,
-                    )
-                  : value
-                      .meetingDuration,
-
-          clearSelectedSlot:
-              wasSelected,
+          quickDurationsMinutes: previous,
+          meetingDuration: wasSelected
+              ? Duration(
+                  minutes: oldMinutes,
+                )
+              : value.meetingDuration,
+          clearSelectedSlot: wasSelected,
         ),
       );
 
@@ -976,8 +836,7 @@ class ScheduleViewModel
       return;
     }
 
-    if (duration ==
-        value.meetingDuration) {
+    if (duration == value.meetingDuration) {
       return;
     }
 
@@ -989,11 +848,8 @@ class ScheduleViewModel
 
     _emit(
       value.copyWith(
-        meetingDuration:
-            duration,
-
-        clearSelectedSlot:
-            true,
+        meetingDuration: duration,
+        clearSelectedSlot: true,
       ),
     );
 
@@ -1007,8 +863,7 @@ class ScheduleViewModel
   Future<void> toggleFriend(
     String friendId,
   ) async {
-    final updated =
-        List<String>.from(
+    final updated = List<String>.from(
       value.selectedFriendIds,
     );
 
@@ -1038,11 +893,8 @@ class ScheduleViewModel
 
     _emit(
       value.copyWith(
-        selectedFriendIds:
-            updated,
-
-        clearSelectedSlot:
-            true,
+        selectedFriendIds: updated,
+        clearSelectedSlot: true,
       ),
     );
 
@@ -1076,8 +928,7 @@ class ScheduleViewModel
 
     _emit(
       value.copyWith(
-        selectedSlot:
-            slot,
+        selectedSlot: slot,
       ),
     );
   }
@@ -1087,286 +938,71 @@ class ScheduleViewModel
   // ===================================================================
 
   Future<void> _refreshDay() async {
-    debugPrint(
-      'SCHEDULE VM -> '
-      'Refreshing day: '
-      '${value.selectedDay}',
-    );
-
-    debugPrint(
-      'SCHEDULE VM -> '
-      'Selected friends: '
-      '${value.selectedFriendIds}',
-    );
-
-    // ---------------------------------------------------------------
-    // DETECT CURRENT CONNECTIVITY
-    // ---------------------------------------------------------------
-
-    final hasConnection =
-        await _safeHasConnection();
-
-    debugPrint(
-      'SCHEDULE CONNECTIVITY -> '
-      'network=$hasConnection',
-    );
-
-    // ---------------------------------------------------------------
-    // READ LAST SUCCESSFUL ONLINE UPDATE
-    // ---------------------------------------------------------------
-
-    DateTime? lastUpdated;
-
+    if (_disposed) return;
+    final version = ++_requestVersion;
+    final request = value;
+    _emit(value.copyWith(
+      status: ScheduleLoadStatus.loading,
+      myBlocks: const [],
+      friendBlocks: const [],
+      commonSlots: const [],
+      clearSelectedSlot: true,
+      clearError: true,
+    ));
     try {
-      lastUpdated =
-          await _cacheMetadataRepository
-              .getLastUpdated(
-        value.selectedDay,
+      final result = await _schedule.loadDay(
+        day: request.selectedDay,
+        friendIds: request.selectedFriendIds,
+        duration: request.meetingDuration,
+      );
+      if (_disposed || version != _requestVersion) return;
+
+      final selected =
+          result.commonSlots.isEmpty ? null : result.commonSlots.first;
+
+      final online =
+          isOffline != null ? !isOffline!() : await _safeHasConnection();
+      if (_disposed || version != _requestVersion) return;
+      DateTime? updated = online ? DateTime.now() : null;
+      if (!online) {
+        try {
+          updated = await _cacheMetadataRepository
+              .getLastUpdated(request.selectedDay);
+        } catch (_) {
+          /* Cache metadata must not hide a successfully loaded schedule. */
+        }
+      }
+      if (online) {
+        try {
+          await _cacheMetadataRepository.markUpdated(
+              request.selectedDay, updated!);
+        } catch (_) {/* Metadata is optional; schedule data remains usable. */}
+      }
+      if (_disposed || version != _requestVersion) return;
+      _emit(
+        value.copyWith(
+          connectivityStatus: online
+              ? ScheduleConnectivityStatus.online
+              : ScheduleConnectivityStatus.cached,
+          scheduleLastUpdatedAt: updated,
+          status: ScheduleLoadStatus.ready,
+          myBlocks: result.myBlocks,
+          friendBlocks: result.friendBlocks,
+          commonSlots: result.commonSlots,
+          selectedSlot: selected,
+          clearSelectedSlot: selected == null,
+          clearError: true,
+        ),
       );
     } catch (error) {
-      debugPrint(
-        'SCHEDULE CACHE -> '
-        'Unable to read metadata: '
-        '$error',
-      );
-    }
-
-    // ---------------------------------------------------------------
-    // FIRST USE + OFFLINE
-    //
-    // No previous successful server load exists for this day.
-    // ---------------------------------------------------------------
-
-    if (!hasConnection &&
-        lastUpdated == null) {
-      debugPrint(
-        'SCHEDULE CONNECTIVITY -> '
-        'Offline with no cache',
-      );
-
+      if (_disposed || version != _requestVersion) return;
       _emit(
         value.copyWith(
-          status:
-              ScheduleLoadStatus.error,
-
-          connectivityStatus:
-              ScheduleConnectivityStatus
-                  .offlineNoCache,
-
-          error:
-              'You are offline and there is no '
-              'saved schedule for this day yet. '
-              'Connect to the internet and retry.',
-
-          clearScheduleLastUpdatedAt:
-              true,
-
-          clearSelectedSlot:
-              true,
-        ),
-      );
-
-      return;
-    }
-
-    try {
-      // -------------------------------------------------------------
-      // LOAD DAY
-      //
-      // ManageSchedule loads:
-      //
-      // schedules/{currentUid}/slots
-      //
-      // +
-      //
-      // availability/{selectedFriendId}/slots
-      //
-      // and calculates common free slots.
-      //
-      // When Firestore persistence is enabled, its local persistence
-      // can satisfy reads when the server is unavailable.
-      // -------------------------------------------------------------
-
-      final result =
-          await _schedule.loadDay(
-        day:
-            value.selectedDay,
-
-        friendIds:
-            value.selectedFriendIds,
-
-        duration:
-            value.meetingDuration,
-      );
-
-      ScheduleConnectivityStatus
-          connectivityStatus;
-
-      DateTime? resultingUpdatedAt =
-          lastUpdated;
-
-      // -------------------------------------------------------------
-      // ONLINE
-      // -------------------------------------------------------------
-
-      if (hasConnection) {
-        resultingUpdatedAt =
-            DateTime.now();
-
-        try {
-          await _cacheMetadataRepository
-              .markUpdated(
-            value.selectedDay,
-            resultingUpdatedAt,
-          );
-        } catch (error) {
-          debugPrint(
-            'SCHEDULE CACHE -> '
-            'Unable to save timestamp: '
-            '$error',
-          );
-        }
-
-        connectivityStatus =
-            ScheduleConnectivityStatus
-                .online;
-
-        debugPrint(
-          'SCHEDULE CONNECTIVITY -> '
-          'Fresh network schedule loaded',
-        );
-      }
-
-      // -------------------------------------------------------------
-      // OFFLINE / CACHED
-      // -------------------------------------------------------------
-      else {
-        connectivityStatus =
-            ScheduleConnectivityStatus
-                .cached;
-
-        debugPrint(
-          'SCHEDULE CONNECTIVITY -> '
-          'Schedule loaded from '
-          'available local data/cache',
-        );
-      }
-
-      debugPrint(
-        'SCHEDULE VM -> '
-        'My blocks: '
-        '${result.myBlocks.length}',
-      );
-
-      debugPrint(
-        'SCHEDULE VM -> '
-        'Friend blocks: '
-        '${result.friendBlocks.length}',
-      );
-
-      debugPrint(
-        'SCHEDULE VM -> '
-        'Common slots: '
-        '${result.commonSlots.length}',
-      );
-
-      _emit(
-        value.copyWith(
-          status:
-              ScheduleLoadStatus.ready,
-
-          myBlocks:
-              result.myBlocks,
-
-          friendBlocks:
-              result.friendBlocks,
-
-          commonSlots:
-              result.commonSlots,
-
-          connectivityStatus:
-              connectivityStatus,
-
-          scheduleLastUpdatedAt:
-              resultingUpdatedAt,
-
-          clearSelectedSlot:
-              true,
-
-          clearError:
-              true,
-        ),
-      );
-    } catch (error, stackTrace) {
-      debugPrint(
-        'SCHEDULE VM -> '
-        'refresh error: $error',
-      );
-
-      debugPrint(
-        '$stackTrace',
-      );
-
-      // -------------------------------------------------------------
-      // FALLBACK:
-      //
-      // We know this day had a successful sync before.
-      //
-      // Preserve whatever data the UI already has rather than
-      // replacing everything with a blocking error screen.
-      // -------------------------------------------------------------
-
-      if (lastUpdated != null) {
-        debugPrint(
-          'SCHEDULE CONNECTIVITY -> '
-          'Refresh failed. '
-          'Keeping saved schedule.',
-        );
-
-        _emit(
-          value.copyWith(
-            status:
-                ScheduleLoadStatus.ready,
-
-            connectivityStatus:
-                ScheduleConnectivityStatus
-                    .cached,
-
-            scheduleLastUpdatedAt:
-                lastUpdated,
-
-            error:
-                'Unable to refresh. '
-                'Showing saved availability.',
-          ),
-        );
-
-        return;
-      }
-
-      // -------------------------------------------------------------
-      // NETWORK/CACHE BOTH FAILED
-      // -------------------------------------------------------------
-
-      _emit(
-        value.copyWith(
-          status:
-              ScheduleLoadStatus.error,
-
-          connectivityStatus:
-              hasConnection
-                  ? ScheduleConnectivityStatus
-                      .online
-                  : ScheduleConnectivityStatus
-                      .offlineNoCache,
-
-          error:
-              _friendlyConnectivityError(
-            error,
-          ),
-
-          clearSelectedSlot:
-              true,
+          connectivityStatus: ScheduleConnectivityStatus.offlineNoCache,
+          status: ScheduleLoadStatus.error,
+          error: error is StateError
+              ? error.message.toString()
+              : 'Unable to compare availability.',
         ),
       );
     }
@@ -1376,11 +1012,9 @@ class ScheduleViewModel
   // CONNECTIVITY HELPER
   // ===================================================================
 
-  Future<bool>
-      _safeHasConnection() async {
+  Future<bool> _safeHasConnection() async {
     try {
-      return await _connectivityService
-          .hasConnection();
+      return await _connectivityService.hasConnection();
     } catch (error) {
       debugPrint(
         'SCHEDULE CONNECTIVITY -> '
@@ -1405,10 +1039,7 @@ class ScheduleViewModel
   String _friendlyConnectivityError(
     Object error,
   ) {
-    final message =
-        error
-            .toString()
-            .toLowerCase();
+    final message = error.toString().toLowerCase();
 
     if (message.contains(
           'unavailable',
@@ -1447,8 +1078,7 @@ class ScheduleViewModel
       return;
     }
 
-    value =
-        newState;
+    value = newState;
   }
 
   // ===================================================================
@@ -1465,18 +1095,6 @@ class ScheduleViewModel
     );
   }
 
-  static bool _sameDay(
-    DateTime a,
-    DateTime b,
-  ) {
-    return a.year ==
-            b.year &&
-        a.month ==
-            b.month &&
-        a.day ==
-            b.day;
-  }
-
   // ===================================================================
   // LOCATION ERROR MESSAGE
   // ===================================================================
@@ -1484,8 +1102,7 @@ class ScheduleViewModel
   String _friendlyLocationError(
     Object error,
   ) {
-    final message =
-        error.toString();
+    final message = error.toString();
 
     if (message.contains(
       'Location services are disabled',
@@ -1517,11 +1134,9 @@ class ScheduleViewModel
 
   @override
   void dispose() {
-    _disposed =
-        true;
+    _disposed = true;
 
-    _connectivitySubscription
-        ?.cancel();
+    _connectivitySubscription?.cancel();
 
     super.dispose();
   }

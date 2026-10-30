@@ -1,3 +1,4 @@
+import '../../../activities/domain/entities/planning_context.dart';
 import '../entities/common_slot.dart';
 import '../entities/schedule_block.dart';
 import '../entities/schedule_friend.dart';
@@ -32,36 +33,47 @@ class NearbyFriendsResult {
 }
 
 class ManageSchedule {
-  final ScheduleRepository
-      _repository;
+  final ScheduleRepository _repository;
 
-  final AvailabilityService
-      _availabilityService;
+  final AvailabilityService _availabilityService;
 
-  final LocationRepository
-      _locationRepository;
+  final LocationRepository? _locationRepository;
 
-  final DistanceService
-      _distanceService;
+  final DistanceService _distanceService;
 
   /// Friend is considered nearby within 2 km.
-  static const double
-      nearbyRadiusMeters =
-      2000;
+  static const double nearbyRadiusMeters = 2000;
 
   const ManageSchedule(
     this._repository,
-    this._availabilityService,
+    this._availabilityService, [
     this._locationRepository,
-    this._distanceService,
-  );
+    this._distanceService = const DistanceService(),
+  ]);
+
+  Future<PlanningContext> validatePlanningSlot(PlanningContext context) async {
+    final source = _repository;
+    if (source is PlanningSlotValidator) {
+      return (source as PlanningSlotValidator).validatePlanningSlot(context);
+    }
+    return context; // Explicit demo repositories have no server evidence.
+  }
+
+  Future<CreationComparison?> prepareProposalComparison(
+      DateTime day, List<String> friendIds) async {
+    if (friendIds.isEmpty) return null;
+    final source = _repository;
+    return source is ProposalComparisonProvider
+        ? (source as ProposalComparisonProvider)
+            .prepareProposalComparison(day, friendIds)
+        : null;
+  }
 
   // ===============================================================
   // FRIENDS
   // ===============================================================
 
-  Future<List<ScheduleFriend>>
-      loadFriends() {
+  Future<List<ScheduleFriend>> loadFriends() {
     return _repository.getFriends();
   }
 
@@ -69,86 +81,57 @@ class ManageSchedule {
   // NEARBY FRIENDS
   // ===============================================================
 
-  Future<NearbyFriendsResult>
-      loadNearbyFriends({
-    required List<ScheduleFriend>
-        friends,
-  }) async {
-    print(
-      'NEARBY -> Getting current GPS position...',
-    );
+  bool get supportsLocation => _locationRepository != null;
 
+  Future<NearbyFriendsResult> loadNearbyFriends({
+    required List<ScheduleFriend> friends,
+  }) async {
     // -------------------------------------------------------------
     // 1. Real GPS position from this phone
     // -------------------------------------------------------------
 
-    final currentLocation =
-        await _locationRepository
-            .getCurrentLocation();
-
-    print(
-      'NEARBY -> Current user = '
-      '${currentLocation.latitude}, '
-      '${currentLocation.longitude}',
-    );
+    final currentLocation = await _locationRepository!.getCurrentLocation();
 
     // -------------------------------------------------------------
     // 2. IDs of accepted friends
     // -------------------------------------------------------------
 
-    final friendIds =
-        friends
-            .map(
-              (friend) =>
-                  friend.id,
-            )
-            .toList();
+    final friendIds = friends
+        .map(
+          (friend) => friend.id,
+        )
+        .toList();
 
     // -------------------------------------------------------------
     // 3. Dummy/shared friend locations from Firebase
     // -------------------------------------------------------------
 
-    final locations =
-        await _repository
-            .getFriendLocations(
-      friendIds:
-          friendIds,
+    final locations = await _repository.getFriendLocations(
+      friendIds: friendIds,
     );
 
     // -------------------------------------------------------------
     // 4. Calculate distance
     // -------------------------------------------------------------
 
-    final nearby =
-        <ScheduleFriend>[];
+    final nearby = <ScheduleFriend>[];
 
     for (final friend in friends) {
-      final friendLocation =
-          locations[friend.id];
+      final friendLocation = locations[friend.id];
 
       if (friendLocation == null) {
         continue;
       }
 
-      final distance =
-          _distanceService
-              .distanceMeters(
+      final distance = _distanceService.distanceMeters(
         currentLocation,
         friendLocation,
       );
 
-      print(
-        'NEARBY -> '
-        '${friend.name}: '
-        '${distance.toStringAsFixed(0)} m',
-      );
-
-      if (distance <=
-          nearbyRadiusMeters) {
+      if (distance <= nearbyRadiusMeters) {
         nearby.add(
           friend.copyWith(
-            distanceMeters:
-                distance,
+            distanceMeters: distance,
           ),
         );
       }
@@ -159,26 +142,14 @@ class ManageSchedule {
     // -------------------------------------------------------------
 
     nearby.sort(
-      (a, b) =>
-          (a.distanceMeters ??
-                  double.infinity)
-              .compareTo(
-        b.distanceMeters ??
-            double.infinity,
+      (a, b) => (a.distanceMeters ?? double.infinity).compareTo(
+        b.distanceMeters ?? double.infinity,
       ),
     );
 
-    print(
-      'NEARBY -> '
-      '${nearby.length} friends inside '
-      '${nearbyRadiusMeters.toStringAsFixed(0)} m',
-    );
-
     return NearbyFriendsResult(
-      currentLocation:
-          currentLocation,
-      nearbyFriends:
-          nearby,
+      currentLocation: currentLocation,
+      nearbyFriends: nearby,
     );
   }
 
@@ -186,53 +157,35 @@ class ManageSchedule {
   // DAY
   // ===============================================================
 
-  Future<ScheduleDayResult>
-      loadDay({
+  Future<ScheduleDayResult> loadDay({
     required DateTime day,
-    required List<String>
-        friendIds,
+    required List<String> friendIds,
     required Duration duration,
   }) async {
-    final myBlocks =
-        await _repository
-            .getMySchedule(
-      day:
-          day,
+    final myBlocks = await _repository.getMySchedule(
+      day: day,
     );
 
-    final friendBlocks =
-        await _repository
-            .getFriendsBusyBlocks(
-      day:
-          day,
-      friendIds:
-          friendIds,
+    final friendBlocks = await _repository.getFriendsBusyBlocks(
+      day: day,
+      friendIds: friendIds,
     );
 
-    final busyBlocks =
-        <ScheduleBlock>[
+    final busyBlocks = <ScheduleBlock>[
       ...myBlocks,
       ...friendBlocks,
     ];
 
-    final commonSlots =
-        _availabilityService
-            .findCommonSlots(
-      day:
-          day,
-      busyBlocks:
-          busyBlocks,
-      duration:
-          duration,
+    final commonSlots = _availabilityService.findCommonSlots(
+      day: day,
+      busyBlocks: busyBlocks,
+      duration: duration,
     );
 
     return ScheduleDayResult(
-      myBlocks:
-          myBlocks,
-      friendBlocks:
-          friendBlocks,
-      commonSlots:
-          commonSlots,
+      myBlocks: myBlocks,
+      friendBlocks: friendBlocks,
+      commonSlots: commonSlots,
     );
   }
 }

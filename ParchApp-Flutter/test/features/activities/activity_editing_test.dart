@@ -60,8 +60,18 @@ void main() {
     expect(router.state.uri.path, AppRoutes.createActivity);
     await tester.enterText(
         find.widgetWithText(TextField, 'Activity name'), 'Created from Home');
+    if (find.text('Review Activity').evaluate().length == 1 &&
+        find.text('Create Activity').evaluate().isEmpty) {
+      await tester.ensureVisible(find.text('Review Activity'));
+      await tester.tap(find.text('Review Activity'));
+      await tester.pumpAndSettle();
+    }
     await tester.ensureVisible(find.text('Create Activity'));
     await tester.tap(find.text('Create Activity'));
+    await tester.pumpAndSettle();
+    expect(router.state.uri.path, AppRoutes.activityResult('created-document'));
+    await tester.ensureVisible(find.text('View Details'));
+    await tester.tap(find.text('View Details'));
     await tester.pumpAndSettle();
     expect(router.state.uri.path, AppRoutes.studySession('created-document'));
     expect(find.text('Created from Home'), findsOneWidget);
@@ -73,7 +83,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  test('create validates data and does not send schedule or analytics fields',
+  test('create validates data and sends an idempotent unscheduled publication',
       () async {
     final editor = ActivityEditorViewModel(manage);
     addTearDown(editor.dispose);
@@ -87,15 +97,15 @@ void main() {
     expect(
         written.keys,
         unorderedEquals([
+          'requestId',
           'groupId',
-          'title',
-          'description',
-          'category',
-          'location',
-          'status',
-          'date',
-          'time'
+          'fields',
+          'timeZone',
+          'measurementVersion'
         ]));
+    expect(written['requestId'], editor.publicationKey);
+    expect((written['fields'] as Map)['title'], draft.title);
+    expect(written.containsKey('startTime'), isFalse);
     final reopened = await manage.load('created-document');
     expect(reopened!.title, draft.title);
     expect(reopened.startsAt, isNull);
@@ -132,8 +142,16 @@ void main() {
     expect(saved.startsAt, DateTime.utc(2030, 10, 2, 16));
     expect(
         source.writes.single.keys,
-        unorderedEquals(
-            ['title', 'description', 'category', 'location', 'status']));
+        unorderedEquals([
+          'title',
+          'description',
+          'category',
+          'location',
+          'locationDetails',
+          'status',
+          'date',
+          'time'
+        ]));
     await expectLater(
         manage.updateDetails(
             'firestore-document',
@@ -168,6 +186,12 @@ void main() {
     await tester.enterText(
         find.widgetWithText(TextField, 'Activity name'), 'New activity');
     source.failWrite = true;
+    if (find.text('Review Activity').evaluate().length == 1 &&
+        find.text('Create Activity').evaluate().isEmpty) {
+      await tester.ensureVisible(find.text('Review Activity'));
+      await tester.tap(find.text('Review Activity'));
+      await tester.pumpAndSettle();
+    }
     await tester.ensureVisible(find.text('Create Activity'));
     await tester.tap(find.text('Create Activity'));
     await tester.pumpAndSettle();
@@ -175,6 +199,12 @@ void main() {
     expect(find.text('New activity'), findsOneWidget);
     expect(editor.value.error, isNotNull);
     source.failWrite = false;
+    if (find.text('Review Activity').evaluate().length == 1 &&
+        find.text('Create Activity').evaluate().isEmpty) {
+      await tester.ensureVisible(find.text('Review Activity'));
+      await tester.tap(find.text('Review Activity'));
+      await tester.pumpAndSettle();
+    }
     await tester.ensureVisible(find.text('Create Activity'));
     await tester.tap(find.text('Create Activity'));
     await tester.pumpAndSettle();

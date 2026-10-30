@@ -1,6 +1,5 @@
 class SchedulePreferences {
-  static const List<int>
-      defaultQuickDurationsMinutes = [
+  static const List<int> defaultQuickDurationsMinutes = [
     30,
     45,
     60,
@@ -15,8 +14,7 @@ class SchedulePreferences {
 
   factory SchedulePreferences.defaults() {
     return const SchedulePreferences(
-      quickDurationsMinutes:
-          defaultQuickDurationsMinutes,
+      quickDurationsMinutes: defaultQuickDurationsMinutes,
     );
   }
 }

@@ -1,4 +1,8 @@
+import '../dependency_injection/expansion_dependencies.dart';
+import '../../features/activities/domain/entities/planning_context.dart';
 import 'package:go_router/go_router.dart';
+import 'app_extra_codec.dart';
+import '../../shared/widgets/unavailable_feature_view.dart';
 
 import '../../features/welcome/presentation/views/welcome_view.dart';
 
@@ -18,18 +22,90 @@ abstract final class AppRouter {
     required ScheduleDependencies scheduleDependencies,
     required ProfileDependencies profileDependencies,
     required GroupsDependencies groupsDependencies,
+    ExpansionDependencies? expansions,
     String initialLocation = AppRoutes.welcome,
     GoRouterRedirect? redirect,
   }) =>
       GoRouter(
+        extraCodec: const AppExtraCodec(),
         initialLocation: initialLocation,
         redirect: redirect,
         routes: [
+          if (expansions != null) ...[
+            GoRoute(
+                path: '/insights/coordination',
+                builder: (_, __) => expansions.insights()),
+            GoRoute(
+                path: '/join',
+                builder: (context, state) => expansions.join(null)),
+            GoRoute(
+                path: '/join/:token',
+                builder: (context, state) =>
+                    expansions.join(state.pathParameters['token'])),
+            GoRoute(
+                path: '/people/:userId',
+                builder: (context, state) =>
+                    expansions.sharedProfile(state.pathParameters['userId']!)),
+            GoRoute(
+                path: '/share/:kind/:entityId',
+                builder: (context, state) => expansions.share(
+                    state.pathParameters['kind']!,
+                    state.pathParameters['entityId']!)),
+            GoRoute(
+                path: '/calendar',
+                builder: (context, state) => expansions.calendar()),
+            GoRoute(
+                path: '/activities/:activityId/materials',
+                builder: (context, state) =>
+                    expansions.materials(state.pathParameters['activityId']!)),
+          ],
+          GoRoute(
+              path: '/activities/:activityId/suggested-times',
+              builder: (context, state) => activitiesDependencies
+                  .suggestedTimesRoute(state.pathParameters['activityId']!)),
+          GoRoute(
+              path: AppRoutes.createGroup,
+              builder: (context, state) => groupsDependencies.createRoute()),
+          GoRoute(
+              path: AppRoutes.groupInvitations,
+              builder: (context, state) =>
+                  groupsDependencies.invitationsRoute()),
+          GoRoute(
+              path: AppRoutes.groupDetailsPattern,
+              builder: (context, state) => groupsDependencies
+                  .detailsRoute(state.pathParameters['groupId']!)),
+          GoRoute(
+            path: AppRoutes.discover,
+            builder: (context, state) =>
+                expansions?.discover() ??
+                const UnavailableFeatureView(
+                    title: 'Discover',
+                    selectedIndex: 0,
+                    actionLabel: 'View your groups',
+                    actionRoute: AppRoutes.groups),
+          ),
           GoRoute(
               path: AppRoutes.createActivity,
               builder: (context, state) => activitiesDependencies.createRoute(
+                  groupId: state.uri.queryParameters['groupId'],
+                  comparison: state.extra is CreationComparison
+                      ? state.extra as CreationComparison
+                      : null,
+                  planning: state.extra is PlanningContext
+                      ? state.extra as PlanningContext
+                      : null,
                   date: state.uri.queryParameters['date'] ?? '',
                   time: state.uri.queryParameters['time'] ?? '')),
+          GoRoute(
+              path: AppRoutes.activityResultPattern,
+              builder: (context, state) => activitiesDependencies.resultRoute(
+                  state.pathParameters['activityId']!,
+                  acknowledged:
+                      state.extra == state.pathParameters['activityId'])),
+          GoRoute(
+              path: AppRoutes.activityInvitationPattern,
+              builder: (context, state) => activitiesDependencies
+                  .invitationRoute(state.pathParameters['activityId']!)),
           GoRoute(
             path: AppRoutes.studySessionPattern,
             builder: (context, state) => activitiesDependencies
@@ -46,7 +122,14 @@ abstract final class AppRouter {
           ),
           GoRoute(
             path: AppRoutes.schedule,
-            builder: (context, state) => scheduleDependencies.route(),
+            builder: (context, state) => scheduleDependencies.route(
+                groupId: state.uri.queryParameters['groupId'],
+                initialDay:
+                    DateTime.tryParse(state.uri.queryParameters['date'] ?? ''),
+                activityHeader: state.uri.queryParameters['activityId'] == null
+                    ? null
+                    : activitiesDependencies.scheduleHeader(
+                        state.uri.queryParameters['activityId']!)),
           ),
           GoRoute(
             path: AppRoutes.welcome,

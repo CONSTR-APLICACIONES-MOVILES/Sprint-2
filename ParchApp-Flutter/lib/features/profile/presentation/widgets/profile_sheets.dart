@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/entities/profile_user.dart';
-import '../../domain/entities/photo_source.dart';
 
 Future<T?> showProfileSheet<T>(BuildContext context, {required Widget child}) =>
     showModalBottomSheet<T>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
@@ -17,44 +18,9 @@ Future<T?> showProfileSheet<T>(BuildContext context, {required Widget child}) =>
       ),
     );
 
-class AvailabilitySheet extends StatelessWidget {
-  final AvailabilityStatus current;
-  const AvailabilitySheet({super.key, required this.current});
-
-  @override
-  Widget build(BuildContext context) => Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Text('Change availability',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 8),
-          for (final status in AvailabilityStatus.values)
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              onTap: () => Navigator.of(context).pop(status),
-              leading: Icon(Icons.circle,
-                  size: 14,
-                  color: status == AvailabilityStatus.active
-                      ? AppColors.success
-                      : AppColors.friendBusy),
-              title: Text(
-                  status == AvailabilityStatus.active ? 'Active' : 'Busy',
-                  style: const TextStyle(fontWeight: FontWeight.w700)),
-              subtitle: Text(status == AvailabilityStatus.active
-                  ? 'Friends can invite you to plans'
-                  : 'You will not show up as available'),
-              trailing: status == current
-                  ? const Icon(Icons.check, color: AppColors.primary)
-                  : null,
-            ),
-        ],
-      );
-}
-
 class EditProfileSheet extends StatefulWidget {
   final ProfileUser user;
-  final ValueChanged<PhotoSource> onPhoto;
+  final VoidCallback onPhoto;
 
   const EditProfileSheet(
       {super.key, required this.user, required this.onPhoto});
@@ -68,7 +34,7 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
   late final _program = TextEditingController(text: widget.user.program);
   late final _campus = TextEditingController(text: widget.user.campus);
   late final _university = TextEditingController(text: widget.user.university);
-  late int _semester = widget.user.semester;
+  late int _semester = widget.user.semester == 0 ? 1 : widget.user.semester;
   late AcademicLevel _level = widget.user.academicLevel;
 
   @override
@@ -94,9 +60,9 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
     ));
   }
 
-  void _photo(PhotoSource source) {
+  void _photo() {
     Navigator.of(context).pop();
-    widget.onPhoto(source);
+    widget.onPhoto();
   }
 
   @override
@@ -107,23 +73,11 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
           const Text('Edit profile',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
           const SizedBox(height: 16),
-                    Row(children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () => _photo(PhotoSource.frontCamera),
-                icon: const Icon(Icons.camera_front_outlined, size: 18),
-                label: const Text('Take a selfie'),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () => _photo(PhotoSource.rearCamera),
-                icon: const Icon(Icons.photo_camera_outlined, size: 18),
-                label: const Text('Rear camera'),
-              ),
-            ),
-          ]),
+          OutlinedButton.icon(
+            onPressed: _photo,
+            icon: const Icon(Icons.photo_camera_outlined, size: 18),
+            label: const Text('Take a picture'),
+          ),
           const SizedBox(height: 16),
           _field(_name, 'Full name'),
           const SizedBox(height: 12),
