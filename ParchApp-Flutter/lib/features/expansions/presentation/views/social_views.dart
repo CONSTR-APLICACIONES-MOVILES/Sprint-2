@@ -208,7 +208,7 @@ class _FriendsState extends SessionState<FriendsView> {
                       child: const Text('Enter invitation code'))
                 ]),
                 if (loading) const LinearProgressIndicator(),
-                if (offline) const Text('Offline copy'),
+                if (offline) const Text('Offline'),
                 if (!loading && error == null && rows.isEmpty)
                   Text(searching
                       ? 'No results. Enter at least two username characters.'

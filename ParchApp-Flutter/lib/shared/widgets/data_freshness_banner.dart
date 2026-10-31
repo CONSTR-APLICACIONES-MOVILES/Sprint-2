@@ -19,7 +19,7 @@ class DataFreshnessBanner extends StatelessWidget {
               color: AppColors.textPrimary, size: 20),
           SizedBox(width: 10),
           Expanded(
-              child: Text('Offline copy',
+              child: Text('Offline',
                   style: TextStyle(
                       color: AppColors.textPrimary, fontSize: 12)))
         ]));

@@ -31,7 +31,7 @@ void main() {
     await tester.pumpWidget(MaterialApp(home: ProfileView(viewModel: model)));
     await tester.pumpAndSettle();
     expect(find.text('Saved student'), findsOneWidget);
-    expect(find.text('Offline copy'), findsOneWidget);
+    expect(find.text('Offline'), findsNWidgets(3));
     expect(find.textContaining('May be out of date'), findsNothing);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
@@ -54,7 +54,7 @@ void main() {
     await tester.scrollUntilVisible(find.text('Saved activity'), 150,
         scrollable: find.byType(Scrollable).first);
     expect(find.text('Saved activity'), findsOneWidget);
-    expect(find.text('Offline copy'), findsOneWidget);
+    expect(find.text('Offline'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

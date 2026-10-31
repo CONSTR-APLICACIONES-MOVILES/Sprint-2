@@ -149,7 +149,7 @@ void main() {
             child: child!),
         home: FriendsView(repository: fake)));
     await tester.pumpAndSettle();
-    expect(find.text('Offline copy'), findsOneWidget);
+    expect(find.text('Offline'), findsOneWidget);
     await tester.drag(find.byType(ListView), const Offset(0, -500));
     await tester.pumpAndSettle();
     expect(find.textContaining('Incoming request'), findsOneWidget);

@@ -126,7 +126,7 @@ void main() {
             body: DataFreshnessBanner(
                 freshness: DataFreshness(
                     offline: true, cachedAt: DateTime.utc(2020, 1, 1, 16))))));
-    expect(find.text('Offline copy'), findsOneWidget);
+    expect(find.text('Offline'), findsOneWidget);
     expect(find.textContaining('May be out of date'), findsNothing);
   });
   testWidgets('insights distinguish empty denominators, read errors and retry',
