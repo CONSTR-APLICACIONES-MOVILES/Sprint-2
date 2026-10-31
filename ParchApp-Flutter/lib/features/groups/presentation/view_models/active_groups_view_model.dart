@@ -67,7 +67,7 @@ class ActiveGroupsViewModel extends ValueNotifier<ActiveGroupsState> {
 
   Future<void> _loadWeather(List<ActiveGroup> groups) async {
     final weather = _weather;
-    if (weather == null || _disposed || value.freshness.offline) return;
+    if (weather == null || _disposed) return;
     try {
       final forecasts = await weather.forGroups(groups, _now());
       _emit(value.copyWith(weather: forecasts, error: value.error));
